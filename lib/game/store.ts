@@ -23,6 +23,13 @@ export interface BenchSlot {
   card: Card | null;
 }
 
+/** Persisted state of the current dice draw — reload can't cheat a free spin. */
+export interface DraftDraw {
+  squadId: string | null; // squad currently on the table
+  used: boolean;          // already called someone from this draw
+  freeRoll: boolean;      // next roll is free (start / right after a call-up)
+}
+
 export const USER_COLORS: [string, string] = ["#00FF87", "#0B1120"];
 export const USER_KIT2: [string, string] = ["#F4F7F5", "#0B1120"];
 export const BENCH_SIZE = 4;
@@ -40,6 +47,7 @@ interface CareerState {
   rerollsLeft: number;       // shared budget for extra roulette spins
   benchBonusGranted: boolean; // +1 reroll when the XI is complete
   introSeen: boolean;        // press-conference intro played?
+  draftDraw: DraftDraw;      // current draw on the table (anti-cheat persisted)
 
   tactics: Tactics;
   lineupIds: (string | null)[]; // card player ids aligned to FORMATIONS[tactics.formation]
@@ -54,6 +62,7 @@ interface CareerState {
   newCareer: (coachName: string, editionId: string, formation: FormationId, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
   newCareer2026: (coachName: string, squadId: string, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
   setDraftFormation: (f: FormationId) => void;
+  setDraftDraw: (d: Partial<DraftDraw>) => void;
   fillSlot: (index: number, card: Card) => void;
   fillBench: (index: number, card: Card) => void;
   spendReroll: () => void;
@@ -123,6 +132,7 @@ const freshCareer = {
   rerollsLeft: REROLL_BUDGET,
   benchBonusGranted: false,
   introSeen: false,
+  draftDraw: { squadId: null, used: false, freeRoll: true } as DraftDraw,
   tactics: initialTactics,
   lineupIds: FORMATIONS["4-2-3-1"].map(() => null as string | null),
   benchIds: [] as string[],
@@ -195,6 +205,9 @@ export const useCareer = create<CareerState>()(
           const slots = FORMATIONS[f].map((slot, i) => ({ pos: slot.pos, card: lineup[i] ?? null }));
           return { draftFormation: f, slots, tactics: { ...s.tactics, formation: f } };
         }),
+
+      setDraftDraw: (d) =>
+        set((s) => ({ draftDraw: { ...s.draftDraw, ...d } })),
 
       fillSlot: (index, card) =>
         set((s) => {
@@ -342,13 +355,12 @@ export const useCareer = create<CareerState>()(
     }),
     {
       name: "futbattle-career",
-      version: 2,
-      migrate: (persisted) => {
-        // v1 saves (8-group cup, teamName, star caps) are incompatible with
-        // the 2026 format — start clean, keeping nothing.
-        const p = persisted as Partial<CareerState> & { teamName?: string };
-        if (p && typeof p.coachName === "string") return p as CareerState;
-        return { ...freshCareer } as CareerState;
+      version: 3,
+      migrate: (persisted, version) => {
+        // pre-v3 saves reference re-anchored squad ids (fra-1984 → fra-1986
+        // etc.) and lack draftDraw — start clean, keeping nothing.
+        if (version < 3) return { ...freshCareer } as CareerState;
+        return persisted as CareerState;
       },
     }
   )

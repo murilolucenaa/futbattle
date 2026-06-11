@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCareer } from "@/lib/game/store";
-import { sfxBack, sfxMove } from "@/lib/sfx";
+import { sfxError } from "@/lib/sfx";
 import { IconLock } from "@/components/icons";
 
 export default function TopBar() {
@@ -22,32 +22,28 @@ export default function TopBar() {
 
   function clickCopa() {
     if (cupReady) { router.push("/cup"); return; }
-    sfxBack();
+    sfxError();
     setToast(draftDone ? "Já está tudo pronto, mister? Faça o sorteio na tela da Seleção." : "Primeiro a convocação, mister. Depois o sorteio da Copa.");
     setTimeout(() => setToast(null), 2600);
   }
 
-  const linkCls = (active: boolean, locked = false) =>
-    `px-4 py-1.5 rounded-full text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-      active
-        ? "bg-[var(--accent)] text-[#04130B]"
-        : locked
-          ? "text-[var(--muted)] opacity-60"
-          : "text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]"
+  const navCls = (active: boolean, locked = false) =>
+    `arc-btn px-4 py-1 text-xs flex items-center gap-1.5 ${
+      active ? "" : locked ? "arc-btn--paper opacity-60" : "arc-btn--paper"
     }`;
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[rgba(6,10,18,0.7)] border-b border-[var(--border)]">
+    <header className="sticky top-0 z-40 bg-[var(--ink)] border-b-[3px] border-black/60">
       <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="font-display text-xl tracking-wide">
-          <span className="text-[var(--accent)]">FUT</span>BATTLE
+        <Link href="/" data-sfx="back" className="font-display text-2xl tracking-wide text-[var(--paper)]">
+          <span className="text-[var(--amarelo)]">FUT</span>BATTLE
         </Link>
-        <nav className="flex items-center gap-1">
-          <Link href="/squad" onMouseEnter={sfxMove} className={linkCls(pathname.startsWith("/squad"))}>
+        <nav className="flex items-center gap-2">
+          <Link href="/squad" data-sfx="click" className={navCls(pathname.startsWith("/squad"))}>
             Seleção
           </Link>
-          <button onClick={clickCopa} onMouseEnter={sfxMove} className={linkCls(pathname.startsWith("/cup"), !cupReady)}>
-            {!cupReady && <IconLock size={13} />} Copa
+          <button onClick={clickCopa} data-sfx={cupReady ? "click" : undefined} className={navCls(pathname.startsWith("/cup"), !cupReady)}>
+            {!cupReady && <IconLock size={12} />} Copa
           </button>
         </nav>
       </div>
@@ -57,7 +53,7 @@ export default function TopBar() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute left-1/2 -translate-x-1/2 top-16 glass-strong px-5 py-3 text-sm font-semibold whitespace-nowrap"
+            className="absolute left-1/2 -translate-x-1/2 top-16 arc-panel px-5 py-3 font-arc text-sm font-extrabold whitespace-nowrap text-[var(--ink)]"
           >
             {toast}
           </motion.div>

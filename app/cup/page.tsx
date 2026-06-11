@@ -10,7 +10,6 @@ import {
 } from "@/lib/game/cup";
 import { SQUAD_BY_ID, squadCode } from "@/lib/data/squads";
 import { EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
-import { sfxMove } from "@/lib/sfx";
 import { IconAssist, IconBall, IconStadium, IconStar, IconTrophy } from "@/components/icons";
 import type { CupState, Fixture } from "@/lib/game/types";
 
@@ -74,9 +73,10 @@ export default function CupPage() {
   return (
     <>
       <TopBar />
-      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-6">
-        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--muted)] mb-3 flex items-center gap-2">
-          <IconTrophy size={14} className="text-[var(--gold)]" />
+      <main className="arc-bg flex-1 w-full">
+        <div className="mx-auto max-w-6xl w-full px-4 py-6">
+        <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] text-white/85 mb-3 flex items-center gap-2">
+          <IconTrophy size={14} className="text-[var(--amarelo)]" />
           Copa do Mundo FUTBATTLE {ed ? `· ${editionLabel(ed)}` : ""} · formato 2026 · 48 seleções
         </div>
 
@@ -87,12 +87,9 @@ export default function CupPage() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-strong p-6 mb-6 relative overflow-hidden"
+            className="arc-panel p-6 mb-6 relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-[rgba(0,255,135,0.08)] to-transparent pointer-events-none" />
-            <div className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--gold)] mb-1">
-              {ROUND_LABEL[next.round]} {next.group ? `· Grupo ${next.group}` : ""}
-            </div>
+            <span className="arc-tag mb-2">★ {ROUND_LABEL[next.round]}{next.group ? ` · Grupo ${next.group}` : ""}</span>
             {next.stadium && (
               <div className="text-xs text-[var(--muted)] mb-2 flex items-center gap-1.5">
                 <IconStadium size={13} /> {next.stadium}
@@ -104,14 +101,15 @@ export default function CupPage() {
                 <span className="text-[var(--muted)]">x</span>
                 <TeamLabel cup={cup} id={next.awayId} bold />
               </div>
-              <button onClick={() => router.push("/match")} className="btn-hero px-8 py-3.5 text-lg">
-                Jogar partida →
+              <button data-sfx="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3">
+                <span className="block text-xl leading-tight">Bora pro jogo</span>
+                <span className="block font-arc text-[10px] font-bold opacity-80 mt-0.5">aquece que é sua vez, mister</span>
               </button>
             </div>
           </motion.div>
         ) : (
-          <div className="glass-strong p-6 mb-6 text-center">
-            <h2 className="font-display text-2xl mb-1">
+          <div className="arc-panel p-6 mb-6 text-center">
+            <h2 className="font-display text-3xl mb-1">
               {isOver || !next ? "Sua seleção foi eliminada" : "Copa encerrada"}
             </h2>
             {pod && (
@@ -127,7 +125,7 @@ export default function CupPage() {
             <p className="text-sm text-[var(--muted)] mb-4">
               Acompanhe o desfecho abaixo — ou comece uma nova campanha.
             </p>
-            <button onClick={() => router.push("/")} className="btn-hero px-6 py-3">Nova campanha</button>
+            <button data-sfx="confirm" onClick={() => router.push("/")} className="arc-btn arc-btn--lima px-6 py-3 text-base">Nova campanha</button>
           </div>
         )}
 
@@ -136,10 +134,9 @@ export default function CupPage() {
           {([["groups", "Fase de grupos"], ["leaders", "Líderes"], ["bracket", "Mata-mata"]] as const).map(([k, label]) => (
             <button
               key={k}
-              onClick={() => { sfxMove(); setTab(k); }}
-              className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-                tab === k ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"
-              }`}
+              data-sfx="click"
+              onClick={() => setTab(k)}
+              className={`arc-btn px-5 py-1.5 text-xs ${tab === k ? "" : "arc-btn--paper"}`}
             >
               {label}
             </button>
@@ -160,10 +157,10 @@ export default function CupPage() {
             >
               <motion.div
                 initial={{ scale: 0.93, y: 14 }} animate={{ scale: 1, y: 0 }}
-                className="glass-strong p-6 w-full max-w-md"
+                className="arc-panel p-6 w-full max-w-md"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--gold)] mb-1 text-center">
+                <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.25em] text-[var(--gold)] mb-1 text-center">
                   {ROUND_LABEL[detail.round]} {detail.group ? `· Grupo ${detail.group}` : ""}
                 </div>
                 {detail.stadium && (
@@ -194,11 +191,12 @@ export default function CupPage() {
                 ) : (
                   <p className="text-center text-sm text-[var(--muted)] mt-4">Sem gols — jogo truncado.</p>
                 )}
-                <button onClick={() => setDetail(null)} className="btn-ghost w-full py-2.5 mt-5 font-bold">Fechar</button>
+                <button data-sfx="back" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </main>
     </>
   );
@@ -218,14 +216,13 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
         {GROUP_NAMES.map((g) => (
           <button
             key={g}
-            onClick={() => { sfxMove(); setSel(g); }}
-            className={`w-10 h-10 rounded-xl font-display text-base transition-all relative ${
-              sel === g ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"
-            }`}
+            data-sfx="click"
+            onClick={() => setSel(g)}
+            className={`arc-btn arc-btn--card w-10 h-10 font-display text-base relative ${sel === g ? "" : "arc-btn--paper"}`}
           >
             {g}
             {g === cup.userGroup && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--gold)]" title="seu grupo" />
+              <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-[var(--rosa)] border-2 border-[var(--ink)]" title="seu grupo" />
             )}
           </button>
         ))}
@@ -233,7 +230,7 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-4 items-start">
         {/* standings */}
-        <motion.div key={sel} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`glass p-4 ${sel === cup.userGroup ? "ring-1 ring-[rgba(0,255,135,0.35)]" : ""}`}>
+        <motion.div key={sel} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`arc-panel p-4 ${sel === cup.userGroup ? "ring-[3px] ring-[var(--amarelo)]" : ""}`}>
           <h3 className="font-display text-xl mb-3">
             Grupo {sel} {sel === cup.userGroup && <span className="text-[var(--accent)] text-sm">· seu grupo</span>}
           </h3>
@@ -258,7 +255,7 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
                   <tr
                     key={row.teamId}
                     className={`border-t border-[var(--border)] ${
-                      i < 2 ? "bg-[rgba(0,255,135,0.06)]" : qualThird ? "bg-[rgba(255,197,61,0.07)]" : ""
+                      i < 2 ? "bg-[rgba(154,205,30,0.28)]" : qualThird ? "bg-[rgba(255,200,27,0.3)]" : ""
                     }`}
                   >
                     <td className={`py-2 text-xs font-bold ${i < 2 ? "text-[var(--accent)]" : qualThird ? "text-[var(--gold)]" : "text-[var(--muted)]"}`}>{i + 1}º</td>
@@ -281,7 +278,7 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
         </motion.div>
 
         {/* group fixtures by round */}
-        <div className="glass p-4">
+        <div className="arc-panel p-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Jogos do Grupo {sel}</h4>
           {[1, 2, 3].map((r) => (
             <div key={r} className="mb-2">
@@ -299,7 +296,7 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
 
       {/* thirds ranking once groups end */}
       {groupsDone && (
-        <div className="glass p-4 mt-4">
+        <div className="arc-panel p-4 mt-4">
           <h4 className="font-display text-lg mb-2">Ranking dos terceiros colocados</h4>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
             {thirdPlaceTable(cup).map((row, i) => (
@@ -328,14 +325,14 @@ function LeadersTab({ cup }: { cup: CupState }) {
       {boards.map((b) => {
         const rows = leaders(cup, b.key, 10);
         return (
-          <div key={b.key} className="glass p-4">
+          <div key={b.key} className="arc-panel p-4">
             <h3 className="font-display text-lg mb-3 flex items-center gap-2 text-[var(--accent)]">
               {b.icon} {b.title}
             </h3>
             {rows.length === 0 && <p className="text-sm text-[var(--muted)]">Sem dados ainda — bola pra frente.</p>}
             <div className="space-y-1">
               {rows.map((r, i) => (
-                <div key={r.playerId} className={`flex items-center gap-2 text-sm py-1.5 rounded-lg px-2 ${r.teamId === "USER" ? "bg-[rgba(0,255,135,0.07)]" : ""}`}>
+                <div key={r.playerId} className={`flex items-center gap-2 text-sm py-1.5 rounded-lg px-2 ${r.teamId === "USER" ? "bg-[rgba(154,205,30,0.28)]" : ""}`}>
                   <span className="w-5 text-xs font-bold text-[var(--muted)]">{i + 1}º</span>
                   <span className="shrink-0">{cup.teams[r.teamId]?.flag ?? ""}</span>
                   <span className="flex-1 truncate font-semibold">{r.name}</span>
@@ -356,7 +353,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
   const anyKo = cup.fixtures.some((f) => f.round >= 4);
   if (!anyKo) {
     return (
-      <div className="glass p-10 text-center text-[var(--muted)]">
+      <div className="arc-panel p-10 text-center font-arc font-bold text-[rgba(20,21,18,0.6)]">
         O chaveamento dos 32 classificados aparece quando a fase de grupos terminar.
       </div>
     );
@@ -370,7 +367,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
   const half = <T,>(arr: T[], side: 0 | 1): T[] => arr.slice(side * arr.length / 2, (side + 1) * arr.length / 2);
 
   function Tie({ f }: { f: Fixture | null }) {
-    if (!f) return <div className="glass px-2 py-2 text-center text-[10px] text-[var(--muted)]">a definir</div>;
+    if (!f) return <div className="arc-mini px-2 py-2 text-center font-arc text-[10px] font-bold opacity-60">a definir</div>;
     const played = f.scoreH !== null;
     const isUser = f.homeId === "USER" || f.awayId === "USER";
     const win = played
@@ -390,7 +387,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
     return (
       <button
         onClick={() => played && onFixture(f)}
-        className={`glass w-full px-2 py-1.5 space-y-1 text-left transition-colors ${played ? "hover:bg-[var(--surface-2)]" : ""} ${isUser ? "ring-1 ring-[rgba(0,255,135,0.4)]" : ""}`}
+        className={`arc-mini w-full px-2 py-1.5 space-y-1 text-left transition-all ${played ? "hover:-translate-y-px" : ""} ${isUser ? "ring-[2.5px] ring-[var(--amarelo)]" : ""}`}
       >
         {row(f.homeId, "h")}
         {row(f.awayId, "a")}
@@ -401,7 +398,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
   function Column({ ties, title, gap }: { ties: (Fixture | null)[]; title?: string; gap: string }) {
     return (
       <div className="flex flex-col justify-around min-w-0" style={{ rowGap: gap }}>
-        {title && <div className="text-[9px] uppercase tracking-wider text-[var(--muted)] font-bold text-center -mb-1">{title}</div>}
+        {title && <div className="font-arc text-[9px] uppercase tracking-wider text-white/80 font-extrabold text-center -mb-1">{title}</div>}
         {ties.map((f, i) => <Tie key={f?.id ?? i} f={f} />)}
       </div>
     );
@@ -420,13 +417,13 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
         {/* center: final + 3rd place */}
         <div className="flex flex-col items-stretch justify-center gap-4">
           <div>
-            <div className="text-center font-display text-[var(--gold)] text-lg mb-1 flex items-center justify-center gap-1.5">
+            <div className="text-center font-display text-[var(--amarelo)] text-lg mb-1 flex items-center justify-center gap-1.5 drop-shadow-[1px_2px_0_rgba(20,21,18,0.9)]">
               <IconTrophy size={16} /> FINAL
             </div>
             <Tie f={final} />
           </div>
           <div>
-            <div className="text-center text-[9px] uppercase tracking-wider font-bold mb-1" style={{ color: "#C47A3D" }}>3º lugar</div>
+            <div className="text-center font-arc text-[9px] uppercase tracking-wider font-extrabold mb-1" style={{ color: "#E8B06A" }}>3º lugar</div>
             <Tie f={third} />
           </div>
         </div>
@@ -435,7 +432,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
         <Column title="Oitavas" ties={pad(half(r16, 1), 4)} gap="2rem" />
         <Column title="16 avos" ties={pad(half(r32, 1), 8)} gap="0.4rem" />
       </div>
-      <p className="text-[10px] text-[var(--muted)] text-center mt-3">
+      <p className="font-arc text-[10px] font-bold text-white/75 text-center mt-3">
         Toque num confronto para ver os detalhes — 8 chaves de cada lado, como na Copa de verdade.
       </p>
     </div>
@@ -445,7 +442,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
 function ChampionBanner({ name }: { name: string }) {
   const pieces = Array.from({ length: 36 });
   return (
-    <div className="glass-strong p-10 mb-6 text-center relative overflow-hidden">
+    <div className="arc-panel p-10 mb-6 text-center relative overflow-hidden">
       {pieces.map((_, i) => (
         <span
           key={i}

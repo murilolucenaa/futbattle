@@ -22,15 +22,15 @@ lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tac
 lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio ponderado por força (squadWeight)
 lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed, cooling break
 lib/game/cup.ts         # Sorteio 48 times, grupos A–L, melhores 3ºs, R32→final+3º lugar, líderes (playerTotals)
-lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 2) — carreira inteira + moral
-lib/sfx.ts              # SFX sintetizados via WebAudio (estilo menu de PES) — sem assets, offline
+lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 3) — carreira + moral + draftDraw
+lib/sfx.ts              # SFX sintetizados via WebAudio + clicker pack (pitch aleatório), haptics e
+                        #   delegação global [data-sfx] (initUiSfx, montada por components/game/SfxRoot)
 
 app/page.tsx            # Home: logo gigante, Novo Campeonato, Online/idiomas "em manutenção", técnico + edição
-app/squad/page.tsx      # DraftView (roleta + escolha livre + medidores ATA/MEI/DEF) + ManageView (prancheta drag)
+app/squad/page.tsx      # DraftView (fluxo 7-0: dado → seleção inteira → carimbo) + ManageView (prancheta FIFA)
 app/cup/page.tsx        # Grupos A–L, ranking dos 3ºs, líderes (gols/assist/notas), chaveamento de 2 lados
 app/match/page.tsx      # Pré-jogo (estádio/clima/público/odds/uniformes) + partida 2D + pós-jogo
 components/Pitch.tsx    # Campo SVG reutilizável (vertical p/ escalação, horizontal p/ partida)
-components/RouletteModal.tsx   # Roleta de seleções com suspense, elenco completo e "mudar geração"
 components/PressConference.tsx # Cena animada de coletiva antes do draft (pulável, introSeen)
 components/TopBar.tsx   # Nav com "Copa" travada até o sorteio ("Faça o sorteio primeiro, mister")
 components/icons.tsx    # Ícones SVG inline — não usar emojis genéricos na UI
@@ -40,22 +40,24 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 
 ## Regras do jogo (não quebrar)
 
-### Draft
-- 11 titulares (posições da formação base, trocável durante o draft via `setDraftFormation`) + **4 reservas** (posição livre — vem do jogador escolhido).
-- A roleta sorteia uma **seleção** com **peso inverso à força** (`squadWeight`): elencos 90+ são raros, elencos fracos são comuns. Pegar Brasil 1970 é sorte; pegar México 1970 é azar. Sem tetos de craque — o equilíbrio É o sorteio.
-- O jogador escolhe **qualquer jogador** do elenco sorteado (qualquer posição) e o posiciona no campo; posições naturais acendem, improvisar pede confirmação ("Certeza disso, mister?").
-- O 1º giro de cada vaga é grátis. Giros extras consomem `REROLL_BUDGET = 4`; fechar os 11 titulares dá `BENCH_REROLL_BONUS = +1`. **Mudar a geração** da seleção sorteada (ex.: Brasil 1950 → 2002) também custa 1 giro. Giro grátis quando a seleção não tem ninguém aproveitável.
+### Draft (fluxo 7-0)
+- 11 titulares (posições da formação base, trocável via `setDraftFormation`) + **4 reservas** (posição livre).
+- "RODA O DADO" sorteia uma **seleção inteira** com **peso inverso à força** (`squadWeight`); o elenco aparece em **ordem de escalação** (GOL→CA). O jogador clica num craque e **só as vagas compatíveis acendem** (`positions`); preenchidas/incompatíveis ficam cinza — **improvisar é impossível no draft** (na prancheta continua possível, com confirmação).
+- Economia de giros: rolar é grátis logo após escalar alguém (ou no 1º giro); rolar de novo sem escalar consome `REROLL_BUDGET = 4`; fechar os 11 dá `BENCH_REROLL_BONUS = +1`; seleção sem ninguém aproveitável → giro grátis.
+- **Mudar geração** (−1 giro): mesma nação, **outro ano aleatório** — o usuário não escolhe qual. **Outra seleção** (−1 giro): **mesmo ano**, outra nação aleatória (fallback: ano mais próximo).
+- O draw atual persiste no store (`draftDraw`) — recarregar a página **não** dá giro grátis (anti-burla).
 - Mesmo **nome** não pode ser convocado duas vezes (Pelé 1958 e Pelé 1970 são o mesmo jogador).
 
 ### Ratings & dados
-- Cada carta usa o rating de **auge da carreira** (Pelé 99 em 1958 e em 1970). Escala 74–99; ≥95 reservado ao tier GOAT.
+- Cartas **históricas** usam rating de auge da carreira (Pelé 99 em 1958 e em 1970). Cartas **2026** usam a **força atual** do jogador (Messi 87, CR7 85, Modrić 84 — nada de auge). Escala 74–99; ≥95 reservado ao tier GOAT; **99 só lendas absolutas** (Pelé, Maradona 86, Ronaldo 02, Messi 22).
+- **Todo squad ancora numa Copa do Mundo real** — nunca Euro/ano sem Copa (fra-1986, ned-1990, por-2018, não 1984/1988/2016).
 - **Dados são seleções reais** — jogadores, elencos e anos historicamente corretos. Nunca inventar jogador. Todo squad: ≥11 jogadores, ≥1 GK, fecha um XI (testado).
 - Posições exibidas em pt-BR via `POSITION_SHORT` (GOL, LD, ZAG, LE, VOL, MC, MEI, PD, PE, CA); códigos internos seguem em inglês.
 - Edições (`editions.ts`): estádios reais com cidade/capacidade; `era` ("vintage"→"ultra") controla o tema do gramado/arquibancada (`.pitch-*`/`.stands-*` em globals.css).
 
 ### Táticas
 - 13 formações × 3 mentalidades × 5 estilos via `tacticMods`. Fora de posição: mesma linha −4, linha diferente −9, GK ↔ linha −20/−25.
-- Na prancheta: arrastar um jogador sobre outro troca posição (drag framer-motion, raio de captura ~14%); troca entre setores pede confirmação engraçada.
+- Na prancheta (FIFA-style: campo + banco na lateral): arrastar um jogador sobre outro troca posição (raio ~17%); o transform de centralização fica no wrapper e o framer-motion só anima o nó interno — **não juntar os dois** (transform fight = chips pulando). Troca entre setores pede confirmação engraçada.
 - Medidores ATA/MEI/DEF (FIFA-like) atualizam conforme o time entra em campo.
 
 ### Partida
@@ -63,7 +65,7 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 - **Pré-jogo** obrigatório: estádio do fixture, clima/público determinísticos pelo seed, odds fake, escalações, escolha de uniforme (kit 1/2). Adversário troca pro `kit2` se as cores baterem (`colorDist < 160`).
 - Máx. **3 substituições**; sugestão automática (GK → GK). Painel tático mostra o adversário **somente leitura**, com cansaço e moral.
 - **Cooling break** aos 25'/70' quando a edição é ≥2022 ou clima "heat" (`createMatch(..., coolingBreaks)`).
-- No 2º tempo o render do campo é **espelhado** (troca de lado); a bola anda "colada" no jogador mais próximo (carrier).
+- No 2º tempo o render do campo é **espelhado** (troca de lado); a bola anda "colada" no jogador mais próximo (carrier). O movimento visual é interpolado por **rAF** (easing exponencial, alvo por tick; jogadores k≈4.6, bola k≈8.5) com mutação direta de style — nunca voltar a transicionar posição via CSS `transition: all`.
 - Mata-mata empatado → pênaltis, nunca termina empatado. Gol = tremor de tela + rede + sfxGoal.
 - Calibração: ~2,7 gols/jogo (teste trava 1,2–5,5 em 200 sims). Mexeu em `SHOT_BASE`/`goalP` → `npm test`.
 - Determinismo: mesmo seed ⇒ mesmo jogo (`fixtureSeed`). Ações ao vivo alteram o fluxo do RNG — esperado.
@@ -83,12 +85,12 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 
 - UI em **pt-BR** (narração, labels, mensagens). Código/comentários em inglês.
 - **Sem emojis genéricos de iPhone na UI** — usar `components/icons.tsx` (SVG). Exceções: bandeiras de seleções e ⭐ do time do usuário.
-- Tema dark via CSS vars em `globals.css` (`--accent` verde neon, glassmorphism, fonte display Anton). Animações com framer-motion; respeitar `prefers-reduced-motion` (tratado no CSS global).
+- Linguagem visual: **"Fliperama da Copa"** — tokens/classes `arc-*` em globals.css (`--ink/--paper/--amarelo/--lima/--laranja/--ciano/--rosa`, `.arc-btn/.arc-panel/.arc-mini/.arc-strip/.arc-tag/.arc-bg/.arc-logo/.pitch-arc`): bordas de tinta 3px, sombras duras deslocadas, cores chapadas, papel sobre gramado, display Anton + Archivo 600–900. Dentro de `.arc-panel/.arc-mini` as vars do tema escuro (`--muted/--accent/--gold`…) são re-mapeadas pra tinta legível. **Proibido**: gradiente roxo/glow neon/glassmorphism em telas novas. Som/haptics: `data-sfx="click|confirm|back|error|stamp|dice"` em qualquer elemento clicável (delegação global via `SfxRoot`).
 - SFX: só via `lib/sfx.ts` (WebAudio sintetizado) — nunca adicionar arquivos de áudio.
 - Coordenadas de formação: `x` 0→100 = gol próprio→adversário; `y` 0→100 = lateral esquerda→direita. Campo vertical: `left = y%`, `bottom = x%`; horizontal espelha o visitante (e os dois lados após o intervalo).
 - Páginas client-side com zustand persist precisam do guard `mounted` antes de ler o store (hidratação).
 - Sem Supabase/serviços externos — tudo offline. "Online" e idiomas ES/EN existem na home como **placeholders "em manutenção"**; implementar é feature nova.
-- Estado persistido: `version: 2` + `migrate` no persist. Saves v1 (teamName, 8 grupos) são descartados de propósito; mudanças de shape futuras devem subir a versão ou tolerar merge raso.
+- Estado persistido: `version: 3` + `migrate` no persist. Saves <v3 (ids de squads antigos, sem draftDraw) são descartados de propósito; mudanças de shape futuras devem subir a versão ou tolerar merge raso.
 
 ## Armadilhas conhecidas
 

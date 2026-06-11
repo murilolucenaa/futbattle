@@ -139,6 +139,86 @@ function noise(dur: number, gain = 0.05, when = 0, ch: AudioChannel = "ui", filt
   src.start(t0);
 }
 
+// ── Clicker pack (Balatro-feel: random pitch, never twice) ───
+const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+
+/** Haptic tap — safe no-op without support. */
+export function vibrate(ms = 8) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    try { navigator.vibrate(ms); } catch { /* blocked by policy */ }
+  }
+}
+
+/** Chunky tap — tiny square blip, random pitch each press. */
+export function sfxClick() {
+  tone(rnd(170, 240), 0.035, "square", 0.075);
+}
+
+/** Hover — high quiet tick. */
+export function sfxHover() {
+  tone(rnd(880, 1080), 0.018, "square", 0.013);
+}
+
+/** Confirm — two clicks climbing pitch. */
+export function sfxClickConfirm() {
+  const f = rnd(175, 225);
+  tone(f, 0.035, "square", 0.075);
+  tone(f * 1.5, 0.05, "square", 0.075, 0.055);
+}
+
+/** Error — low double click. */
+export function sfxError() {
+  tone(96, 0.06, "square", 0.085);
+  tone(78, 0.09, "square", 0.085, 0.085);
+}
+
+/** Back — click sliding down. */
+export function sfxClickBack() {
+  const f = rnd(200, 250);
+  tone(f, 0.035, "square", 0.065);
+  tone(f * 0.62, 0.05, "square", 0.065, 0.05);
+}
+
+// ── Global UI sfx delegation: any [data-sfx] element ─────────
+// data-sfx="click|confirm|back|error|stamp|dice" — sound + haptic
+// on press, quiet tick on hover. Bind once per document.
+const SFX_BY_KIND: Record<string, () => void> = {
+  click: sfxClick,
+  confirm: sfxClickConfirm,
+  back: sfxClickBack,
+  error: sfxError,
+  stamp: () => { sfxStamp(); },
+  dice: () => { sfxDrumroll(0.55); },
+};
+
+let uiSfxBound = false;
+export function initUiSfx() {
+  if (uiSfxBound || typeof document === "undefined") return;
+  uiSfxBound = true;
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      const el = (e.target as Element | null)?.closest?.("[data-sfx]");
+      if (!el) return;
+      const kind = el.getAttribute("data-sfx") || "click";
+      (SFX_BY_KIND[kind] ?? sfxClick)();
+      vibrate(8);
+    },
+    { capture: true }
+  );
+  let lastHover: Element | null = null;
+  document.addEventListener(
+    "pointerover",
+    (e) => {
+      const el = (e.target as Element | null)?.closest?.("[data-sfx]") ?? null;
+      if (el === lastHover) return;
+      lastHover = el;
+      if (el && (e as PointerEvent).pointerType === "mouse") sfxHover();
+    },
+    { capture: true }
+  );
+}
+
 // ── UI sfx (menu navigation, PES-style) ──────────────────────
 /** Menu hover/move — the classic PES tick. */
 export const sfxMove = () => tone(740, 0.05, "square", 0.04);

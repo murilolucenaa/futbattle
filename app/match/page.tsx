@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Pitch from "@/components/Pitch";
+import SfxRoot from "@/components/game/SfxRoot";
 import { useCareer, buildUserTeam, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { EDITION_BY_ID, DEFAULT_EDITION_ID } from "@/lib/data/editions";
@@ -14,7 +15,7 @@ import {
 import { buildAiTeam, nextUserFixture, fixtureSeed, ROUND_LABEL } from "@/lib/game/cup";
 import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL } from "@/lib/game/tactics";
-import { sfxGoal, sfxMove, sfxWhistle } from "@/lib/sfx";
+import { sfxGoal, sfxWhistle, startCrowd, setCrowdIntensity, stopCrowd } from "@/lib/sfx";
 import {
   IconAssist, IconBall, IconCard, IconChart, IconCrowd, IconGlove, IconShirt, IconSnow,
   IconStadium, IconStar, IconSub, IconWeather, IconWhistle,
@@ -99,6 +100,7 @@ export default function MatchPage() {
   const recordedRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
+  useEffect(() => () => stopCrowd(), []);
 
   // ── Resolve the fixture & ambiance (pre-match) ──
   const pre = useMemo((): PreInfo | null => {
@@ -164,6 +166,7 @@ export default function MatchPage() {
       weatherLabel: pre.weatherLabel,
     };
     sfxWhistle();
+    startCrowd(0.5);
     setView({ minute: 0, scoreH: 0, scoreA: 0, ballX: 50, ballY: 50, possH: 50, eventCount: 1 });
     setPhase("live");
   }
@@ -181,10 +184,11 @@ export default function MatchPage() {
       const goal = evs.find((e) => e.type === "goal");
       if (goal) {
         sfxGoal();
+        setCrowdIntensity(1);
         setGoalFlash(goal);
-        setTimeout(() => setGoalFlash(null), 2100);
+        setTimeout(() => { setGoalFlash(null); setCrowdIntensity(0.55); }, 2100);
       }
-      if (evs.some((e) => e.type === "halftime")) sfxWhistle(true);
+      if (evs.some((e) => e.type === "halftime")) { sfxWhistle(true); setCrowdIntensity(0.3); }
       if (evs.some((e) => e.type === "fulltime")) sfxWhistle(true);
       if (evs.some((e) => e.type === "cooling")) {
         setCooling(true);
@@ -205,6 +209,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (!result || recordedRef.current) return;
     recordedRef.current = true;
+    stopCrowd();
     const meta = metaRef.current!;
     c.recordResult(meta.fixture.id, result, meta.round);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,61 +244,63 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="flex-1 mx-auto max-w-5xl w-full px-3 sm:px-4 py-4 flex flex-col gap-3">
-      <Scoreboard st={st} view={view} meta={meta} />
-      <PossessionBar st={st} view={view} />
-      <LivePitch st={st} view={view} goalFlash={goalFlash} cooling={cooling} speed={speed} meta={meta} />
+    <main className="arc-bg flex-1 w-full">
+      <SfxRoot />
+      <div className="mx-auto max-w-5xl w-full px-3 sm:px-4 py-4 flex flex-col gap-3">
+        <Scoreboard st={st} view={view} meta={meta} />
+        <PossessionBar st={st} view={view} />
+        <LivePitch st={st} view={view} goalFlash={goalFlash} cooling={cooling} meta={meta} />
 
-      {/* Controls */}
-      <div className="glass p-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPaused((p) => !p)}
-            className={`px-5 py-2 rounded-xl font-bold text-sm ${paused ? "btn-hero" : "btn-ghost"}`}
-          >
-            {paused ? "▶ Retomar" : "⏸ Pausar"}
+        {/* Controls */}
+        <div className="arc-strip !rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              data-sfx="click"
+              onClick={() => setPaused((p) => !p)}
+              className={`arc-btn px-4 py-1.5 text-xs ${paused ? "arc-btn--lima" : "arc-btn--paper"}`}
+            >
+              {paused ? "Retomar" : "Pausar"}
+            </button>
+            {([1, 1.5, 2] as Speed[]).map((sp) => (
+              <button
+                key={sp}
+                data-sfx="click"
+                onClick={() => setSpeed(sp)}
+                className={`arc-btn px-3 py-1.5 text-xs ${speed === sp ? "" : "arc-btn--paper"}`}
+              >
+                {sp}x
+              </button>
+            ))}
+          </div>
+          <button data-sfx="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano px-4 py-1.5 text-xs">
+            Pular pro fim
           </button>
-          {([1, 1.5, 2] as Speed[]).map((sp) => (
-            <button
-              key={sp}
-              onClick={() => setSpeed(sp)}
-              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
-                speed === sp ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"
-              }`}
-            >
-              {sp}x
-            </button>
-          ))}
         </div>
-        <button onClick={skipToEnd} className="btn-ghost px-4 py-2 text-sm font-bold">
-          ⏭ Pular para o fim
-        </button>
-      </div>
 
-      {/* Panels */}
-      <div className="glass p-3 flex-1 min-h-[220px]">
-        <div className="flex gap-2 mb-3">
-          {([["feed", "Narração"], ["stats", "Estatísticas"], ["tactics", "Tática & Subs"]] as const).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => { setPanel(k); if (k === "tactics") setPaused(true); }}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold ${
-                panel === k ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        {/* Panels */}
+        <div className="arc-panel p-3 flex-1 min-h-[220px]">
+          <div className="flex gap-2 mb-3">
+            {([["feed", "Narração"], ["stats", "Estatísticas"], ["tactics", "Vestiário"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                data-sfx="click"
+                onClick={() => { setPanel(k); if (k === "tactics") setPaused(true); }}
+                className={`arc-btn px-4 py-1 text-[11px] ${panel === k ? "" : "arc-btn--paper"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {panel === "feed" && <EventFeed st={st} count={view.eventCount} />}
+          {panel === "stats" && <StatsBars statsH={st.statsH} statsA={st.statsA} />}
+          {panel === "tactics" && <TacticsPanel st={st} meta={meta} morale={c.morale} onChanged={() => setView((v) => v && { ...v })} />}
         </div>
-        {panel === "feed" && <EventFeed st={st} count={view.eventCount} />}
-        {panel === "stats" && <StatsBars statsH={st.statsH} statsA={st.statsA} />}
-        {panel === "tactics" && <TacticsPanel st={st} meta={meta} morale={c.morale} onChanged={() => setView((v) => v && { ...v })} />}
       </div>
     </main>
   );
 }
 
-// ── Pre-match ────────────────────────────────────────────────
+// ── Pre-match (PS2 face-off: seu time à esquerda, rival à direita) ─
 function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
   const c = useCareer();
   const cup = c.cup!;
@@ -320,125 +327,171 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
     pick: r() < pUser ? cup.teams.USER.name : oppTeam.name,
   }));
 
-  const LineupCol = ({ team, kitColors }: { team: MatchTeam; kitColors: [string, string] }) => {
+  const oppKit: [string, string] =
+    colorDist(oppTeam.colors[0], userTeam.colors[0]) < 160 ? pre.oppSquad.kit2 : oppTeam.colors;
+
+  const LineupRows = ({ team }: { team: MatchTeam }) => {
     const slots = FORMATIONS[team.tactics.formation];
     return (
-      <div className="glass p-4 min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <IconShirt size={26} fill={kitColors[0]} />
-          <div className="min-w-0">
-            <div className="font-display text-lg truncate">{team.flag} {team.name}</div>
-            <div className="text-[10px] text-[var(--muted)]">{team.tactics.formation} · {MENTALITY_LABEL[team.tactics.mentality]} · {STYLE_LABEL[team.tactics.style]}</div>
+      <div className="space-y-0.5">
+        {team.lineup.map((card, i) => card && (
+          <div key={card.player.id} className="flex items-center gap-2 text-xs py-0.5">
+            <span className="w-8 font-arc text-[9px] font-extrabold opacity-50">{POSITION_SHORT[slots[i].pos]}</span>
+            <span className="flex-1 truncate font-arc font-bold">{card.player.name}</span>
+            <span className="font-display text-[var(--accent)]">{effectiveOvr(card, slots[i].pos)}</span>
           </div>
-        </div>
-        <div className="space-y-0.5">
-          {team.lineup.map((card, i) => card && (
-            <div key={card.player.id} className="flex items-center gap-2 text-xs py-0.5">
-              <span className="w-8 text-[9px] font-bold text-[var(--muted)]">{POSITION_SHORT[slots[i].pos]}</span>
-              <span className="flex-1 truncate font-semibold">{card.player.name}</span>
-              <span className="font-display text-[var(--accent)]">{effectiveOvr(card, slots[i].pos)}</span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     );
   };
 
-  const oppKit: [string, string] =
-    colorDist(oppTeam.colors[0], userTeam.colors[0]) < 160 ? pre.oppSquad.kit2 : oppTeam.colors;
-
   return (
-    <main className="flex-1 mx-auto max-w-5xl w-full px-4 py-6 space-y-4">
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="glass-strong p-6 text-center relative overflow-hidden">
-        <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--gold)] mb-2">
-          Pré-jogo · {ROUND_LABEL[f.round]} {f.group ? `· Grupo ${f.group}` : ""}
-        </div>
-        <div className="font-display text-3xl sm:text-4xl flex items-center justify-center gap-4 flex-wrap mb-3">
-          <span className={f.homeId === "USER" ? "text-[var(--accent)]" : ""}>{cup.teams[f.homeId].flag} {cup.teams[f.homeId].name}</span>
-          <span className="text-[var(--muted)] text-2xl">x</span>
-          <span className={f.awayId === "USER" ? "text-[var(--accent)]" : ""}>{cup.teams[f.awayId].flag} {cup.teams[f.awayId].name}</span>
-        </div>
-        <div className="flex items-center justify-center gap-5 text-xs text-[var(--muted)] flex-wrap">
-          <span className="flex items-center gap-1.5"><IconStadium size={14} /> {pre.stadiumStr}</span>
-          <span className="flex items-center gap-1.5"><IconCrowd size={14} /> {pre.attendance.toLocaleString("pt-BR")} torcedores</span>
-          <span className="flex items-center gap-1.5"><IconWeather kind={pre.weather} size={14} /> {pre.weatherLabel}</span>
-        </div>
-      </motion.div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <LineupCol team={pre.userIsHome ? userTeam : oppTeam} kitColors={pre.userIsHome ? userTeam.colors : oppKit} />
-        <LineupCol team={pre.userIsHome ? oppTeam : userTeam} kitColors={pre.userIsHome ? oppKit : userTeam.colors} />
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {/* kit choice */}
-        <div className="glass p-4">
-          <h3 className="font-display text-lg mb-2">Seu uniforme</h3>
-          <div className="flex gap-3">
-            {([['1º uniforme', USER_COLORS, 1], ['2º uniforme', USER_KIT2, 2]] as const).map(([label, colors, k]) => (
-              <button
-                key={k}
-                onClick={() => { sfxMove(); c.setUserKit(k); }}
-                className={`flex-1 glass p-3 flex flex-col items-center gap-2 transition-all ${
-                  c.userKit === k ? "ring-2 ring-[var(--accent)]" : "hover:bg-[var(--surface-2)]"
-                }`}
-              >
-                <IconShirt size={42} fill={colors[0]} />
-                <span className="text-xs font-bold">{label}</span>
-              </button>
-            ))}
+    <main className="arc-bg flex-1 w-full">
+      <SfxRoot />
+      <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-4">
+        {/* marquee */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="arc-strip px-5 py-4 text-center relative overflow-hidden">
+          <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] mb-2" style={{ color: "var(--amarelo)" }}>
+            Pré-jogo · {ROUND_LABEL[f.round]} {f.group ? `· Grupo ${f.group}` : ""}
           </div>
-          <p className="text-[10px] text-[var(--muted)] mt-2">
-            O adversário troca para o 2º uniforme se as cores baterem.
-          </p>
-        </div>
+          <div className="font-display text-3xl sm:text-4xl flex items-center justify-center gap-4 flex-wrap mb-2">
+            <span style={f.homeId === "USER" ? { color: "var(--lima)" } : undefined}>{cup.teams[f.homeId].flag} {cup.teams[f.homeId].name}</span>
+            <span className="font-display text-2xl px-3 py-0.5 rounded-xl border-2 border-[var(--amarelo)]" style={{ color: "var(--amarelo)" }}>VS</span>
+            <span style={f.awayId === "USER" ? { color: "var(--lima)" } : undefined}>{cup.teams[f.awayId].flag} {cup.teams[f.awayId].name}</span>
+          </div>
+          <div className="flex items-center justify-center gap-5 text-[11px] font-arc font-bold text-white/75 flex-wrap">
+            <span className="flex items-center gap-1.5"><IconStadium size={14} /> {pre.stadiumStr}</span>
+            <span className="flex items-center gap-1.5"><IconCrowd size={14} /> {pre.attendance.toLocaleString("pt-BR")} torcedores</span>
+            <span className="flex items-center gap-1.5"><IconWeather kind={pre.weather} size={14} /> {pre.weatherLabel}</span>
+          </div>
+        </motion.div>
 
-        {/* odds + fake bets */}
-        <div className="glass p-4">
-          <h3 className="font-display text-lg mb-2">Zebra ou favorito?</h3>
-          <div className="grid grid-cols-3 gap-2 text-center mb-3">
-            {[
-              [cup.teams.USER.name, oddUser],
-              ["Empate", oddDraw],
-              [oppTeam.name, oddOpp],
-            ].map(([label, odd]) => (
-              <div key={label as string} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-2">
-                <div className="text-[9px] text-[var(--muted)] truncate">{label}</div>
-                <div className="font-display text-xl text-[var(--gold)]">{odd}</div>
+        {/* PS2 face-off: user (left, editable) vs rival (right, read-only) */}
+        <div className="grid sm:grid-cols-2 gap-4 items-start">
+          <div className="arc-panel p-4 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <span className="arc-tag" style={{ background: "var(--lima)" }}>★ Seu time</span>
+              <IconShirt size={26} fill={userTeam.colors[0]} />
+            </div>
+            <div className="font-display text-lg truncate mb-0.5">{userTeam.flag} {userTeam.name}</div>
+            <div className="font-arc text-[10px] font-bold opacity-55 mb-2">
+              {c.tactics.formation} · {MENTALITY_LABEL[c.tactics.mentality]} · {STYLE_LABEL[c.tactics.style]}
+            </div>
+            <LineupRows team={userTeam} />
+
+            {/* quick tactics — mexe antes do apito */}
+            <div className="mt-3 pt-3 border-t-2 border-dashed border-[rgba(20,21,18,0.2)]">
+              <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {FORMATION_IDS.map((fo) => (
+                  <button key={fo} data-sfx="click" onClick={() => c.setFormation(fo as FormationId)}
+                    className={`arc-btn px-2 py-0.5 text-[10px] ${c.tactics.formation === fo ? "" : "arc-btn--paper"}`}>
+                    {fo}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="space-y-1">
-            {bets.map((b) => (
-              <div key={b.user} className="text-[11px] text-[var(--muted)]">
-                <span className="text-[var(--blue)] font-semibold">{b.user}</span> apostou {b.amount} moedas em <span className="font-semibold text-white">{b.pick}</span>
+              <div className="flex flex-wrap gap-1">
+                {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
+                  <button key={m} data-sfx="click" onClick={() => c.setTactics({ mentality: m })}
+                    className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
+                    {MENTALITY_LABEL[m]}
+                  </button>
+                ))}
+                {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
+                  <button key={s} data-sfx="click" onClick={() => c.setTactics({ style: s })}
+                    className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
+                    {STYLE_LABEL[s]}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+          </div>
+
+          <div className="arc-panel p-4 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <span className="arc-tag" style={{ background: "var(--rosa)", color: "#FFF6FB" }}>★ O rival</span>
+              <IconShirt size={26} fill={oppKit[0]} />
+            </div>
+            <div className="font-display text-lg truncate mb-0.5">{oppTeam.flag} {oppTeam.name}</div>
+            <div className="font-arc text-[10px] font-bold opacity-55 mb-2">
+              {oppTeam.tactics.formation} · {MENTALITY_LABEL[oppTeam.tactics.mentality]} · {STYLE_LABEL[oppTeam.tactics.style]}
+            </div>
+            <LineupRows team={oppTeam} />
           </div>
         </div>
-      </div>
 
-      <button onClick={onKickoff} className="btn-hero w-full py-4 text-lg flex items-center justify-center gap-2">
-        <IconWhistle size={20} /> Apito inicial →
-      </button>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* kit choice */}
+          <div className="arc-panel p-4">
+            <span className="arc-tag mb-2">★ Seu uniforme</span>
+            <div className="flex gap-3 mt-2">
+              {([["1º uniforme", USER_COLORS, 1], ["2º uniforme", USER_KIT2, 2]] as const).map(([label, colors, k]) => (
+                <button
+                  key={k}
+                  data-sfx="click"
+                  onClick={() => c.setUserKit(k)}
+                  className={`flex-1 rounded-2xl border-[3px] p-3 flex flex-col items-center gap-2 transition-all ${
+                    c.userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
+                  }`}
+                >
+                  <IconShirt size={42} fill={colors[0]} />
+                  <span className="font-arc text-xs font-extrabold uppercase">{label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="font-arc text-[10px] font-semibold opacity-55 mt-2">
+              O adversário troca para o 2º uniforme se as cores baterem.
+            </p>
+          </div>
+
+          {/* odds + fake bets */}
+          <div className="arc-panel p-4">
+            <span className="arc-tag mb-2">★ Zebra ou favorito?</span>
+            <div className="grid grid-cols-3 gap-2 text-center mt-2 mb-3">
+              {[
+                [cup.teams.USER.name, oddUser],
+                ["Empate", oddDraw],
+                [oppTeam.name, oddOpp],
+              ].map(([label, odd]) => (
+                <div key={label as string} className="arc-mini p-2">
+                  <div className="font-arc text-[9px] font-bold opacity-55 truncate">{label}</div>
+                  <div className="font-display text-xl" style={{ color: "var(--gold)" }}>{odd}</div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1">
+              {bets.map((b) => (
+                <div key={b.user} className="font-arc text-[11px] font-semibold opacity-70">
+                  <span className="font-extrabold" style={{ color: "var(--blue)" }}>{b.user}</span> apostou {b.amount} moedas em <span className="font-extrabold">{b.pick}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <button data-sfx="confirm" onClick={onKickoff} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
+          <span className="text-2xl leading-tight inline-flex items-center gap-2"><IconWhistle size={22} /> Apito inicial</span>
+          <span className="block font-arc text-[11px] font-bold opacity-75 mt-0.5">fim de papo — bola rolando</span>
+        </button>
+      </div>
     </main>
   );
 }
 
-// ── Scoreboard ───────────────────────────────────────────────
+// ── Scoreboard (faixa preta com valores vivos) ───────────────
 function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: Meta }) {
   return (
-    <div className="glass-strong px-4 py-3">
+    <div className="arc-strip !rounded-2xl px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 text-right min-w-0 flex items-center justify-end gap-2">
           <span className="font-display text-lg sm:text-2xl truncate">{st.h.team.flag} {st.h.team.name}</span>
           <IconShirt size={20} fill={st.h.team.colors[0]} />
         </div>
         <div className="text-center shrink-0">
-          <div className="font-display text-3xl sm:text-4xl tracking-wider">
-            {view.scoreH} <span className="text-[var(--muted)]">–</span> {view.scoreA}
+          <div className="font-display text-3xl sm:text-4xl tracking-wider" style={{ color: "var(--amarelo)" }}>
+            {view.scoreH} <span className="text-white/40">–</span> {view.scoreA}
           </div>
-          <div className="text-[11px] font-bold text-[var(--accent)]">
+          <div className="font-arc text-[11px] font-extrabold" style={{ color: "var(--lima)" }}>
             {Math.min(90, view.minute)}&apos; · {ROUND_LABEL[meta.round]}
           </div>
         </div>
@@ -447,7 +500,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
           <span className="font-display text-lg sm:text-2xl truncate">{st.a.team.name} {st.a.team.flag}</span>
         </div>
       </div>
-      <div className="text-[9px] text-[var(--muted)] text-center mt-1 flex items-center justify-center gap-3 flex-wrap">
+      <div className="font-arc text-[9px] font-bold text-white/60 text-center mt-1 flex items-center justify-center gap-3 flex-wrap">
         <span className="flex items-center gap-1"><IconStadium size={11} /> {meta.stadium}</span>
         <span className="flex items-center gap-1"><IconCrowd size={11} /> {meta.attendance.toLocaleString("pt-BR")}</span>
         <span className="flex items-center gap-1"><IconWeather kind={meta.weather} size={11} /> {meta.weatherLabel}</span>
@@ -461,12 +514,12 @@ function PossessionBar({ st, view }: { st: LiveMatchState; view: View }) {
   const h = view.possH;
   return (
     <div className="px-1">
-      <div className="flex justify-between text-[10px] font-bold mb-0.5">
-        <span style={{ color: st.h.team.colors[0] }}>{h}%</span>
-        <span className="text-[var(--muted)] uppercase tracking-widest text-[8px]">posse de bola</span>
-        <span style={{ color: st.a.team.colors[0] }}>{100 - h}%</span>
+      <div className="flex justify-between font-arc text-[10px] font-extrabold mb-0.5">
+        <span className="px-1.5 rounded bg-black/55" style={{ color: st.h.team.colors[0] }}>{h}%</span>
+        <span className="text-white/80 uppercase tracking-widest text-[8px]">posse de bola</span>
+        <span className="px-1.5 rounded bg-black/55" style={{ color: st.a.team.colors[0] }}>{100 - h}%</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden flex bg-[var(--surface-2)]">
+      <div className="h-2.5 rounded-full overflow-hidden flex border-2 border-[var(--ink)] bg-[var(--ink)]">
         <div className="transition-all duration-700" style={{ width: `${h}%`, background: st.h.team.colors[0] }} />
         <div className="flex-1 transition-all duration-700" style={{ background: st.a.team.colors[0] }} />
       </div>
@@ -474,14 +527,18 @@ function PossessionBar({ st, view }: { st: LiveMatchState; view: View }) {
   );
 }
 
-// ── 2D live pitch ────────────────────────────────────────────
-function LivePitch({ st, view, goalFlash, cooling, speed, meta }: {
-  st: LiveMatchState; view: View; goalFlash: MatchEvent | null; cooling: boolean; speed: Speed; meta: Meta;
+// ── 2D live pitch — rAF-interpolated motion, no teleports ────
+function LivePitch({ st, view, goalFlash, cooling, meta }: {
+  st: LiveMatchState; view: View; goalFlash: MatchEvent | null; cooling: boolean; meta: Meta;
 }) {
-  const transition = `all ${Math.min(0.65, BASE_TICK_MS / speed / 1000)}s ease-in-out`;
   const secondHalf = view.minute > 45; // teams swap ends at the break
   const mx = (x: number) => (secondHalf ? 100 - x : x);
   const ballShift = (view.ballX - 50) / 50; // -1..1 (engine coords)
+
+  // targets recomputed every tick; rAF eases the rendered position toward them
+  const targets = useRef(new Map<string, { x: number; y: number }>());
+  const curPos = useRef(new Map<string, { x: number; y: number }>());
+  const els = useRef(new Map<string, HTMLDivElement>());
 
   // collect dot positions to find the ball carrier (closest player)
   const dots: { id: string; x: number; y: number; color: string; gk: boolean; name: string }[] = [];
@@ -498,7 +555,7 @@ function LivePitch({ st, view, goalFlash, cooling, speed, meta }: {
       const ey = side === "h" ? s.y : 100 - s.y;
       dots.push({
         id: card.player.id, x: ex, y: ey,
-        color: slots[i].pos === "GK" ? "#FFC53D" : ts.team.colors[0],
+        color: slots[i].pos === "GK" ? "#FFC81B" : ts.team.colors[0],
         gk: slots[i].pos === "GK",
         name: shortName(card.player.name),
       });
@@ -522,104 +579,163 @@ function LivePitch({ st, view, goalFlash, cooling, speed, meta }: {
   const ballY = carrier ? carrier.y + 1.2 : view.ballY;
   const goalSideLeft = goalFlash ? (goalFlash.side === "h" ? !secondHalf : secondHalf) === false : false;
 
+  // publish targets (mirrored for the second half)
+  const live = new Set<string>();
+  for (const d of dots) {
+    targets.current.set(d.id, { x: mx(d.x), y: d.y });
+    live.add(d.id);
+  }
+  targets.current.set("__ball", { x: mx(ballX), y: ballY });
+  live.add("__ball");
+  for (const id of [...targets.current.keys()]) if (!live.has(id)) targets.current.delete(id);
+
+  // rAF loop: exponential easing toward targets — players jog, ball zips
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.08, (now - last) / 1000);
+      last = now;
+      const kPlayer = 1 - Math.exp(-dt * 4.6);
+      const kBall = 1 - Math.exp(-dt * 8.5);
+      for (const [id, t] of targets.current) {
+        const el = els.current.get(id);
+        if (!el) continue;
+        let cur = curPos.current.get(id);
+        if (!cur) { cur = { x: t.x, y: t.y }; curPos.current.set(id, cur); }
+        const k = id === "__ball" ? kBall : kPlayer;
+        cur.x += (t.x - cur.x) * k;
+        cur.y += (t.y - cur.y) * k;
+        el.style.left = `${cur.x}%`;
+        el.style.top = `${cur.y}%`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const bindEl = (id: string) => (el: HTMLDivElement | null) => {
+    if (el) els.current.set(id, el);
+    else { els.current.delete(id); curPos.current.delete(id); }
+  };
+
   return (
     <div className={goalFlash ? "shake" : ""}>
-      {/* stands ring (era-themed, density by attendance) */}
-      <CrowdStrip meta={meta} />
+      <Stands meta={meta} excited={goalFlash !== null} pos="top" />
 
-      <Pitch horizontal className={`aspect-[16/9] w-full pitch-${meta.era}`}>
-        {dots.map((d) => (
-          <div
-            key={d.id}
-            className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
-            style={{ left: `${mx(d.x)}%`, top: `${d.y}%`, transition }}
-          >
+      <div className="border-x-[3px] border-[var(--ink)] overflow-hidden">
+        <Pitch horizontal className={`aspect-[16/9] w-full pitch-${meta.era} !rounded-none`}>
+          {dots.map((d) => (
             <div
-              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border"
-              style={{
-                background: d.color,
-                borderColor: d.id === carrierId && bestD < 30 ? "#fff" : "rgba(0,0,0,0.5)",
-                boxShadow: d.id === carrierId && bestD < 30 ? "0 0 8px rgba(255,255,255,0.7)" : "0 1px 4px rgba(0,0,0,0.6)",
-              }}
-            />
-            <span className="text-[7px] sm:text-[8px] font-bold text-white/90 bg-black/50 rounded px-0.5 mt-0.5 whitespace-nowrap">
-              {d.name}
-            </span>
-          </div>
-        ))}
-
-        {/* Ball — glued to the carrier */}
-        <div
-          className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
-          style={{ left: `${mx(ballX)}%`, top: `${ballY}%`, transition }}
-        >
-          <div className="w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
-        </div>
-
-        {/* Cooling break overlay */}
-        <AnimatePresence>
-          {cooling && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[rgba(10,20,40,0.6)]"
+              key={d.id}
+              ref={bindEl(d.id)}
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
+              style={{ left: `${mx(d.x)}%`, top: `${d.y}%` }}
             >
-              <IconSnow size={40} className="text-[#9CD2FF] mb-2" />
-              <div className="font-display text-2xl text-[#9CD2FF]">COOLING BREAK</div>
-              <div className="text-xs text-white/70">hidratação à beira do campo</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Goal overlay: net ripple + roar */}
-        <AnimatePresence>
-          {goalFlash && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55"
-            >
-              {/* net ripple at the goal that conceded */}
               <div
-                className="net-ripple absolute top-1/2 -translate-y-1/2 w-24 h-40 rounded-full pointer-events-none"
+                className="dot-bob w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2"
                 style={{
-                  [goalSideLeft ? "left" : "right"]: "-2%",
-                  background: "radial-gradient(closest-side, rgba(255,255,255,0.55), transparent)",
-                  backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px), repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px)",
-                } as React.CSSProperties}
+                  background: d.color,
+                  borderColor: d.id === carrierId && bestD < 30 ? "#fff" : "rgba(0,0,0,0.55)",
+                  boxShadow: d.id === carrierId && bestD < 30 ? "0 0 8px rgba(255,255,255,0.8)" : "0 2px 3px rgba(0,0,0,0.55)",
+                  animationDelay: `${(d.id.length % 7) * 0.09}s`,
+                }}
               />
+              <span className="text-[7px] sm:text-[8px] font-bold text-white/90 bg-black/55 rounded px-0.5 mt-0.5 whitespace-nowrap">
+                {d.name}
+              </span>
+            </div>
+          ))}
+
+          {/* Ball — eased separately, faster than the players */}
+          <div
+            ref={bindEl("__ball")}
+            className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+            style={{ left: `${mx(ballX)}%`, top: `${ballY}%` }}
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-white border border-black/40 shadow-[0_2px_3px_rgba(0,0,0,0.6)]" />
+            <div className="w-2 h-[3px] rounded-full bg-black/35 mx-auto mt-[1px]" />
+          </div>
+
+          {/* Cooling break overlay */}
+          <AnimatePresence>
+            {cooling && (
               <motion.div
-                initial={{ y: 18, scale: 0.8 }}
-                animate={{ y: 0, scale: 1 }}
-                className="font-display text-5xl sm:text-7xl text-[var(--accent)] text-glow"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[rgba(10,20,40,0.6)]"
               >
-                GOOOOOL!
+                <IconSnow size={40} className="text-[#9CD2FF] mb-2" />
+                <div className="font-display text-2xl text-[#9CD2FF]">COOLING BREAK</div>
+                <div className="text-xs text-white/70">hidratação à beira do campo</div>
               </motion.div>
-              <div className="text-base sm:text-lg font-bold mt-2 text-center px-6">{goalFlash.text}</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Pitch>
+            )}
+          </AnimatePresence>
+
+          {/* Goal overlay: net ripple + roar */}
+          <AnimatePresence>
+            {goalFlash && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55"
+              >
+                <div
+                  className="net-ripple absolute top-1/2 -translate-y-1/2 w-24 h-40 rounded-full pointer-events-none"
+                  style={{
+                    [goalSideLeft ? "left" : "right"]: "-2%",
+                    background: "radial-gradient(closest-side, rgba(255,255,255,0.55), transparent)",
+                    backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px), repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px)",
+                  } as React.CSSProperties}
+                />
+                <motion.div
+                  initial={{ y: 18, scale: 0.8 }}
+                  animate={{ y: 0, scale: 1 }}
+                  className="arc-logo text-6xl sm:text-8xl"
+                  style={{ color: "var(--amarelo)" }}
+                >
+                  GOOOOOL!
+                </motion.div>
+                <div className="font-arc text-base sm:text-lg font-extrabold mt-2 text-center px-6">{goalFlash.text}</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Pitch>
+      </div>
+
+      <Stands meta={meta} excited={goalFlash !== null} pos="bottom" />
     </div>
   );
 }
 
-function CrowdStrip({ meta }: { meta: Meta }) {
+// ── Animated stands (crowd rows hugging the pitch) ───────────
+function Stands({ meta, excited, pos }: { meta: Meta; excited: boolean; pos: "top" | "bottom" }) {
   const density = Math.max(0.35, Math.min(1, meta.attendance / meta.capacity));
-  const n = Math.round(64 * density);
+  const cols = 56;
+  const rows = 2;
   return (
-    <div className={`h-6 mb-1 rounded-t-xl overflow-hidden flex items-center justify-center gap-[3px] px-2 stands stands-${meta.era}`}>
-      {Array.from({ length: 64 }).map((_, i) => (
-        <span
-          key={i}
-          className="crowd-dot inline-block w-1.5 h-1.5 rounded-full shrink-0"
-          style={{
-            background: i < n ? ["#FFC53D", "#00FF87", "#4DA3FF", "#FF4D5E", "#EAF2EC"][i % 5] : "rgba(255,255,255,0.07)",
-            animationDelay: `${(i % 12) * 0.2}s`,
-            opacity: i < n ? 0.75 : 0.4,
-          }}
-          aria-hidden
-        />
+    <div
+      className={`overflow-hidden border-[3px] border-[var(--ink)] ${pos === "top" ? "rounded-t-2xl border-b-0" : "rounded-b-2xl border-t-0"} stands stands-${meta.era} px-2 py-1`}
+      aria-hidden
+    >
+      {Array.from({ length: rows }).map((_, ri) => (
+        <div key={ri} className="flex items-center justify-center gap-[3px]" style={{ opacity: 1 - ri * 0.25 }}>
+          {Array.from({ length: cols }).map((_, i) => {
+            const filled = ((i * 7 + ri * 13) % 100) / 100 < density;
+            return (
+              <span
+                key={i}
+                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${excited ? "crowd-goal" : "crowd-dot"}`}
+                style={{
+                  background: filled ? ["#FFC81B", "#9ACD1E", "#2FD0C8", "#E91E8C", "#F2EAD3"][(i + ri) % 5] : "rgba(255,255,255,0.08)",
+                  animationDelay: `${((i + ri * 5) % 12) * 0.18}s`,
+                  opacity: filled ? 0.85 : 0.35,
+                }}
+              />
+            );
+          })}
+        </div>
       ))}
     </div>
   );
@@ -633,7 +749,7 @@ function EventIcon({ type }: { type: MatchEvent["type"] }) {
     case "save": return <IconGlove size={14} className={`${cls} text-[var(--blue)]`} />;
     case "card": return <IconCard size={14} className={cls} />;
     case "sub": return <IconSub size={14} className={cls} />;
-    case "cooling": return <IconSnow size={14} className={`${cls} text-[#9CD2FF]`} />;
+    case "cooling": return <IconSnow size={14} className={`${cls} text-[#2E86C1]`} />;
     case "halftime": case "fulltime": case "kickoff": return <IconWhistle size={14} className={`${cls} text-[var(--gold)]`} />;
     case "post": case "miss": case "penalty-miss": return <IconBall size={14} className={`${cls} text-[var(--muted)]`} />;
     case "tactic": return <IconChart size={14} className={`${cls} text-[var(--muted)]`} />;
@@ -651,13 +767,13 @@ function EventFeed({ st, count }: { st: LiveMatchState; count: number }) {
             key={count - i}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`flex items-start gap-2 text-sm rounded-lg px-2 py-1.5 ${
-              e.type === "goal" ? "bg-[rgba(0,255,135,0.1)] border border-[rgba(0,255,135,0.25)]" : ""
+            className={`flex items-start gap-2 font-arc text-sm font-semibold rounded-lg px-2 py-1.5 ${
+              e.type === "goal" ? "bg-[rgba(154,205,30,0.3)] border-2 border-[rgba(20,21,18,0.3)]" : ""
             }`}
           >
             <span className="font-display text-[var(--muted)] w-8 shrink-0 text-right">{e.min}&apos;</span>
             <EventIcon type={e.type} />
-            <span className={e.type === "goal" ? "font-bold" : ""}>{e.text}</span>
+            <span className={e.type === "goal" ? "font-extrabold" : ""}>{e.text}</span>
           </motion.div>
         ))}
       </AnimatePresence>
@@ -680,12 +796,12 @@ function StatsBars({ statsH, statsA }: { statsH: LiveMatchState["statsH"]; stats
         const total = Math.max(1, h + a);
         return (
           <div key={label}>
-            <div className="flex justify-between text-sm font-bold mb-1">
+            <div className="flex justify-between font-arc text-sm font-extrabold mb-1">
               <span className="text-[var(--accent)]">{h}</span>
               <span className="text-xs text-[var(--muted)] uppercase tracking-wider">{label}</span>
               <span className="text-[var(--blue)]">{a}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden flex">
+            <div className="h-2 rounded-full bg-[var(--surface-2)] overflow-hidden flex border border-[rgba(20,21,18,0.3)]">
               <div className="bg-[var(--accent)] transition-all duration-500" style={{ width: `${(h / total) * 100}%` }} />
               <div className="flex-1" />
               <div className="bg-[var(--blue)] transition-all duration-500" style={{ width: `${(a / total) * 100}%` }} />
@@ -735,29 +851,29 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
     : ts.team.bench;
 
   const StaminaBar = ({ v }: { v: number }) => (
-    <span className="inline-block w-12 h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden align-middle">
-      <span className="block h-full" style={{ width: `${v}%`, background: v >= 65 ? "var(--accent)" : v >= 45 ? "var(--gold)" : "var(--red)" }} />
+    <span className="inline-block w-12 h-1.5 rounded-full bg-[var(--surface-2)] overflow-hidden align-middle border border-[rgba(20,21,18,0.25)]">
+      <span className="block h-full" style={{ width: `${v}%`, background: v >= 65 ? "#3D8C40" : v >= 45 ? "#A87800" : "#C0182B" }} />
     </span>
   );
   const MoraleDot = ({ v }: { v: number }) => (
     <span
-      className="inline-block w-2 h-2 rounded-full align-middle"
+      className="inline-block w-2 h-2 rounded-full align-middle border border-black/30"
       title={`Moral ${v}`}
-      style={{ background: v >= 70 ? "var(--accent)" : v >= 45 ? "var(--gold)" : "var(--red)" }}
+      style={{ background: v >= 70 ? "#3D8C40" : v >= 45 ? "#A87800" : "#C0182B" }}
     />
   );
 
   return (
     <div className="grid lg:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-1">
-      {/* YOUR side */}
+      {/* YOUR side — left, like the PS2 team menu */}
       <div className="space-y-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Seu time</div>
+        <span className="arc-tag" style={{ background: "var(--lima)" }}>★ Seu time</span>
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">Formação</div>
+          <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
           <div className="flex flex-wrap gap-1.5">
             {FORMATION_IDS.map((f) => (
-              <button key={f} onClick={() => setTactic({ formation: f })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-display ${ts.team.tactics.formation === f ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"}`}>
+              <button key={f} data-sfx="click" onClick={() => setTactic({ formation: f })}
+                className={`arc-btn px-2 py-0.5 text-[10px] ${ts.team.tactics.formation === f ? "" : "arc-btn--paper"}`}>
                 {f}
               </button>
             ))}
@@ -765,33 +881,33 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
-            <button key={m} onClick={() => setTactic({ mentality: m })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${ts.team.tactics.mentality === m ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"}`}>
+            <button key={m} data-sfx="click" onClick={() => setTactic({ mentality: m })}
+              className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
               {MENTALITY_LABEL[m]}
             </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
-            <button key={s} onClick={() => setTactic({ style: s })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${ts.team.tactics.style === s ? "bg-[var(--accent)] text-[#04130B]" : "btn-ghost"}`}>
+            <button key={s} data-sfx="click" onClick={() => setTactic({ style: s })}
+              className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
               {STYLE_LABEL[s]}
             </button>
           ))}
         </div>
 
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-            Substituições restantes: <span className="text-[var(--accent)]">{ts.subsLeft}</span>
+          <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">
+            Substituições restantes: <span style={{ color: "#3D8C40" }}>{ts.subsLeft}</span>
           </div>
           {ts.subsLeft === 0 ? (
-            <p className="text-sm text-[var(--muted)]">Sem substituições restantes.</p>
+            <p className="font-arc text-sm font-bold opacity-55">Sem substituições restantes.</p>
           ) : !subOut ? (
             <div className="space-y-1">
-              <p className="text-xs text-[var(--muted)] mb-1">Quem sai?</p>
+              <p className="font-arc text-xs font-bold opacity-55 mb-1">Quem sai?</p>
               {ts.team.lineup.map((card, i) => card && (
-                <button key={card.player.id} onClick={() => setSubOut(card.player.id)}
-                  className="w-full btn-ghost px-3 py-1.5 text-left text-sm flex justify-between items-center gap-2">
+                <button key={card.player.id} data-sfx="click" onClick={() => setSubOut(card.player.id)}
+                  className="w-full rounded-xl border-[2.5px] border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)] px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center gap-2 transition-colors">
                   <span className="truncate">{POSITION_SHORT[slots[i].pos]} · {card.player.name}</span>
                   <span className="flex items-center gap-2 shrink-0">
                     <MoraleDot v={morale[card.player.id] ?? 70} />
@@ -802,23 +918,23 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
             </div>
           ) : (
             <div className="space-y-1">
-              <button onClick={() => setSubOut(null)} className="text-xs text-[var(--muted)] hover:text-white mb-1">← cancelar</button>
-              <p className="text-xs text-[var(--muted)] mb-1">
+              <button data-sfx="back" onClick={() => setSubOut(null)} className="font-arc text-xs font-extrabold opacity-60 hover:opacity-100 mb-1">← cancelar</button>
+              <p className="font-arc text-xs font-bold opacity-55 mb-1">
                 Quem entra?{outIsGk && " Sugestão óbvia: o goleiro reserva."}
               </p>
-              {benchSorted.length === 0 && <p className="text-sm text-[var(--muted)]">Banco vazio.</p>}
+              {benchSorted.length === 0 && <p className="font-arc text-sm font-bold opacity-55">Banco vazio.</p>}
               {benchSorted.map((card, i) => {
                 const suggested = i === 0 && (outIsGk ? card.player.positions.includes("GK") : true);
                 return (
-                  <button key={card.player.id} onClick={() => doSub(card.player.id)}
-                    className={`w-full px-3 py-1.5 text-left text-sm flex justify-between items-center rounded-xl border transition-all ${
-                      suggested ? "border-[var(--accent)] bg-[rgba(0,255,135,0.08)]" : "btn-ghost"
+                  <button key={card.player.id} data-sfx="confirm" onClick={() => doSub(card.player.id)}
+                    className={`w-full px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center rounded-xl border-[2.5px] transition-colors ${
+                      suggested ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)]" : "border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)]"
                     }`}>
                     <span className="truncate">
                       {card.player.name}
-                      {suggested && <span className="text-[9px] text-[var(--accent)] font-bold ml-2 uppercase">sugerido</span>}
+                      {suggested && <span className="text-[9px] font-extrabold ml-2 uppercase" style={{ color: "#3D8C40" }}>sugerido</span>}
                     </span>
-                    <span className="font-display text-[var(--accent)] shrink-0">{card.player.ovr}</span>
+                    <span className="font-display shrink-0" style={{ color: "#3D8C40" }}>{card.player.ovr}</span>
                   </button>
                 );
               })}
@@ -827,17 +943,17 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
         </div>
       </div>
 
-      {/* OPPONENT side — read only */}
-      <div className="space-y-2 lg:border-l lg:border-[var(--border)] lg:pl-4">
-        <div className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-          {opp.team.flag} {opp.team.name} <span className="text-[9px]">(só observação, mister)</span>
-        </div>
-        <div className="text-[11px] text-[var(--muted)]">
-          {opp.team.tactics.formation} · {MENTALITY_LABEL[opp.team.tactics.mentality]} · {STYLE_LABEL[opp.team.tactics.style]} · subs {opp.subsLeft}
+      {/* OPPONENT side — right, read only */}
+      <div className="space-y-2 lg:border-l-2 lg:border-dashed lg:border-[rgba(20,21,18,0.25)] lg:pl-4">
+        <span className="arc-tag" style={{ background: "var(--rosa)", color: "#FFF6FB" }}>
+          ★ {opp.team.name}
+        </span>
+        <div className="font-arc text-[11px] font-bold opacity-55">
+          {opp.team.tactics.formation} · {MENTALITY_LABEL[opp.team.tactics.mentality]} · {STYLE_LABEL[opp.team.tactics.style]} · subs {opp.subsLeft} <span className="text-[9px]">(só observação, mister)</span>
         </div>
         <div className="space-y-0.5">
           {opp.team.lineup.map((card, i) => card && (
-            <div key={card.player.id} className="px-2 py-1 text-xs flex justify-between items-center gap-2 rounded-lg bg-[var(--surface)]">
+            <div key={card.player.id} className="px-2 py-1 font-arc text-xs font-bold flex justify-between items-center gap-2 rounded-lg bg-[var(--surface)]">
               <span className="truncate">{POSITION_SHORT[oppSlots[i].pos]} · {card.player.name}</span>
               <span className="flex items-center gap-2 shrink-0">
                 <span className="font-display">{effectiveOvr(card, oppSlots[i].pos)}</span>
@@ -906,16 +1022,16 @@ function ResultScreen({ result, state, meta }: {
   }
 
   const ratingColor = (r: number) =>
-    r >= 8 ? "bg-[var(--accent)] text-[#04130B]"
-    : r >= 7 ? "bg-[var(--gold)] text-black"
-    : r >= 6 ? "bg-[var(--surface-2)] text-white"
-    : "bg-[var(--red)] text-white";
+    r >= 8 ? "bg-[#3D8C40] text-white"
+    : r >= 7 ? "bg-[var(--amarelo)] text-black"
+    : r >= 6 ? "bg-[rgba(20,21,18,0.12)] text-[var(--ink)]"
+    : "bg-[#C0182B] text-white";
 
   function RatingList({ side }: { side: "h" | "a" }) {
     const entries = teamCards(side);
     const ts = side === "h" ? state.h : state.a;
     return (
-      <div className="glass p-4">
+      <div className="arc-panel p-4">
         <h3 className="font-display text-lg mb-2 flex items-center gap-2">
           <span>{ts.team.flag}</span> {ts.team.name}
         </h3>
@@ -926,14 +1042,15 @@ function ResultScreen({ result, state, meta }: {
             return (
               <button
                 key={card.player.id}
+                data-sfx="click"
                 onClick={() => setDetail({ card, pos })}
-                className="w-full flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 hover:bg-[var(--surface)] transition-colors text-left"
+                className="w-full flex items-center gap-2 font-arc text-sm font-bold rounded-lg px-2 py-1.5 hover:bg-[var(--surface)] transition-colors text-left"
               >
-                <span className="text-[10px] text-[var(--muted)] w-8 shrink-0 font-bold">{pos ? POSITION_SHORT[pos] : ""}</span>
-                <span className={`w-9 text-center rounded-md font-display shrink-0 ${ratingColor(ps.rating)}`}>
+                <span className="text-[10px] opacity-50 w-8 shrink-0 font-extrabold">{pos ? POSITION_SHORT[pos] : ""}</span>
+                <span className={`w-9 text-center rounded-md font-display shrink-0 border border-black/25 ${ratingColor(ps.rating)}`}>
                   {ps.rating.toFixed(1)}
                 </span>
-                <span className="flex-1 truncate font-semibold">{card.player.name}</span>
+                <span className="flex-1 truncate">{card.player.name}</span>
                 <span className="shrink-0 flex items-center gap-1">
                   {Array.from({ length: Math.min(4, ps.goals) }).map((_, i) => <IconBall key={`g${i}`} size={13} className="text-[var(--accent)]" />)}
                   {Array.from({ length: Math.min(3, ps.assists) }).map((_, i) => <IconAssist key={`a${i}`} size={13} className="text-[var(--blue)]" />)}
@@ -950,189 +1067,195 @@ function ResultScreen({ result, state, meta }: {
   }
 
   return (
-    <main className="flex-1 mx-auto max-w-5xl w-full px-4 py-6 space-y-5">
-      {/* Final score */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-strong p-6 text-center relative overflow-hidden"
-      >
-        <div className={`absolute inset-0 pointer-events-none ${userWon ? "bg-gradient-to-b from-[rgba(0,255,135,0.12)] to-transparent" : draw ? "" : "bg-gradient-to-b from-[rgba(255,77,94,0.10)] to-transparent"}`} />
-        <div className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--muted)] mb-1">
-          Fim de jogo · {ROUND_LABEL[meta.round]}
-        </div>
-        <div className="text-[10px] text-[var(--muted)] mb-2 flex items-center justify-center gap-1.5">
-          <IconStadium size={12} /> {meta.stadium} · {meta.attendance.toLocaleString("pt-BR")} presentes
-        </div>
-        <div className="font-display text-2xl sm:text-4xl flex items-center justify-center gap-4 flex-wrap">
-          <span>{state.h.team.flag} {state.h.team.name}</span>
-          <span className="text-5xl sm:text-6xl text-[var(--accent)]">{result.scoreH}–{result.scoreA}</span>
-          <span>{state.a.team.name} {state.a.team.flag}</span>
-        </div>
-        {result.pensH != null && (
-          <div className="text-sm text-[var(--gold)] font-bold mt-1">
-            Pênaltis: {result.pensH}–{result.pensA}
-          </div>
-        )}
-        <div className={`mt-3 font-display text-xl ${userWon ? "text-[var(--accent)]" : draw ? "text-[var(--gold)]" : "text-[var(--red)]"}`}>
-          {userWon ? "VITÓRIA!" : draw ? "EMPATE" : "DERROTA"}
-        </div>
-        <button
-          onClick={() => setStatsOpen(true)}
-          className="btn-ghost px-5 py-2 mt-3 text-sm font-bold inline-flex items-center gap-2"
-        >
-          <IconChart size={15} /> Estatísticas do jogo
-        </button>
-      </motion.div>
-
-      {/* MOTM */}
-      {motmEntry && (
+    <main className="arc-bg flex-1 w-full">
+      <SfxRoot />
+      <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-5">
+        {/* Final score */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="glass p-4 flex items-center gap-4 border border-[rgba(255,197,61,0.35)]"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="arc-strip !rounded-2xl p-6 text-center relative overflow-hidden"
         >
-          <IconStar size={34} className="text-[var(--gold)] shrink-0" />
-          <div className="flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--gold)]">Craque da partida</div>
-            <div className="font-display text-xl">{motmEntry.card.flag} {motmEntry.card.player.name}</div>
-            <div className="text-xs text-[var(--muted)]">{motmEntry.card.nation} {motmEntry.card.year}</div>
+          <div className="font-arc text-xs font-extrabold uppercase tracking-[0.3em] text-white/60 mb-1">
+            Fim de papo · {ROUND_LABEL[meta.round]}
           </div>
-          <div className="font-display text-3xl text-[var(--gold)]">
-            {result.playerStats[motmEntry.card.player.id]?.rating.toFixed(1)}
+          <div className="font-arc text-[10px] font-bold text-white/55 mb-2 flex items-center justify-center gap-1.5">
+            <IconStadium size={12} /> {meta.stadium} · {meta.attendance.toLocaleString("pt-BR")} presentes
           </div>
+          <div className="font-display text-2xl sm:text-4xl flex items-center justify-center gap-4 flex-wrap">
+            <span>{state.h.team.flag} {state.h.team.name}</span>
+            <span className="text-5xl sm:text-6xl" style={{ color: "var(--amarelo)" }}>{result.scoreH}–{result.scoreA}</span>
+            <span>{state.a.team.name} {state.a.team.flag}</span>
+          </div>
+          {result.pensH != null && (
+            <div className="font-arc text-sm font-extrabold mt-1" style={{ color: "var(--amarelo)" }}>
+              Pênaltis: {result.pensH}–{result.pensA}
+            </div>
+          )}
+          <div className="mt-3 font-display text-2xl" style={{ color: userWon ? "var(--lima)" : draw ? "var(--amarelo)" : "var(--rosa)" }}>
+            {userWon ? "VITÓRIA!" : draw ? "EMPATE" : "DERROTA"}
+          </div>
+          <button
+            data-sfx="click"
+            onClick={() => setStatsOpen(true)}
+            className="arc-btn arc-btn--paper px-5 py-1.5 mt-3 text-xs inline-flex items-center gap-2"
+          >
+            <IconChart size={14} /> Estatísticas do jogo
+          </button>
         </motion.div>
-      )}
 
-      {/* Ratings, ordered by position */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <RatingList side={meta.userSide} />
-        <RatingList side={meta.userSide === "h" ? "a" : "h"} />
-      </div>
+        {/* MOTM */}
+        {motmEntry && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="arc-panel p-4 flex items-center gap-4 !bg-[var(--amarelo)]"
+          >
+            <IconStar size={34} className="text-[var(--ink)] shrink-0" />
+            <div className="flex-1">
+              <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.25em] text-[var(--ink)] opacity-70">Craque da partida</div>
+              <div className="font-display text-xl text-[var(--ink)]">{motmEntry.card.flag} {motmEntry.card.player.name}</div>
+              <div className="font-arc text-xs font-bold text-[var(--ink)] opacity-60">{motmEntry.card.nation} {motmEntry.card.year}</div>
+            </div>
+            <div className="font-display text-3xl text-[var(--ink)]">
+              {result.playerStats[motmEntry.card.player.id]?.rating.toFixed(1)}
+            </div>
+          </motion.div>
+        )}
 
-      {/* Other results, clustered by group */}
-      {others.length > 0 && (
-        <div className="glass p-4">
-          <h3 className="font-display text-lg mb-3">Aconteceu ao mesmo tempo…</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[...byGroup.entries()].map(([label, fs]) => (
-              <div key={label} className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--gold)] mb-1.5">{label}</div>
-                {fs.map((f) => (
-                  <div key={f.id} className="text-sm">
-                    <button
-                      onClick={() => setOpenOther(openOther === f.id ? null : f.id)}
-                      className="w-full flex items-center justify-between gap-2 py-1 hover:bg-[var(--surface-2)] rounded-lg px-1 transition-colors"
-                    >
-                      <span className="truncate text-left flex-1">{c.cup!.teams[f.homeId].flag} {c.cup!.teams[f.homeId].name}</span>
-                      <span className="font-display shrink-0">{f.scoreH}–{f.scoreA}{f.pensH != null ? ` (${f.pensH}–${f.pensA})` : ""}</span>
-                      <span className="truncate text-right flex-1">{c.cup!.teams[f.awayId].name} {c.cup!.teams[f.awayId].flag}</span>
-                    </button>
-                    <AnimatePresence>
-                      {openOther === f.id && f.scorers && f.scorers.length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="text-[10px] text-[var(--muted)] py-1 px-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                            {f.scorers.map((s, i) => (
-                              <span key={i} className="flex items-center gap-1">
-                                <IconBall size={10} className="text-[var(--accent)]" /> {s.name} {s.min}&apos;
-                              </span>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+        {/* Ratings, ordered by position */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <RatingList side={meta.userSide} />
+          <RatingList side={meta.userSide === "h" ? "a" : "h"} />
         </div>
-      )}
 
-      <button
-        onClick={() => { c.clearLastResult(); router.push("/cup"); }}
-        className="btn-hero w-full py-4 text-lg"
-      >
-        Continuar →
-      </button>
-
-      {/* match stats modal */}
-      <AnimatePresence>
-        {statsOpen && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={() => setStatsOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
-              className="glass-strong p-6 w-full max-w-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="font-display text-xl mb-4 text-center">
-                {state.h.team.flag} {result.scoreH}–{result.scoreA} {state.a.team.flag}
-              </h3>
-              <StatsBars statsH={result.statsH} statsA={result.statsA} />
-              <button onClick={() => setStatsOpen(false)} className="btn-ghost w-full py-2.5 mt-5 font-bold">Fechar</button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Player detail modal */}
-      <AnimatePresence>
-        {detail && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={() => setDetail(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
-              className="glass-strong p-6 w-full max-w-sm"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {(() => {
-                const ps = result.playerStats[detail.card.player.id];
-                return (
-                  <>
-                    <div className="text-center mb-4">
-                      <div className="text-4xl mb-1">{detail.card.flag}</div>
-                      <div className="font-display text-2xl">{detail.card.player.name}</div>
-                      <div className="text-xs text-[var(--muted)]">
-                        {detail.card.nation} {detail.card.year} · OVR {detail.card.player.ovr}
-                        {detail.card.player.id === result.motmId ? " · Craque da partida" : ""}
-                      </div>
+        {/* Other results, clustered by group */}
+        {others.length > 0 && (
+          <div className="arc-panel p-4">
+            <h3 className="font-display text-lg mb-3">Aconteceu ao mesmo tempo…</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[...byGroup.entries()].map(([label, fs]) => (
+                <div key={label} className="arc-mini p-3">
+                  <div className="font-arc text-[10px] font-extrabold uppercase tracking-wider mb-1.5" style={{ color: "var(--gold)" }}>{label}</div>
+                  {fs.map((f) => (
+                    <div key={f.id} className="font-arc text-sm font-bold">
+                      <button
+                        data-sfx="click"
+                        onClick={() => setOpenOther(openOther === f.id ? null : f.id)}
+                        className="w-full flex items-center justify-between gap-2 py-1 hover:bg-[var(--surface)] rounded-lg px-1 transition-colors"
+                      >
+                        <span className="truncate text-left flex-1">{c.cup!.teams[f.homeId].flag} {c.cup!.teams[f.homeId].name}</span>
+                        <span className="font-display shrink-0">{f.scoreH}–{f.scoreA}{f.pensH != null ? ` (${f.pensH}–${f.pensA})` : ""}</span>
+                        <span className="truncate text-right flex-1">{c.cup!.teams[f.awayId].name} {c.cup!.teams[f.awayId].flag}</span>
+                      </button>
+                      <AnimatePresence>
+                        {openOther === f.id && f.scorers && f.scorers.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="text-[10px] opacity-60 py-1 px-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                              {f.scorers.map((s, i) => (
+                                <span key={i} className="flex items-center gap-1">
+                                  <IconBall size={10} className="text-[var(--accent)]" /> {s.name} {s.min}&apos;
+                                </span>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      {[
-                        ["Nota", ps?.rating.toFixed(1) ?? "—"],
-                        ["Gols", ps?.goals ?? 0],
-                        ["Assist.", ps?.assists ?? 0],
-                        ["Chutes", ps?.shots ?? 0],
-                        ["Defesas", ps?.saves ?? 0],
-                        ["Cartões", ps?.cards ?? 0],
-                      ].map(([label, v]) => (
-                        <div key={label as string} className="glass p-3">
-                          <div className="font-display text-xl text-[var(--accent)]">{v}</div>
-                          <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">{label}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          data-sfx="confirm"
+          onClick={() => { c.clearLastResult(); router.push("/cup"); }}
+          className="arc-btn arc-btn--lima arc-btn--card w-full py-4"
+        >
+          <span className="block text-xl leading-tight">Continuar</span>
+          <span className="block font-arc text-[11px] font-bold opacity-75 mt-0.5">a copa não para, mister</span>
+        </button>
+
+        {/* match stats modal */}
+        <AnimatePresence>
+          {statsOpen && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+              onClick={() => setStatsOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
+                className="arc-panel p-6 w-full max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="font-display text-xl mb-4 text-center">
+                  {state.h.team.flag} {result.scoreH}–{result.scoreA} {state.a.team.flag}
+                </h3>
+                <StatsBars statsH={result.statsH} statsA={result.statsA} />
+                <button data-sfx="back" onClick={() => setStatsOpen(false)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Player detail modal */}
+        <AnimatePresence>
+          {detail && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+              onClick={() => setDetail(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
+                className="arc-panel p-6 w-full max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {(() => {
+                  const ps = result.playerStats[detail.card.player.id];
+                  return (
+                    <>
+                      <div className="text-center mb-4">
+                        <div className="text-4xl mb-1">{detail.card.flag}</div>
+                        <div className="font-display text-2xl">{detail.card.player.name}</div>
+                        <div className="font-arc text-xs font-bold opacity-55">
+                          {detail.card.nation} {detail.card.year} · OVR {detail.card.player.ovr}
+                          {detail.card.player.id === result.motmId ? " · Craque da partida" : ""}
                         </div>
-                      ))}
-                    </div>
-                    <button onClick={() => setDetail(null)} className="btn-ghost w-full py-2.5 mt-4 font-bold">
-                      Fechar
-                    </button>
-                  </>
-                );
-              })()}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        {[
+                          ["Nota", ps?.rating.toFixed(1) ?? "—"],
+                          ["Gols", ps?.goals ?? 0],
+                          ["Assist.", ps?.assists ?? 0],
+                          ["Chutes", ps?.shots ?? 0],
+                          ["Defesas", ps?.saves ?? 0],
+                          ["Cartões", ps?.cards ?? 0],
+                        ].map(([label, v]) => (
+                          <div key={label as string} className="arc-mini p-3">
+                            <div className="font-display text-xl" style={{ color: "var(--accent)" }}>{v}</div>
+                            <div className="font-arc text-[10px] font-extrabold uppercase tracking-wider opacity-55">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <button data-sfx="back" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-4 text-sm">
+                        Fechar
+                      </button>
+                    </>
+                  );
+                })()}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </main>
   );
 }

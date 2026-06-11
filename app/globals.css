@@ -433,6 +433,198 @@ button, a { cursor: pointer; }
     linear-gradient(115deg, #04220F 0%, #06301A 45%, #03150A 100%);
 }
 
+/* ════════════════════════════════════════════════════════════
+   FUTBATTLE 2.0 — FLIPERAMA DA COPA (Fase 2)
+   Arcade brasileiro × Copa do Mundo: bordas de tinta grossas,
+   sombras duras deslocadas, cores chapadas vivas, papel de
+   álbum de figurinhas sobre gramado de transmissão.
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --ink:      #141512; /* preto tinta: bordas, texto, sombras   */
+  --paper:    #FFFDF5; /* papel de figurinha (painéis)          */
+  --amarelo:  #FFC81B;
+  --lima:     #9ACD1E;
+  --laranja:  #F25C1F;
+  --ciano:    #2FD0C8;
+  --rosa:     #E91E8C;
+  --azul:     #2E6BE6;
+  --verdao:   #1E8746; /* gramado chapado (fundo de tela)       */
+  --verdao-2: #176B37; /* faixa de corte do gramado             */
+
+  --arc-border: 3px solid var(--ink);
+  --arc-shadow: 5px 6px 0 var(--ink);
+  --arc-shadow-up: 6px 7px 0 var(--ink);
+  --arc-shadow-pressed: 1px 2px 0 var(--ink);
+}
+
+/* ── Fundo de tela: gramado chapado com faixas de corte ────── */
+.arc-bg {
+  position: relative;
+  background:
+    repeating-linear-gradient(90deg, var(--verdao-2) 0 84px, var(--verdao) 84px 168px);
+}
+.arc-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.arc-bg > * { position: relative; z-index: 1; }
+
+/* ── Tipografia arcade ─────────────────────────────────────── */
+.font-arc { font-family: var(--font-archivo), var(--font-inter), sans-serif; }
+
+/* ── Botão gordo: borda de tinta + sombra dura que afunda ──── */
+.arc-btn {
+  position: relative;
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--btn-bg, var(--amarelo));
+  border: var(--arc-border);
+  border-radius: 999px;
+  box-shadow: var(--arc-shadow);
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.arc-btn:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: var(--arc-shadow-up); }
+.arc-btn:active:not(:disabled) { transform: translate(4px, 5px); box-shadow: var(--arc-shadow-pressed); }
+.arc-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: 2px 3px 0 var(--ink); }
+.arc-btn--card { border-radius: 18px; }
+.arc-btn--lima    { --btn-bg: var(--lima); }
+.arc-btn--laranja { --btn-bg: var(--laranja); color: #FFF9EE; }
+.arc-btn--ciano   { --btn-bg: var(--ciano); }
+.arc-btn--rosa    { --btn-bg: var(--rosa); color: #FFF6FB; }
+.arc-btn--paper   { --btn-bg: var(--paper); }
+
+/* ── Painel/card de papel ──────────────────────────────────── */
+.arc-panel {
+  background: var(--paper);
+  color: var(--ink);
+  border: var(--arc-border);
+  border-radius: 20px;
+  box-shadow: var(--arc-shadow);
+}
+
+/* mini-card de papel (confrontos do chaveamento, células densas) */
+.arc-mini {
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 2px 3px 0 var(--ink);
+}
+
+/* dentro de papel, as vars do tema escuro viram tinta legível —
+   componentes existentes ficam legíveis sem reescrever cor a cor */
+.arc-panel, .arc-mini {
+  --text: var(--ink);
+  --muted: rgba(20, 21, 18, 0.55);
+  --surface: rgba(20, 21, 18, 0.05);
+  --surface-2: rgba(20, 21, 18, 0.1);
+  --border: rgba(20, 21, 18, 0.16);
+  --accent: #0B7A3E;
+  --gold: #A87800;
+  --blue: #1D4FBF;
+  --red: #C0182B;
+}
+
+/* tag pill amarela com ★, título de painel */
+.arc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 800;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  background: var(--amarelo);
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 0.18rem 0.7rem;
+  box-shadow: 2px 3px 0 var(--ink);
+}
+
+/* ── Faixa de status preta (placar) ────────────────────────── */
+.arc-strip {
+  background: var(--ink);
+  color: var(--paper);
+  border: var(--arc-border);
+  border-radius: 999px;
+  box-shadow: var(--arc-shadow);
+}
+
+/* ── Vagas no campo (convocação) ───────────────────────────── */
+@keyframes slot-call {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(154, 205, 30, 0.85), 3px 4px 0 var(--ink); }
+  60%      { box-shadow: 0 0 0 11px rgba(154, 205, 30, 0), 3px 4px 0 var(--ink); }
+}
+.slot-call { animation: slot-call 1.1s ease-out infinite; }
+
+/* ── Dado rolando ──────────────────────────────────────────── */
+@keyframes dice-tumble {
+  0%   { transform: rotate(0deg)    translateY(0); }
+  20%  { transform: rotate(160deg)  translateY(-14px); }
+  45%  { transform: rotate(290deg)  translateY(2px); }
+  70%  { transform: rotate(420deg)  translateY(-8px); }
+  100% { transform: rotate(720deg)  translateY(0); }
+}
+.dice-tumble { animation: dice-tumble 0.7s cubic-bezier(0.3, 0.1, 0.3, 1) infinite; }
+
+/* ── Logo de título: letras com contorno de tinta + sombra ─── */
+.arc-logo {
+  font-family: var(--font-anton), sans-serif;
+  text-transform: uppercase;
+  line-height: 0.9;
+  -webkit-text-stroke: 2.5px var(--ink);
+  text-shadow: 0.06em 0.07em 0 var(--ink);
+}
+@keyframes press-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.press-pulse { animation: press-pulse 1.6s ease-in-out infinite; }
+
+/* ── Campo fliperama: verde chapado, linhas giz grossas ────── */
+.pitch-arc {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 11%, transparent 11% 22%),
+    linear-gradient(180deg, #2EA45B 0%, #259150 100%);
+  border: none;
+}
+.pitch-arc .pitch-lines { stroke: rgba(255, 255, 255, 0.75); stroke-width: 2.5; }
+
+/* ── Partida: ciclo de corrida dos bonecos + torcida no gol ── */
+@keyframes dot-bob {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(-1.5px) scaleY(0.94); }
+}
+.dot-bob { animation: dot-bob 0.5s ease-in-out infinite; }
+
+@keyframes crowd-goal-jump {
+  0%, 100% { transform: translateY(0); opacity: 0.85; }
+  50%      { transform: translateY(-3px); opacity: 1; }
+}
+.crowd-goal { animation: crowd-goal-jump 0.35s ease-in-out infinite; }
+
+/* ── Carimbo: convocado bate no campo ──────────────────────── */
+@keyframes stamp-in {
+  0%   { transform: scale(2.1) rotate(-14deg); opacity: 0; }
+  55%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
+  75%  { transform: scale(1.06) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.stamp-in { animation: stamp-in 0.34s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
+
 /* ── Reduced motion ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
