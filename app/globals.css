@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:        #060A12;
+  --bg-2:      #0B1120;
+  --surface:   rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --border:    rgba(255, 255, 255, 0.10);
+  --text:      #EAF2EC;
+  --muted:     #8B98A8;
+  --accent:    #00FF87;
+  --accent-d:  #00C868;
+  --gold:      #FFC53D;
+  --red:       #FF4D5E;
+  --blue:      #4DA3FF;
+}
+
+html { background-color: var(--bg); }
+
+body {
+  color: var(--text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  background-color: var(--bg);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── Ambient stadium backdrop ─────────────────────────────── */
+.stadium-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(0, 255, 135, 0.10), transparent 60%),
+    radial-gradient(800px 500px at 90% 0%, rgba(77, 163, 255, 0.08), transparent 60%),
+    radial-gradient(1200px 800px at 50% 120%, rgba(0, 200, 104, 0.06), transparent 60%),
+    var(--bg);
+}
+.stadium-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent 70%);
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-anton), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.text-glow {
+  text-shadow: 0 0 24px rgba(0, 255, 135, 0.45), 0 0 80px rgba(0, 255, 135, 0.2);
+}
+
+/* ── Glass surfaces ───────────────────────────────────────── */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 1rem;
+}
+.glass-strong {
+  background: rgba(13, 19, 33, 0.85);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.25rem;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn-hero {
+  position: relative;
+  background: linear-gradient(135deg, #00FF87 0%, #00C868 100%);
+  color: #04130B;
+  font-weight: 800;
+  border-radius: 0.9rem;
+  box-shadow: 0 8px 32px rgba(0, 255, 135, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-hero:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 44px rgba(0, 255, 135, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  filter: brightness(1.05);
+}
+.btn-hero:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.btn-hero:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  color: var(--text);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); border-color: rgba(255,255,255,0.2); }
+.btn-ghost:active:not(:disabled) { transform: scale(0.98); }
+.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+button, a { cursor: pointer; }
+
+/* ── Pitch ────────────────────────────────────────────────── */
+.pitch {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 9%,
+      transparent 9%,
+      transparent 18%
+    ),
+    radial-gradient(ellipse at 50% 50%, #0E5E33 0%, #0A4527 55%, #073A20 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.pitch-lines { stroke: rgba(255, 255, 255, 0.35); fill: none; stroke-width: 1.5; }
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(6deg); }
+}
+.animate-float-slow { animation: float-slow 7s ease-in-out infinite; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 135, 0.5); }
+  70% { box-shadow: 0 0 0 16px rgba(0, 255, 135, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 135, 0); }
+}
+.animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes crowd-wave {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.crowd-dot { animation: crowd-wave 2.4s ease-in-out infinite; }
+
+@keyframes goal-flash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.goal-flash { animation: goal-flash 1.6s ease-out forwards; }
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.6; }
+}
+.confetti { animation: confetti-fall linear forwards; }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
