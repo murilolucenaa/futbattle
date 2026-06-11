@@ -17,6 +17,44 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+// Second kits, historically plausible per nation (id overrides first).
+const KIT2_BY_NATION: Record<string, [string, string]> = {
+  Brasil: ["#1A4FA0", "#FFDC00"],
+  Hungria: ["#FFFFFF", "#C8102E"],
+  Uruguai: ["#FFFFFF", "#5CB8E4"],
+  "Suécia": ["#005293", "#FFD100"],
+  "Tchecoslováquia": ["#FFFFFF", "#D7141A"],
+  Inglaterra: ["#C8102E", "#FFFFFF"],
+  Portugal: ["#FFFFFF", "#DA291C"],
+  "União Soviética": ["#FFFFFF", "#EE2C25"],
+  "Itália": ["#FFFFFF", "#0066B2"],
+  Holanda: ["#FFFFFF", "#FF6F00"],
+  "Alemanha Ocidental": ["#0B6B3A", "#FFFFFF"],
+  Alemanha: ["#0B6B3A", "#FFFFFF"],
+  "Polônia": ["#DC143C", "#FFFFFF"],
+  Argentina: ["#1C2C5B", "#75AADB"],
+  "França": ["#FFFFFF", "#003DA5"],
+  Dinamarca: ["#FFFFFF", "#C8102E"],
+  "Camarões": ["#FCD116", "#007A5E"],
+  "Colômbia": ["#003893", "#FCD116"],
+  Espanha: ["#FFFFFF", "#AA151B"],
+  "Croácia": ["#171796", "#E73446"],
+  "Bélgica": ["#FDDA24", "#1A1A1A"],
+  "Romênia": ["#CE1126", "#FCD116"],
+  "Bulgária": ["#00966E", "#FFFFFF"],
+  "Coreia do Sul": ["#FFFFFF", "#CD2E3A"],
+  Marrocos: ["#FFFFFF", "#C1272D"],
+  "México": ["#FFFFFF", "#006847"],
+};
+
+const KIT2_OVERRIDE: Record<string, [string, string]> = {
+  "bra-1950": ["#1A4FA0", "#FFFFFF"], // em 1950 a camisa 1 era branca; a 2, azul
+};
+
+function kit2For(id: string, nation: string, colors: [string, string]): [string, string] {
+  return KIT2_OVERRIDE[id] ?? KIT2_BY_NATION[nation] ?? [colors[1], colors[0]];
+}
+
 function squad(
   id: string,
   nation: string,
@@ -32,7 +70,7 @@ function squad(
     positions: positions.split("/") as Position[],
     ovr,
   }));
-  return { id, nation, year, flag, colors, fame, players };
+  return { id, nation, year, flag, colors, kit2: kit2For(id, nation, colors), fame, players };
 }
 
 export const SQUADS: SquadDef[] = [
@@ -636,6 +674,212 @@ export const SQUADS: SquadDef[] = [
     ["Rodrygo", "RW/AM", 87],
     ["Antony", "RW", 82],
   ]),
+
+  squad("bra-1950", "Brasil", 1950, "🇧🇷", ["#F5F5F5", "#1A4FA0"], 4, [
+    ["Barbosa", "GK", 86],
+    ["Augusto", "RB", 83],
+    ["Juvenal", "CB", 82],
+    ["Danilo Alvim", "DM/CB", 87],
+    ["Bauer", "DM/CM", 86],
+    ["Bigode", "LB", 82],
+    ["Friaça", "RW", 84],
+    ["Maneca", "RW", 81],
+    ["Zizinho", "AM/CM", 93],
+    ["Ademir", "ST", 92],
+    ["Jair da Rosa Pinto", "AM/LW", 89],
+    ["Chico", "LW", 85],
+  ]),
+
+  squad("ger-1954", "Alemanha Ocidental", 1954, "🇩🇪", ["#FFFFFF", "#1A1A1A"], 4, [
+    ["Toni Turek", "GK", 87],
+    ["Jupp Posipal", "CB/RB", 83],
+    ["Werner Kohlmeyer", "LB", 82],
+    ["Horst Eckel", "CM/DM", 84],
+    ["Werner Liebrich", "CB", 85],
+    ["Karl Mai", "DM", 82],
+    ["Helmut Rahn", "RW", 90],
+    ["Max Morlock", "AM/ST", 88],
+    ["Ottmar Walter", "ST", 84],
+    ["Fritz Walter", "AM/CM", 92],
+    ["Hans Schäfer", "LW", 87],
+  ]),
+
+  squad("fra-1958", "França", 1958, "🇫🇷", ["#003DA5", "#EF4135"], 4, [
+    ["Claude Abbes", "GK", 80],
+    ["Raymond Kaelbel", "CB/RB", 81],
+    ["Robert Jonquet", "CB", 85],
+    ["André Lerond", "LB", 80],
+    ["Armand Penverne", "DM/CM", 83],
+    ["Jean-Jacques Marcel", "CM", 81],
+    ["Maryan Wisnieski", "RW", 83],
+    ["Raymond Kopa", "AM/RW", 93],
+    ["Just Fontaine", "ST", 93],
+    ["Roger Piantoni", "AM/LW", 86],
+    ["Jean Vincent", "LW", 84],
+  ]),
+
+  squad("mex-1970", "México", 1970, "🇲🇽", ["#006847", "#FFFFFF"], 3, [
+    ["Ignacio Calderón", "GK", 82],
+    ["José Vantolrá", "RB", 79],
+    ["Gustavo Peña", "CB", 81],
+    ["Javier Guzmán", "CB/DM", 80],
+    ["Mario Pérez", "LB", 78],
+    ["Antonio Munguía", "CM", 79],
+    ["Héctor Pulido", "DM/CM", 78],
+    ["Aarón Padilla", "LW/RW", 79],
+    ["José Luis González", "RW", 78],
+    ["Enrique Borja", "ST", 83],
+    ["Javier Fragoso", "ST/AM", 80],
+    ["Horacio López Salgado", "ST", 78],
+  ]),
+
+  squad("ita-1990", "Itália", 1990, "🇮🇹", ["#0066B2", "#FFFFFF"], 4, [
+    ["Walter Zenga", "GK", 88],
+    ["Giuseppe Bergomi", "RB/CB", 87],
+    ["Franco Baresi", "CB", 94],
+    ["Riccardo Ferri", "CB", 84],
+    ["Paolo Maldini", "LB/CB", 95],
+    ["Roberto Donadoni", "RW/LW", 86],
+    ["Nicola Berti", "CM", 83],
+    ["Fernando De Napoli", "DM/CM", 82],
+    ["Carlo Ancelotti", "CM/DM", 85],
+    ["Giuseppe Giannini", "AM", 85],
+    ["Roberto Baggio", "AM/ST", 94],
+    ["Salvatore Schillaci", "ST", 86],
+    ["Gianluca Vialli", "ST", 87],
+    ["Andrea Carnevale", "ST", 81],
+  ]),
+
+  squad("rom-1994", "Romênia", 1994, "🇷🇴", ["#FCD116", "#002B7F"], 3, [
+    ["Florin Prunea", "GK", 79],
+    ["Dan Petrescu", "RB", 84],
+    ["Daniel Prodan", "CB", 81],
+    ["Miodrag Belodedici", "CB", 85],
+    ["Tibor Selymes", "LB", 79],
+    ["Gheorghe Popescu", "DM/CB", 86],
+    ["Ioan Lupescu", "DM", 80],
+    ["Dorinel Munteanu", "CM/LW", 81],
+    ["Gheorghe Hagi", "AM/LW", 93],
+    ["Ilie Dumitrescu", "AM/ST", 84],
+    ["Florin Răducioiu", "ST", 84],
+  ]),
+
+  squad("bul-1994", "Bulgária", 1994, "🇧🇬", ["#FFFFFF", "#00966E"], 3, [
+    ["Borislav Mihaylov", "GK", 81],
+    ["Emil Kremenliev", "RB", 76],
+    ["Trifon Ivanov", "CB", 82],
+    ["Petar Hubchev", "CB/DM", 80],
+    ["Tsanko Tsvetanov", "LB", 77],
+    ["Zlatko Yankov", "DM/CM", 78],
+    ["Yordan Lechkov", "CM/AM", 83],
+    ["Krasimir Balakov", "AM/LW", 87],
+    ["Hristo Stoichkov", "LW/ST", 94],
+    ["Emil Kostadinov", "RW", 84],
+    ["Nasko Sirakov", "ST/AM", 81],
+    ["Lyuboslav Penev", "ST", 82],
+  ]),
+
+  squad("ned-1998", "Holanda", 1998, "🇳🇱", ["#FF6F00", "#1A1A1A"], 4, [
+    ["Edwin van der Sar", "GK", 89],
+    ["Michael Reiziger", "RB", 82],
+    ["Jaap Stam", "CB", 90],
+    ["Frank de Boer", "CB", 87],
+    ["Arthur Numan", "LB", 81],
+    ["Edgar Davids", "DM/CM", 88],
+    ["Phillip Cocu", "CM/LB", 84],
+    ["Ronald de Boer", "CM/RW", 82],
+    ["Clarence Seedorf", "CM/AM", 87],
+    ["Marc Overmars", "LW/RW", 87],
+    ["Dennis Bergkamp", "AM/ST", 93],
+    ["Patrick Kluivert", "ST", 89],
+    ["Boudewijn Zenden", "LW", 80],
+    ["Pierre van Hooijdonk", "ST", 81],
+  ]),
+
+  squad("ger-2002", "Alemanha", 2002, "🇩🇪", ["#FFFFFF", "#1A1A1A"], 3, [
+    ["Oliver Kahn", "GK", 92],
+    ["Thomas Linke", "CB", 80],
+    ["Carsten Ramelow", "DM/CB", 80],
+    ["Christoph Metzelder", "CB", 81],
+    ["Christian Ziege", "LB/LW", 82],
+    ["Torsten Frings", "CM/RB", 83],
+    ["Dietmar Hamann", "DM", 84],
+    ["Jens Jeremies", "DM", 80],
+    ["Bernd Schneider", "RW/AM", 83],
+    ["Michael Ballack", "AM/CM", 90],
+    ["Marco Bode", "LW", 79],
+    ["Oliver Neuville", "ST", 81],
+    ["Miroslav Klose", "ST", 89],
+    ["Oliver Bierhoff", "ST", 83],
+  ]),
+
+  squad("kor-2002", "Coreia do Sul", 2002, "🇰🇷", ["#CD2E3A", "#FFFFFF"], 3, [
+    ["Lee Woon-jae", "GK", 81],
+    ["Choi Jin-cheul", "CB", 79],
+    ["Hong Myung-bo", "CB/DM", 85],
+    ["Kim Tae-young", "CB", 78],
+    ["Lee Young-pyo", "LB", 82],
+    ["Song Chong-gug", "RB/RW", 80],
+    ["Kim Nam-il", "DM", 80],
+    ["Yoo Sang-chul", "CM/DM", 81],
+    ["Park Ji-sung", "CM/RW", 86],
+    ["Lee Chun-soo", "LW", 79],
+    ["Seol Ki-hyeon", "LW/ST", 80],
+    ["Ahn Jung-hwan", "ST/AM", 82],
+    ["Hwang Sun-hong", "ST", 80],
+    ["Cha Du-ri", "ST/RB", 77],
+  ]),
+
+  squad("fra-2006", "França", 2006, "🇫🇷", ["#003DA5", "#EF4135"], 4, [
+    ["Fabien Barthez", "GK", 87],
+    ["Willy Sagnol", "RB", 84],
+    ["Lilian Thuram", "CB/RB", 91],
+    ["William Gallas", "CB/LB", 86],
+    ["Éric Abidal", "LB", 84],
+    ["Claude Makélélé", "DM", 89],
+    ["Patrick Vieira", "CM/DM", 90],
+    ["Franck Ribéry", "RW/LW", 87],
+    ["Zinédine Zidane", "AM", 97],
+    ["Florent Malouda", "LW", 83],
+    ["Thierry Henry", "ST/LW", 94],
+    ["David Trezeguet", "ST", 87],
+    ["Sylvain Wiltord", "RW/ST", 82],
+    ["Louis Saha", "ST", 80],
+  ]),
+
+  squad("mar-2022", "Marrocos", 2022, "🇲🇦", ["#C1272D", "#006233"], 3, [
+    ["Yassine Bounou", "GK", 87],
+    ["Achraf Hakimi", "RB", 88],
+    ["Romain Saïss", "CB", 82],
+    ["Nayef Aguerd", "CB", 82],
+    ["Noussair Mazraoui", "LB/RB", 82],
+    ["Jawad El Yamiq", "CB", 77],
+    ["Yahia Attiyat Allah", "LB", 76],
+    ["Sofyan Amrabat", "DM", 85],
+    ["Azzedine Ounahi", "CM", 81],
+    ["Selim Amallah", "CM/AM", 79],
+    ["Hakim Ziyech", "RW/AM", 86],
+    ["Sofiane Boufal", "LW", 81],
+    ["Youssef En-Nesyri", "ST", 82],
+    ["Abderrazak Hamdallah", "ST", 78],
+  ]),
+
+  squad("fra-2022", "França", 2022, "🇫🇷", ["#003DA5", "#EF4135"], 5, [
+    ["Hugo Lloris", "GK", 87],
+    ["Jules Koundé", "CB/RB", 86],
+    ["Raphaël Varane", "CB", 88],
+    ["Dayot Upamecano", "CB", 84],
+    ["Ibrahima Konaté", "CB", 84],
+    ["Theo Hernández", "LB", 87],
+    ["Aurélien Tchouaméni", "DM", 86],
+    ["Adrien Rabiot", "CM", 84],
+    ["Antoine Griezmann", "AM/ST", 90],
+    ["Ousmane Dembélé", "RW", 86],
+    ["Kylian Mbappé", "ST/LW", 96],
+    ["Olivier Giroud", "ST", 85],
+    ["Marcus Thuram", "LW/ST", 82],
+    ["Kingsley Coman", "RW/LW", 85],
+  ]),
 ];
 
 export const SQUAD_BY_ID: Record<string, SquadDef> = Object.fromEntries(
@@ -644,6 +888,27 @@ export const SQUAD_BY_ID: Record<string, SquadDef> = Object.fromEntries(
 
 export function squadLabel(s: SquadDef): string {
   return `${s.nation} ${s.year}`;
+}
+
+// 3-letter codes for compact UI (brackets, scoreboards, chips).
+const NATION_CODE: Record<string, string> = {
+  Brasil: "BRA", Uruguai: "URU", Hungria: "HUN", "Suécia": "SUE",
+  "Tchecoslováquia": "TCH", Inglaterra: "ING", Portugal: "POR",
+  "União Soviética": "URS", "Itália": "ITA", Holanda: "HOL",
+  "Alemanha Ocidental": "ALE", Alemanha: "ALE", "Polônia": "POL",
+  Argentina: "ARG", "França": "FRA", Dinamarca: "DIN", "Camarões": "CAM",
+  "Colômbia": "COL", Espanha: "ESP", "Croácia": "CRO", "Bélgica": "BEL",
+  "Romênia": "ROM", "Bulgária": "BUL", "Coreia do Sul": "COR",
+  Marrocos: "MAR", "México": "MEX",
+};
+
+export function nationCode(nation: string): string {
+  return NATION_CODE[nation] ?? nation.slice(0, 3).toUpperCase();
+}
+
+/** Compact label, e.g. "BRA 70" — for tight layouts like the bracket. */
+export function squadCode(s: SquadDef): string {
+  return `${nationCode(s.nation)} ${String(s.year).slice(2)}`;
 }
 
 /** Players from a squad eligible for a position (natural or secondary). */

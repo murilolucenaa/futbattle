@@ -1,45 +1,48 @@
 // ============================================================
-// FUTBATTLE — draft balancing rules ("anti-apelão")
+// FUTBATTLE — draft rules
 //
-// Sem estas regras o jogador giraria a roleta infinitamente até
-// montar um time só de 99. O desafio vem de três limites:
+// Não há mais teto de craques: o equilíbrio vem do próprio
+// sorteio. A roleta é ponderada pela força da seleção — quanto
+// mais forte o elenco, mais raro ele é de cair. Pegar um time
+// 90+ é sorte; pegar um -80 é azar. Acontece.
 //
-//  1. REROLL_BUDGET  — giros extras são um recurso finito do
-//     draft inteiro (o 1º giro de cada vaga é grátis).
-//  2. CAP_CRACK      — no máximo 1 jogador OVR ≥ 95 no elenco.
-//  3. CAP_ELITE      — no máximo 3 jogadores OVR ≥ 90 no elenco
-//     (o craque 95+ conta dentro desse teto).
+// O orçamento de giros é curto: 4 giros extras no draft inteiro
+// (+1 bônus ao chegar no banco). Trocar a geração da mesma
+// seleção (ex.: Brasil 1950 → Brasil 2002) também consome giro.
 // ============================================================
 
-import type { Card, PlayerDef } from "./types";
+import type { SquadDef } from "./types";
 
-export const REROLL_BUDGET = 10;
+export const REROLL_BUDGET = 4;
+export const BENCH_REROLL_BONUS = 1;
 
-export const CRACK_OVR = 95;
-export const ELITE_OVR = 90;
-export const CAP_CRACK = 1;
-export const CAP_ELITE = 3;
-
-export interface DraftCheck {
-  ok: boolean;
-  reason: string | null;
+/** Average OVR of the squad's best 11 — the "power" of the squad. */
+export function squadPower(s: SquadDef): number {
+  const top = [...s.players].sort((a, b) => b.ovr - a.ovr).slice(0, 11);
+  return top.reduce((acc, p) => acc + p.ovr, 0) / top.length;
 }
 
-export function countCracks(cards: Card[]): number {
-  return cards.filter((c) => c.player.ovr >= CRACK_OVR).length;
+/**
+ * Roulette weight: strong squads are rarer. A GOAT-tier squad
+ * (power ≥ 92) lands roughly 4× less often than a mid-table one.
+ */
+export function squadWeight(s: SquadDef): number {
+  const p = squadPower(s);
+  if (p >= 92) return 0.3;
+  if (p >= 89) return 0.55;
+  if (p >= 86) return 0.85;
+  if (p >= 83) return 1.1;
+  return 1.35;
 }
 
-export function countElite(cards: Card[]): number {
-  return cards.filter((c) => c.player.ovr >= ELITE_OVR).length;
-}
-
-/** Can this player join the squad without breaking the star caps? */
-export function canDraft(p: PlayerDef, squad: Card[]): DraftCheck {
-  if (p.ovr >= CRACK_OVR && countCracks(squad) >= CAP_CRACK) {
-    return { ok: false, reason: `Limite atingido: ${CAP_CRACK} craque (95+) por elenco` };
+/** Weighted random draw from `pool` (already filtered by caller). */
+export function drawSquad(pool: SquadDef[], rand: () => number = Math.random): SquadDef | null {
+  if (pool.length === 0) return null;
+  const total = pool.reduce((acc, s) => acc + squadWeight(s), 0);
+  let r = rand() * total;
+  for (const s of pool) {
+    r -= squadWeight(s);
+    if (r <= 0) return s;
   }
-  if (p.ovr >= ELITE_OVR && countElite(squad) >= CAP_ELITE) {
-    return { ok: false, reason: `Limite atingido: ${CAP_ELITE} jogadores de elite (90+)` };
-  }
-  return { ok: true, reason: null };
+  return pool[pool.length - 1];
 }

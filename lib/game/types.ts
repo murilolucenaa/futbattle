@@ -7,10 +7,17 @@ export type Position =
   | "DM" | "CM" | "AM"
   | "RW" | "LW" | "ST";
 
+/** Brazilian-style short position codes (FIFA-like), used across the UI. */
+export const POSITION_SHORT: Record<Position, string> = {
+  GK: "GOL", RB: "LD", CB: "ZAG", LB: "LE",
+  DM: "VOL", CM: "MC", AM: "MEI",
+  RW: "PD", LW: "PE", ST: "CA",
+};
+
 export const POSITION_LABEL: Record<Position, string> = {
-  GK: "Goleiro", RB: "Lateral Dir.", CB: "Zagueiro", LB: "Lateral Esq.",
-  DM: "Volante", CM: "Meio-campo", AM: "Meia-atacante",
-  RW: "Ponta Dir.", LW: "Ponta Esq.", ST: "Centroavante",
+  GK: "Goleiro", RB: "Lateral direito", CB: "Zagueiro", LB: "Lateral esquerdo",
+  DM: "Volante", CM: "Meio-campista", AM: "Meia-atacante",
+  RW: "Ponta direita", LW: "Ponta esquerda", ST: "Centroavante",
 };
 
 export type Sector = "GK" | "DEF" | "MID" | "ATT";
@@ -34,9 +41,28 @@ export interface SquadDef {
   nation: string;        // "Brasil"
   year: number;
   flag: string;          // emoji
-  colors: [string, string]; // [primary, secondary] hex — shirt colors
-  fame: number;          // 1–5, weight in roulette and AI strength flavor
+  colors: [string, string]; // [primary, secondary] hex — first kit
+  kit2: [string, string];   // second kit (historically plausible)
+  fame: number;          // 1–5, flavor/AI strength weight
   players: PlayerDef[];
+}
+
+// ── World Cup editions (host + stadiums + visual theme) ──────
+export type PitchEra = "vintage" | "retro" | "classic" | "modern" | "ultra";
+
+export interface Stadium {
+  name: string;
+  city: string;
+  capacity: number; // approximate
+}
+
+export interface WCEdition {
+  id: string;        // "brasil-2014"
+  year: number;
+  host: string;      // "Brasil" | "Coreia do Sul & Japão" …
+  flag: string;
+  era: PitchEra;     // drives pitch/stadium visual theme
+  stadiums: Stadium[];
 }
 
 // ── Drafted card (player + provenance) ───────────────────────
@@ -49,7 +75,9 @@ export interface Card {
 }
 
 // ── Formations & tactics ─────────────────────────────────────
-export type FormationId = "4-3-3" | "4-4-2" | "4-2-3-1" | "4-3-1-2" | "3-5-2" | "3-4-3" | "5-4-1";
+export type FormationId =
+  | "4-3-3" | "4-4-2" | "4-2-3-1" | "4-3-1-2" | "3-5-2" | "3-4-3" | "5-4-1"
+  | "4-1-2-1-2" | "4-5-1" | "4-2-2-2" | "5-3-2" | "4-1-4-1" | "3-6-1";
 export type Mentality = "defensivo" | "equilibrado" | "ofensivo";
 export type GameStyle = "posse" | "contra-ataque" | "laterais" | "pressao" | "falso-9";
 
@@ -79,7 +107,8 @@ export interface MatchTeam {
 // ── Live match engine ────────────────────────────────────────
 export type MatchEventType =
   | "kickoff" | "goal" | "save" | "miss" | "post" | "card"
-  | "sub" | "halftime" | "fulltime" | "chance" | "tactic" | "penalty-goal" | "penalty-miss";
+  | "sub" | "halftime" | "fulltime" | "chance" | "tactic"
+  | "cooling" | "penalty-goal" | "penalty-miss";
 
 export interface MatchEvent {
   min: number;
@@ -120,7 +149,7 @@ export interface MatchResult {
   motmId: string | null;
 }
 
-// ── Cup structure ────────────────────────────────────────────
+// ── Cup structure (2026 format: 48 teams, 12 groups) ─────────
 export interface CupTeamRef {
   squadId: string;  // "USER" for the player's team
   name: string;
@@ -130,10 +159,11 @@ export interface CupTeamRef {
 
 export interface Fixture {
   id: string;
-  round: number;       // group: 1–3 · knockout: 4=R16 5=QF 6=SF 7=Final
-  group?: string;      // "A".."H" for group stage
+  round: number;       // 1–3 groups · 4=R32 5=R16 6=QF 7=SF 8=3º lugar 9=Final
+  group?: string;      // "A".."L" for group stage
   homeId: string;
   awayId: string;
+  stadium?: string;    // from the chosen edition
   scoreH: number | null;
   scoreA: number | null;
   pensH?: number;
@@ -147,13 +177,27 @@ export interface GroupRow {
   gf: number; ga: number;
 }
 
-export type CupPhase = "groups" | "r16" | "qf" | "sf" | "final" | "champion" | "eliminated";
+/** Cumulative tournament stats per player (leaders boards). */
+export interface PlayerTotals {
+  name: string;
+  teamId: string;
+  goals: number;
+  assists: number;
+  ratingSum: number;
+  matches: number;
+}
+
+export type CupPhase =
+  | "groups" | "r32" | "r16" | "qf" | "sf" | "third" | "final"
+  | "champion" | "eliminated";
 
 export interface CupState {
   teams: Record<string, CupTeamRef>;
-  groups: Record<string, string[]>; // "A" → 4 teamIds
+  groups: Record<string, string[]>; // "A".."L" → 4 teamIds
   fixtures: Fixture[];
   phase: CupPhase;
   userGroup: string;
   seed: number;
+  editionId: string;
+  playerTotals: Record<string, PlayerTotals>;
 }

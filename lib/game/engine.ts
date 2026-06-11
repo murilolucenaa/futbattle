@@ -47,6 +47,7 @@ export interface LiveMatchState {
   playerStats: Record<string, PlayerMatchStats>;
   finished: boolean;
   knockout: boolean;
+  coolingBreaks: boolean; // 2026-style pauses at 25' and 70'
   pensH?: number;
   pensA?: number;
 }
@@ -160,7 +161,9 @@ function line(arr: string[], rand: () => number, vars: Record<string, string>): 
 }
 
 // ── Setup ────────────────────────────────────────────────────
-export function createMatch(home: MatchTeam, away: MatchTeam, seed: number, knockout = false): LiveMatchState {
+export function createMatch(
+  home: MatchTeam, away: MatchTeam, seed: number, knockout = false, coolingBreaks = false
+): LiveMatchState {
   const mkTeam = (t: MatchTeam): TeamState => {
     const roster = [...(t.lineup.filter(Boolean) as Card[]), ...t.bench];
     return {
@@ -178,13 +181,13 @@ export function createMatch(home: MatchTeam, away: MatchTeam, seed: number, knoc
     rand: mulberry32(seed),
     ballX: 50, ballY: 50, possMinH: 0,
     statsH: emptyTeamStats(), statsA: emptyTeamStats(),
-    playerStats: {}, finished: false, knockout,
+    playerStats: {}, finished: false, knockout, coolingBreaks,
   };
   for (const t of [state.h, state.a])
     for (const { card } of fielded(t)) ps(state, card.player.id);
   state.events.push({
     min: 0, type: "kickoff", side: "h",
-    text: `🏟️ Bola rolando! ${home.name} x ${away.name}`,
+    text: `Bola rolando! ${home.name} x ${away.name}`,
     scoreH: 0, scoreA: 0,
   });
   return state;
@@ -197,7 +200,7 @@ export function applyTactics(state: LiveMatchState, side: "h" | "a", tactics: Ta
   ts.mods = tacticMods(tactics);
   state.events.push({
     min: state.minute, type: "tactic", side,
-    text: `📋 ${ts.team.name} ajusta a estratégia.`,
+    text: `${ts.team.name} ajusta a estratégia.`,
     scoreH: state.scoreH, scoreA: state.scoreA,
   });
 }
@@ -219,7 +222,7 @@ export function applySub(state: LiveMatchState, side: "h" | "a", outId: string, 
   ps(state, inc.player.id);
   state.events.push({
     min: state.minute, type: "sub", side,
-    text: `🔁 ${ts.team.name}: sai ${out.player.name}, entra ${inc.player.name}.`,
+    text: `${ts.team.name}: sai ${out.player.name}, entra ${inc.player.name}.`,
     scoreH: state.scoreH, scoreA: state.scoreA,
   });
   return true;
@@ -362,8 +365,12 @@ export function tick(state: LiveMatchState): MatchEvent[] {
     for (const { card } of fielded(ts))
       ps(state, card.player.id).rating += (rand() - 0.48) * 0.015;
 
+  if (state.coolingBreaks && (min === 25 || min === 70)) {
+    push({ min, type: "cooling", side: "h", text: "Cooling break — os jogadores se hidratam à beira do gramado.", scoreH: state.scoreH, scoreA: state.scoreA });
+  }
+
   if (min === 45) {
-    push({ min, type: "halftime", side: "h", text: `⏸️ Intervalo: ${state.h.team.name} ${state.scoreH}–${state.scoreA} ${state.a.team.name}`, scoreH: state.scoreH, scoreA: state.scoreA });
+    push({ min, type: "halftime", side: "h", text: `Intervalo: ${state.h.team.name} ${state.scoreH}–${state.scoreA} ${state.a.team.name}`, scoreH: state.scoreH, scoreA: state.scoreA });
   }
 
   if (min >= 90) {
@@ -371,7 +378,7 @@ export function tick(state: LiveMatchState): MatchEvent[] {
     if (state.knockout && state.scoreH === state.scoreA) {
       simulatePenalties(state);
     }
-    push({ min: 90, type: "fulltime", side: "h", text: `🏁 Fim de jogo! ${state.h.team.name} ${state.scoreH}–${state.scoreA} ${state.a.team.name}${state.pensH != null ? ` (${state.pensH}–${state.pensA} nos pênaltis)` : ""}`, scoreH: state.scoreH, scoreA: state.scoreA });
+    push({ min: 90, type: "fulltime", side: "h", text: `Fim de jogo! ${state.h.team.name} ${state.scoreH}–${state.scoreA} ${state.a.team.name}${state.pensH != null ? ` (${state.pensH}–${state.pensA} nos pênaltis)` : ""}`, scoreH: state.scoreH, scoreA: state.scoreA });
   }
   return newEvents;
 }
@@ -406,7 +413,7 @@ function simulatePenalties(state: LiveMatchState): void {
   state.pensH = ph; state.pensA = pa;
   state.events.push({
     min: 90, type: ph > pa ? "penalty-goal" : "penalty-miss", side: ph > pa ? "h" : "a",
-    text: `🥅 Disputa de pênaltis: ${state.h.team.name} ${ph}–${pa} ${state.a.team.name}`,
+    text: `Disputa de pênaltis: ${state.h.team.name} ${ph}–${pa} ${state.a.team.name}`,
     scoreH: state.scoreH, scoreA: state.scoreA,
   });
 }

@@ -1,0 +1,310 @@
+// ============================================================
+// FUTBATTLE — World Cup editions 1950–2026
+// Real hosts and real stadiums of each tournament. The chosen
+// edition drives ambiance only (stadiums, pitch/stand theme);
+// the competition always uses the 2026 format (48 teams).
+// ============================================================
+
+import type { WCEdition } from "@/lib/game/types";
+
+export const EDITIONS: WCEdition[] = [
+  {
+    id: "brasil-1950", year: 1950, host: "Brasil", flag: "🇧🇷", era: "vintage",
+    stadiums: [
+      { name: "Maracanã", city: "Rio de Janeiro", capacity: 173850 },
+      { name: "Pacaembu", city: "São Paulo", capacity: 60000 },
+      { name: "Independência", city: "Belo Horizonte", capacity: 30000 },
+      { name: "Estádio dos Eucaliptos", city: "Porto Alegre", capacity: 20000 },
+      { name: "Ilha do Retiro", city: "Recife", capacity: 20000 },
+      { name: "Vila Capanema", city: "Curitiba", capacity: 15000 },
+    ],
+  },
+  {
+    id: "suica-1954", year: 1954, host: "Suíça", flag: "🇨🇭", era: "vintage",
+    stadiums: [
+      { name: "Wankdorf", city: "Berna", capacity: 64000 },
+      { name: "St. Jakob", city: "Basileia", capacity: 54800 },
+      { name: "Hardturm", city: "Zurique", capacity: 34800 },
+      { name: "La Pontaise", city: "Lausanne", capacity: 35000 },
+      { name: "Charmilles", city: "Genebra", capacity: 35997 },
+      { name: "Cornaredo", city: "Lugano", capacity: 26000 },
+    ],
+  },
+  {
+    id: "suecia-1958", year: 1958, host: "Suécia", flag: "🇸🇪", era: "vintage",
+    stadiums: [
+      { name: "Råsunda", city: "Solna", capacity: 52400 },
+      { name: "Ullevi", city: "Gotemburgo", capacity: 53500 },
+      { name: "Malmö Stadion", city: "Malmö", capacity: 31000 },
+      { name: "Idrottsparken", city: "Norrköping", capacity: 20000 },
+      { name: "Ryavallen", city: "Borås", capacity: 15000 },
+      { name: "Jernvallen", city: "Sandviken", capacity: 20000 },
+    ],
+  },
+  {
+    id: "chile-1962", year: 1962, host: "Chile", flag: "🇨🇱", era: "retro",
+    stadiums: [
+      { name: "Estádio Nacional", city: "Santiago", capacity: 66660 },
+      { name: "Sausalito", city: "Viña del Mar", capacity: 18037 },
+      { name: "Carlos Dittborn", city: "Arica", capacity: 17786 },
+      { name: "El Teniente", city: "Rancagua", capacity: 18000 },
+    ],
+  },
+  {
+    id: "inglaterra-1966", year: 1966, host: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", era: "retro",
+    stadiums: [
+      { name: "Wembley", city: "Londres", capacity: 98600 },
+      { name: "Goodison Park", city: "Liverpool", capacity: 50151 },
+      { name: "Old Trafford", city: "Manchester", capacity: 58504 },
+      { name: "Hillsborough", city: "Sheffield", capacity: 42730 },
+      { name: "Villa Park", city: "Birmingham", capacity: 52000 },
+      { name: "Ayresome Park", city: "Middlesbrough", capacity: 40000 },
+      { name: "Roker Park", city: "Sunderland", capacity: 40310 },
+      { name: "White City", city: "Londres", capacity: 76567 },
+    ],
+  },
+  {
+    id: "mexico-1970", year: 1970, host: "México", flag: "🇲🇽", era: "retro",
+    stadiums: [
+      { name: "Estádio Azteca", city: "Cidade do México", capacity: 107247 },
+      { name: "Jalisco", city: "Guadalajara", capacity: 71100 },
+      { name: "Nou Camp", city: "León", capacity: 23609 },
+      { name: "Cuauhtémoc", city: "Puebla", capacity: 35563 },
+      { name: "Luis Dosal", city: "Toluca", capacity: 26900 },
+    ],
+  },
+  {
+    id: "alemanha-1974", year: 1974, host: "Alemanha Ocidental", flag: "🇩🇪", era: "retro",
+    stadiums: [
+      { name: "Olympiastadion", city: "Munique", capacity: 77573 },
+      { name: "Westfalenstadion", city: "Dortmund", capacity: 53600 },
+      { name: "Waldstadion", city: "Frankfurt", capacity: 62200 },
+      { name: "Parkstadion", city: "Gelsenkirchen", capacity: 70000 },
+      { name: "Niedersachsenstadion", city: "Hannover", capacity: 60400 },
+      { name: "Rheinstadion", city: "Düsseldorf", capacity: 67855 },
+      { name: "Olympiastadion", city: "Berlim", capacity: 86000 },
+      { name: "Neckarstadion", city: "Stuttgart", capacity: 71000 },
+      { name: "Volksparkstadion", city: "Hamburgo", capacity: 61300 },
+    ],
+  },
+  {
+    id: "argentina-1978", year: 1978, host: "Argentina", flag: "🇦🇷", era: "retro",
+    stadiums: [
+      { name: "Monumental", city: "Buenos Aires", capacity: 74624 },
+      { name: "José Amalfitani", city: "Buenos Aires", capacity: 49540 },
+      { name: "Gigante de Arroyito", city: "Rosário", capacity: 41654 },
+      { name: "José María Minella", city: "Mar del Plata", capacity: 43542 },
+      { name: "Chateau Carreras", city: "Córdoba", capacity: 46083 },
+      { name: "Malvinas Argentinas", city: "Mendoza", capacity: 42053 },
+    ],
+  },
+  {
+    id: "espanha-1982", year: 1982, host: "Espanha", flag: "🇪🇸", era: "classic",
+    stadiums: [
+      { name: "Santiago Bernabéu", city: "Madri", capacity: 90800 },
+      { name: "Camp Nou", city: "Barcelona", capacity: 121401 },
+      { name: "Sarriá", city: "Barcelona", capacity: 40400 },
+      { name: "Vicente Calderón", city: "Madri", capacity: 65695 },
+      { name: "San Mamés", city: "Bilbao", capacity: 46223 },
+      { name: "Sánchez Pizjuán", city: "Sevilha", capacity: 68110 },
+      { name: "Benito Villamarín", city: "Sevilha", capacity: 50253 },
+      { name: "La Rosaleda", city: "Málaga", capacity: 45000 },
+      { name: "Riazor", city: "La Coruña", capacity: 34617 },
+      { name: "Balaídos", city: "Vigo", capacity: 33000 },
+      { name: "El Molinón", city: "Gijón", capacity: 45153 },
+      { name: "La Romareda", city: "Zaragoza", capacity: 41806 },
+      { name: "Luis Casanova", city: "Valência", capacity: 49562 },
+      { name: "José Zorrilla", city: "Valladolid", capacity: 30043 },
+    ],
+  },
+  {
+    id: "mexico-1986", year: 1986, host: "México", flag: "🇲🇽", era: "classic",
+    stadiums: [
+      { name: "Estádio Azteca", city: "Cidade do México", capacity: 114600 },
+      { name: "Olímpico Universitario", city: "Cidade do México", capacity: 72000 },
+      { name: "Jalisco", city: "Guadalajara", capacity: 65000 },
+      { name: "Cuauhtémoc", city: "Puebla", capacity: 46000 },
+      { name: "Universitario", city: "Monterrey", capacity: 43780 },
+      { name: "Tecnológico", city: "Monterrey", capacity: 33805 },
+      { name: "La Corregidora", city: "Querétaro", capacity: 38575 },
+      { name: "Neza 86", city: "Nezahualcóyotl", capacity: 28000 },
+      { name: "Nou Camp", city: "León", capacity: 23609 },
+      { name: "Sergio León Chávez", city: "Irapuato", capacity: 24000 },
+      { name: "Tres de Marzo", city: "Guadalajara", capacity: 22000 },
+      { name: "Nemesio Diez", city: "Toluca", capacity: 26000 },
+    ],
+  },
+  {
+    id: "italia-1990", year: 1990, host: "Itália", flag: "🇮🇹", era: "classic",
+    stadiums: [
+      { name: "San Siro", city: "Milão", capacity: 85700 },
+      { name: "Olimpico", city: "Roma", capacity: 73603 },
+      { name: "San Paolo", city: "Nápoles", capacity: 76824 },
+      { name: "Delle Alpi", city: "Turim", capacity: 69041 },
+      { name: "Artemio Franchi", city: "Florença", capacity: 38971 },
+      { name: "Renato Dall'Ara", city: "Bolonha", capacity: 34520 },
+      { name: "Luigi Ferraris", city: "Gênova", capacity: 36536 },
+      { name: "Bentegodi", city: "Verona", capacity: 35950 },
+      { name: "Sant'Elia", city: "Cagliari", capacity: 39905 },
+      { name: "La Favorita", city: "Palermo", capacity: 36349 },
+      { name: "Friuli", city: "Udine", capacity: 41652 },
+      { name: "San Nicola", city: "Bari", capacity: 58270 },
+    ],
+  },
+  {
+    id: "eua-1994", year: 1994, host: "Estados Unidos", flag: "🇺🇸", era: "classic",
+    stadiums: [
+      { name: "Rose Bowl", city: "Pasadena", capacity: 91794 },
+      { name: "Giants Stadium", city: "Nova Jersey", capacity: 75338 },
+      { name: "Soldier Field", city: "Chicago", capacity: 63117 },
+      { name: "Cotton Bowl", city: "Dallas", capacity: 63998 },
+      { name: "Pontiac Silverdome", city: "Detroit", capacity: 77557 },
+      { name: "Citrus Bowl", city: "Orlando", capacity: 61219 },
+      { name: "Foxboro Stadium", city: "Boston", capacity: 53644 },
+      { name: "RFK Stadium", city: "Washington", capacity: 53142 },
+      { name: "Stanford Stadium", city: "São Francisco", capacity: 80906 },
+    ],
+  },
+  {
+    id: "franca-1998", year: 1998, host: "França", flag: "🇫🇷", era: "modern",
+    stadiums: [
+      { name: "Stade de France", city: "Saint-Denis", capacity: 80000 },
+      { name: "Parc des Princes", city: "Paris", capacity: 48875 },
+      { name: "Vélodrome", city: "Marselha", capacity: 60000 },
+      { name: "Gerland", city: "Lyon", capacity: 44000 },
+      { name: "Lescure", city: "Bordeaux", capacity: 36500 },
+      { name: "La Beaujoire", city: "Nantes", capacity: 39500 },
+      { name: "Geoffroy-Guichard", city: "Saint-Étienne", capacity: 36000 },
+      { name: "Félix-Bollaert", city: "Lens", capacity: 41300 },
+      { name: "Stadium de Toulouse", city: "Toulouse", capacity: 37000 },
+      { name: "La Mosson", city: "Montpellier", capacity: 34000 },
+    ],
+  },
+  {
+    id: "coreia-japao-2002", year: 2002, host: "Coreia do Sul & Japão", flag: "🇰🇷", era: "modern",
+    stadiums: [
+      { name: "International Stadium", city: "Yokohama", capacity: 72327 },
+      { name: "Saitama Stadium", city: "Saitama", capacity: 63700 },
+      { name: "Sapporo Dome", city: "Sapporo", capacity: 42122 },
+      { name: "Kashima Stadium", city: "Kashima", capacity: 41800 },
+      { name: "Ecopa Stadium", city: "Shizuoka", capacity: 50600 },
+      { name: "Nagai Stadium", city: "Osaka", capacity: 50000 },
+      { name: "Seoul World Cup Stadium", city: "Seul", capacity: 63961 },
+      { name: "Daegu Stadium", city: "Daegu", capacity: 68014 },
+      { name: "Busan Asiad", city: "Busan", capacity: 55982 },
+      { name: "Munsu Stadium", city: "Ulsan", capacity: 43550 },
+      { name: "Suwon World Cup Stadium", city: "Suwon", capacity: 43188 },
+      { name: "Gwangju World Cup Stadium", city: "Gwangju", capacity: 42880 },
+    ],
+  },
+  {
+    id: "alemanha-2006", year: 2006, host: "Alemanha", flag: "🇩🇪", era: "modern",
+    stadiums: [
+      { name: "Olympiastadion", city: "Berlim", capacity: 72000 },
+      { name: "Allianz Arena", city: "Munique", capacity: 66000 },
+      { name: "Signal Iduna Park", city: "Dortmund", capacity: 65000 },
+      { name: "Volksparkstadion", city: "Hamburgo", capacity: 50000 },
+      { name: "Mercedes-Benz Arena", city: "Stuttgart", capacity: 52000 },
+      { name: "Zentralstadion", city: "Leipzig", capacity: 43000 },
+      { name: "Commerzbank-Arena", city: "Frankfurt", capacity: 48000 },
+      { name: "Veltins-Arena", city: "Gelsenkirchen", capacity: 53804 },
+      { name: "RheinEnergieStadion", city: "Colônia", capacity: 45000 },
+      { name: "AWD-Arena", city: "Hannover", capacity: 43000 },
+      { name: "Fritz-Walter-Stadion", city: "Kaiserslautern", capacity: 46000 },
+      { name: "Frankenstadion", city: "Nuremberg", capacity: 41000 },
+    ],
+  },
+  {
+    id: "africa-do-sul-2010", year: 2010, host: "África do Sul", flag: "🇿🇦", era: "modern",
+    stadiums: [
+      { name: "Soccer City", city: "Joanesburgo", capacity: 84490 },
+      { name: "Ellis Park", city: "Joanesburgo", capacity: 55686 },
+      { name: "Moses Mabhida", city: "Durban", capacity: 62760 },
+      { name: "Green Point", city: "Cidade do Cabo", capacity: 64100 },
+      { name: "Loftus Versfeld", city: "Pretória", capacity: 42858 },
+      { name: "Free State Stadium", city: "Bloemfontein", capacity: 40911 },
+      { name: "Mbombela Stadium", city: "Nelspruit", capacity: 40929 },
+      { name: "Peter Mokaba", city: "Polokwane", capacity: 41733 },
+      { name: "Royal Bafokeng", city: "Rustenburg", capacity: 38646 },
+      { name: "Nelson Mandela Bay", city: "Port Elizabeth", capacity: 46082 },
+    ],
+  },
+  {
+    id: "brasil-2014", year: 2014, host: "Brasil", flag: "🇧🇷", era: "modern",
+    stadiums: [
+      { name: "Maracanã", city: "Rio de Janeiro", capacity: 74738 },
+      { name: "Mané Garrincha", city: "Brasília", capacity: 69349 },
+      { name: "Arena Corinthians", city: "São Paulo", capacity: 63321 },
+      { name: "Mineirão", city: "Belo Horizonte", capacity: 58170 },
+      { name: "Castelão", city: "Fortaleza", capacity: 60348 },
+      { name: "Arena Fonte Nova", city: "Salvador", capacity: 51708 },
+      { name: "Beira-Rio", city: "Porto Alegre", capacity: 43394 },
+      { name: "Arena Pernambuco", city: "Recife", capacity: 42583 },
+      { name: "Arena Pantanal", city: "Cuiabá", capacity: 41112 },
+      { name: "Arena da Amazônia", city: "Manaus", capacity: 40549 },
+      { name: "Arena das Dunas", city: "Natal", capacity: 39971 },
+      { name: "Arena da Baixada", city: "Curitiba", capacity: 39631 },
+    ],
+  },
+  {
+    id: "russia-2018", year: 2018, host: "Rússia", flag: "🇷🇺", era: "modern",
+    stadiums: [
+      { name: "Luzhniki", city: "Moscou", capacity: 78011 },
+      { name: "Otkritie Arena", city: "Moscou", capacity: 44190 },
+      { name: "Krestovsky", city: "São Petersburgo", capacity: 64287 },
+      { name: "Kazan Arena", city: "Kazan", capacity: 42873 },
+      { name: "Fisht", city: "Sochi", capacity: 44287 },
+      { name: "Rostov Arena", city: "Rostov", capacity: 43472 },
+      { name: "Samara Arena", city: "Samara", capacity: 41970 },
+      { name: "Volgograd Arena", city: "Volgogrado", capacity: 43713 },
+      { name: "Estádio Níjni Novgorod", city: "Níjni Novgorod", capacity: 43319 },
+      { name: "Mordovia Arena", city: "Saransk", capacity: 41685 },
+      { name: "Estádio Kaliningrado", city: "Kaliningrado", capacity: 33973 },
+      { name: "Ekaterinburg Arena", city: "Ecaterimburgo", capacity: 33061 },
+    ],
+  },
+  {
+    id: "catar-2022", year: 2022, host: "Catar", flag: "🇶🇦", era: "ultra",
+    stadiums: [
+      { name: "Lusail", city: "Lusail", capacity: 88966 },
+      { name: "Al Bayt", city: "Al Khor", capacity: 68895 },
+      { name: "Estádio 974", city: "Doha", capacity: 44089 },
+      { name: "Al Thumama", city: "Doha", capacity: 44400 },
+      { name: "Education City", city: "Al Rayyan", capacity: 44667 },
+      { name: "Ahmad bin Ali", city: "Al Rayyan", capacity: 45032 },
+      { name: "Khalifa International", city: "Doha", capacity: 45857 },
+      { name: "Al Janoub", city: "Al Wakrah", capacity: 44325 },
+    ],
+  },
+  {
+    id: "america-do-norte-2026", year: 2026, host: "EUA, México & Canadá", flag: "🇺🇸", era: "ultra",
+    stadiums: [
+      { name: "MetLife Stadium", city: "Nova York/NJ", capacity: 82500 },
+      { name: "SoFi Stadium", city: "Los Angeles", capacity: 70240 },
+      { name: "AT&T Stadium", city: "Dallas", capacity: 80000 },
+      { name: "NRG Stadium", city: "Houston", capacity: 72220 },
+      { name: "Mercedes-Benz Stadium", city: "Atlanta", capacity: 71000 },
+      { name: "Hard Rock Stadium", city: "Miami", capacity: 64767 },
+      { name: "Lincoln Financial Field", city: "Filadélfia", capacity: 69796 },
+      { name: "Levi's Stadium", city: "São Francisco", capacity: 68500 },
+      { name: "Lumen Field", city: "Seattle", capacity: 68740 },
+      { name: "Arrowhead Stadium", city: "Kansas City", capacity: 76416 },
+      { name: "Gillette Stadium", city: "Boston", capacity: 65878 },
+      { name: "Estádio Azteca", city: "Cidade do México", capacity: 87523 },
+      { name: "Estádio Akron", city: "Guadalajara", capacity: 49850 },
+      { name: "Estádio BBVA", city: "Monterrey", capacity: 53500 },
+      { name: "BMO Field", city: "Toronto", capacity: 45736 },
+      { name: "BC Place", city: "Vancouver", capacity: 54500 },
+    ],
+  },
+];
+
+export const EDITION_BY_ID: Record<string, WCEdition> = Object.fromEntries(
+  EDITIONS.map((e) => [e.id, e])
+);
+
+export const DEFAULT_EDITION_ID = "america-do-norte-2026";
+
+export function editionLabel(e: WCEdition): string {
+  return `${e.host} ${e.year}`;
+}
