@@ -276,11 +276,19 @@ export function tick(state: LiveMatchState): MatchEvent[] {
   state.ballY += (rand() * 100 - state.ballY) * 0.35;
 
   // Chance creation
-  const SHOT_BASE = 0.15;
+  const SHOT_BASE = 0.16;
   let chanceP = SHOT_BASE * att.mods.shotRate * Math.sqrt(attStr / Math.max(defStr, 1));
   // counter-attack bonus when ceding possession
   const attPossPct = side === "h" ? state.statsH.possession : state.statsA.possession;
   if (att.mods.counter > 0 && attPossPct < 46) chanceP *= 1 + att.mods.counter;
+
+  // Game management: a side already comfortable kills the clock instead of
+  // hunting more goals; the side behind throws bodies forward. Kills 7x0s.
+  const lead = homeBall ? state.scoreH - state.scoreA : state.scoreA - state.scoreH;
+  if (lead >= 4) chanceP *= 0.35;
+  else if (lead >= 3) chanceP *= 0.5;
+  else if (lead >= 2) chanceP *= 0.72;
+  else if (lead <= -1) chanceP *= 1.12;
 
   if (rand() < chanceP) {
     const shooter = pickAttacker(att, rand, true);
@@ -310,7 +318,8 @@ export function tick(state: LiveMatchState): MatchEvent[] {
       const finish = effectiveOvr(shooter.card, shooter.pos);
       let goalP = 0.28 * Math.pow(finish / gkOvr, 2.2);
       if (att.mods.counter > 0 && attPossPct < 46) goalP *= 1.15;
-      goalP = Math.min(0.62, goalP);
+      if (lead >= 3) goalP *= 0.8; // already cruising, less clinical
+      goalP = Math.min(0.58, goalP);
 
       if (rand() < goalP) {
         if (homeBall) state.scoreH++; else state.scoreA++;

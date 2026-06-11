@@ -23,26 +23,46 @@ export function squadPower(s: SquadDef): number {
 }
 
 /**
- * Roulette weight: strong squads are rarer. A GOAT-tier squad
- * (power ≥ 92) lands roughly 4× less often than a mid-table one.
+ * Roulette weight — smooth sigmoid instead of tiers, so two squads with
+ * almost the same power have almost the same odds (no cliff at 89→90).
+ * A GOAT-tier squad lands roughly 4–5× less often than a mid-table one.
  */
 export function squadWeight(s: SquadDef): number {
   const p = squadPower(s);
-  if (p >= 92) return 0.3;
-  if (p >= 89) return 0.55;
-  if (p >= 86) return 0.85;
-  if (p >= 83) return 1.1;
-  return 1.35;
+  return 0.22 + 1.25 / (1 + Math.exp((p - 86.5) / 2.0));
+}
+
+/**
+ * Bench draw is harsher: the curve's midpoint shifts down ~3 points,
+ * so elite squads (and their 90+ stars) rarely show up for reserves.
+ */
+export function benchSquadWeight(s: SquadDef): number {
+  const p = squadPower(s);
+  return 0.15 + 1.3 / (1 + Math.exp((p - 83.5) / 1.8));
+}
+
+/** Chance that a 90+ star accepts a BENCH call-up ("o olheiro convenceu"). */
+export const BENCH_ELITE_UNLOCK_P = 0.2;
+export const BENCH_ELITE_OVR = 90;
+
+export interface DrawOpts {
+  rand?: () => number;
+  mode?: "xi" | "bench";
+  excludeId?: string; // avoid landing the same squad twice in a row
 }
 
 /** Weighted random draw from `pool` (already filtered by caller). */
-export function drawSquad(pool: SquadDef[], rand: () => number = Math.random): SquadDef | null {
-  if (pool.length === 0) return null;
-  const total = pool.reduce((acc, s) => acc + squadWeight(s), 0);
+export function drawSquad(pool: SquadDef[], opts: DrawOpts = {}): SquadDef | null {
+  const rand = opts.rand ?? Math.random;
+  const weigh = opts.mode === "bench" ? benchSquadWeight : squadWeight;
+  let p = opts.excludeId ? pool.filter((s) => s.id !== opts.excludeId) : pool;
+  if (p.length === 0) p = pool;
+  if (p.length === 0) return null;
+  const total = p.reduce((acc, s) => acc + weigh(s), 0);
   let r = rand() * total;
-  for (const s of pool) {
-    r -= squadWeight(s);
+  for (const s of p) {
+    r -= weigh(s);
     if (r <= 0) return s;
   }
-  return pool[pool.length - 1];
+  return p[p.length - 1];
 }

@@ -227,7 +227,7 @@ describe("draft rules (sorteio honesto)", () => {
       return seed / 2147483647;
     };
     for (let i = 0; i < n; i++) {
-      const s = drawSquad(SQUADS, rand)!;
+      const s = drawSquad(SQUADS, { rand })!;
       if (strong.includes(s)) strongHits++;
     }
     // strong squads exist but land well below their uniform share

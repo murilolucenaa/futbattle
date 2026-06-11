@@ -11,6 +11,8 @@ import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
 import { REROLL_BUDGET, BENCH_REROLL_BONUS } from "./rules";
 
+export type CareerMode = "legends" | "wc2026";
+
 export interface DraftSlot {
   pos: Position;
   card: Card | null;
@@ -27,7 +29,10 @@ export const BENCH_SIZE = 4;
 
 interface CareerState {
   coachName: string;
+  careerMode: CareerMode;    // "legends" = draft de lendas · "wc2026" = seleção atual
   editionId: string;         // chosen World Cup edition (host + year + stadiums)
+  userColors: [string, string];  // chosen at career creation
+  userColors2: [string, string]; // away kit
   draftFormation: FormationId;
   slots: DraftSlot[];        // 11, positions from draftFormation
   benchSlots: BenchSlot[];   // 4, position set by the chosen player
@@ -46,7 +51,8 @@ interface CareerState {
   lastResult: { fixtureId: string; result: MatchResult; round: number } | null;
 
   // actions
-  newCareer: (coachName: string, editionId: string, formation: FormationId) => void;
+  newCareer: (coachName: string, editionId: string, formation: FormationId, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
+  newCareer2026: (coachName: string, squadId: string, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
   setDraftFormation: (f: FormationId) => void;
   fillSlot: (index: number, card: Card) => void;
   fillBench: (index: number, card: Card) => void;
@@ -90,7 +96,7 @@ export function userTeamName(s: Pick<CareerState, "coachName">): string {
 export function buildUserTeam(s: CareerState): MatchTeam {
   const cards = allCards(s);
   const byId = new Map(cards.map((c) => [c.player.id, c]));
-  const colors = s.userKit === 2 ? USER_KIT2 : USER_COLORS;
+  const colors = s.userKit === 2 ? (s.userColors2 ?? USER_KIT2) : (s.userColors ?? USER_COLORS);
   return {
     name: userTeamName(s),
     flag: "⭐",
@@ -106,7 +112,10 @@ const initialTactics: Tactics = { formation: "4-2-3-1", mentality: "equilibrado"
 
 const freshCareer = {
   coachName: "",
+  careerMode: "legends" as CareerMode,
   editionId: DEFAULT_EDITION_ID,
+  userColors: USER_COLORS,
+  userColors2: USER_KIT2,
   draftFormation: "4-2-3-1" as FormationId,
   slots: slotsForFormation("4-2-3-1"),
   benchSlots: emptyBench(),
@@ -130,16 +139,53 @@ export const useCareer = create<CareerState>()(
     (set, get) => ({
       ...freshCareer,
 
-      newCareer: (coachName, editionId, formation) =>
+      newCareer: (coachName, editionId, formation, kit) =>
         set({
           ...freshCareer,
           coachName,
+          careerMode: "legends",
           editionId,
+          userColors: kit?.kit1 ?? USER_COLORS,
+          userColors2: kit?.kit2 ?? USER_KIT2,
           draftFormation: formation,
           slots: slotsForFormation(formation),
           tactics: { ...initialTactics, formation },
           lineupIds: FORMATIONS[formation].map(() => null),
         }),
+
+      // "Copa 2026" mode: take charge of a current national team — no draft.
+      newCareer2026: (coachName, squadId, kit) => {
+        const squad = SQUAD_BY_ID[squadId];
+        if (!squad) return;
+        const team = buildAiTeam(squad);
+        const formation = team.tactics.formation;
+        const slots = FORMATIONS[formation].map((s, i) => ({ pos: s.pos, card: team.lineup[i] ?? null }));
+        const benchCards = team.bench.slice(0, BENCH_SIZE);
+        const benchSlots = Array.from({ length: BENCH_SIZE }, (_, i): BenchSlot => ({
+          pos: benchCards[i]?.player.positions[0] ?? null,
+          card: benchCards[i] ?? null,
+        }));
+        const morale: Record<string, number> = {};
+        for (const c of [...team.lineup, ...benchCards]) if (c) morale[c.player.id] = 70;
+        set({
+          ...freshCareer,
+          coachName,
+          careerMode: "wc2026",
+          editionId: "america-do-norte-2026",
+          userColors: kit?.kit1 ?? squad.colors,
+          userColors2: kit?.kit2 ?? squad.kit2,
+          draftFormation: formation,
+          slots,
+          benchSlots,
+          draftDone: true,
+          rerollsLeft: 0,
+          benchBonusGranted: true,
+          tactics: { ...initialTactics, formation },
+          lineupIds: slots.map((s) => s.card?.player.id ?? null),
+          benchIds: benchCards.map((c) => c.player.id),
+          morale,
+        });
+      },
 
       setDraftFormation: (f) =>
         set((s) => {
@@ -222,7 +268,7 @@ export const useCareer = create<CareerState>()(
       startCup: () => {
         const s = get();
         const cup = drawCup(
-          { name: userTeamName(s), flag: "⭐", colors: USER_COLORS },
+          { name: userTeamName(s), flag: "⭐", colors: s.userColors ?? USER_COLORS },
           Math.floor(Math.random() * 2 ** 31),
           s.editionId
         );
