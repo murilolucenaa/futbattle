@@ -14,7 +14,11 @@ export const POSITION_SHORT: Record<Position, string> = {
   RW: "PD", LW: "PE", ST: "CA",
 };
 
-
+export const POSITION_LABEL: Record<Position, string> = {
+  GK: "Goleiro", RB: "Lateral direito", CB: "Zagueiro", LB: "Lateral esquerdo",
+  DM: "Volante", CM: "Meio-campista", AM: "Meia-atacante",
+  RW: "Ponta direita", LW: "Ponta esquerda", ST: "Centroavante",
+};
 
 export type Sector = "GK" | "DEF" | "MID" | "ATT";
 
@@ -101,7 +105,7 @@ export interface MatchTeam {
 }
 
 // ── Live match engine ────────────────────────────────────────
-type MatchEventType =
+export type MatchEventType =
   | "kickoff" | "goal" | "save" | "miss" | "post" | "card"
   | "sub" | "halftime" | "fulltime" | "chance" | "tactic"
   | "cooling" | "penalty-goal" | "penalty-miss";
@@ -183,7 +187,7 @@ export interface PlayerTotals {
   matches: number;
 }
 
-type CupPhase =
+export type CupPhase =
   | "groups" | "r32" | "r16" | "qf" | "sf" | "third" | "final"
   | "champion" | "eliminated";
 

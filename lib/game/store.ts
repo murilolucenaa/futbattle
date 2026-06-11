@@ -11,7 +11,7 @@ import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
 import { REROLL_BUDGET, BENCH_REROLL_BONUS } from "./rules";
 
-type CareerMode = "legends" | "wc2026";
+export type CareerMode = "legends" | "wc2026";
 
 export interface DraftSlot {
   pos: Position;
@@ -24,7 +24,7 @@ export interface BenchSlot {
 }
 
 /** Persisted state of the current dice draw — reload can't cheat a free spin. */
-interface DraftDraw {
+export interface DraftDraw {
   squadId: string | null; // squad currently on the table
   used: boolean;          // already called someone from this draw
   freeRoll: boolean;      // next roll is free (start / right after a call-up)
@@ -98,7 +98,7 @@ export function cardById(state: Pick<CareerState, "slots" | "benchSlots">, id: s
   return allCards(state).find((c) => c.player.id === id) ?? null;
 }
 
-function userTeamName(s: Pick<CareerState, "coachName">): string {
+export function userTeamName(s: Pick<CareerState, "coachName">): string {
   return s.coachName ? `Seleção ${s.coachName}` : "";
 }
 
@@ -366,4 +366,4 @@ export const useCareer = create<CareerState>()(
   )
 );
 
-
+export { buildAiTeam };

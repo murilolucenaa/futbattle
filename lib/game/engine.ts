@@ -228,7 +228,12 @@ export function applySub(state: LiveMatchState, side: "h" | "a", outId: string, 
   return true;
 }
 
-
+export function swapPositions(state: LiveMatchState, side: "h" | "a", idxA: number, idxB: number): void {
+  const ts = side === "h" ? state.h : state.a;
+  const lineup = [...ts.team.lineup];
+  [lineup[idxA], lineup[idxB]] = [lineup[idxB], lineup[idxA]];
+  ts.team = { ...ts.team, lineup };
+}
 
 // ── Tick: one game minute ────────────────────────────────────
 export function tick(state: LiveMatchState): MatchEvent[] {
@@ -452,7 +457,7 @@ export function aiMaybeAct(state: LiveMatchState, side: "h" | "a"): void {
 }
 
 // ── Headless full match (AI vs AI / skip) ────────────────────
-function finishMatch(state: LiveMatchState): MatchResult {
+export function finishMatch(state: LiveMatchState): MatchResult {
   while (!state.finished) {
     tick(state);
     aiMaybeAct(state, "h");

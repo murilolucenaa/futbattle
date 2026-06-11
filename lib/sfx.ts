@@ -155,12 +155,12 @@ export function sfxClick() {
 }
 
 /** Hover — high quiet tick. */
-function sfxHover() {
+export function sfxHover() {
   tone(rnd(880, 1080), 0.018, "square", 0.013);
 }
 
 /** Confirm — two clicks climbing pitch. */
-function sfxClickConfirm() {
+export function sfxClickConfirm() {
   const f = rnd(175, 225);
   tone(f, 0.035, "square", 0.075);
   tone(f * 1.5, 0.05, "square", 0.075, 0.055);
@@ -173,7 +173,7 @@ export function sfxError() {
 }
 
 /** Back — click sliding down. */
-function sfxClickBack() {
+export function sfxClickBack() {
   const f = rnd(200, 250);
   tone(f, 0.035, "square", 0.065);
   tone(f * 0.62, 0.05, "square", 0.065, 0.05);

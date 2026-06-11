@@ -18,7 +18,9 @@ const SECTOR_FG: Record<Sector, string> = {
   ATT: "#FFF5F5",
 };
 
-
+export function sectorColor(pos: Position): string {
+  return SECTOR_BG[POSITION_SECTOR[pos]];
+}
 
 export default function PosChip({ pos, size = "md" }: { pos: Position; size?: "sm" | "md" }) {
   const sector = POSITION_SECTOR[pos];
