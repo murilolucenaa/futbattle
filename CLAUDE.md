@@ -97,3 +97,57 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 - Nome de exibição nos chips usa `shortName()` (último nome, exceto sufixos) — duplicado em `app/squad/page.tsx` e `app/match/page.tsx`.
 - Se usuário e adversário escalarem a **mesma carta** (mesmo player id de squads iguais), `playerStats` colide no engine — caso raro conhecido, não tratado.
 - `KIT2_BY_NATION` em squads.ts é chaveado pelo nome da nação em pt-BR; nova seleção com nação nova precisa de entrada lá (ou herda cores invertidas).
+
+# MISSÃO: FUTBATTLE 2.0 — DE SITE PARA JOGO
+
+O FutBattle hoje funciona bem (simulação, copa de 48 seleções, sorteio, mata-mata),
+mas a apresentação parece um dashboard SaaS dark genérico: cards, botões pílula,
+tipografia neutra, página que rola. A missão é fazer ele PARECER e SOAR um jogo
+desde o primeiro pixel, sem quebrar a lógica existente.
+
+## NORTE ESTÉTICO (3 referências, 1 identidade)
+1. PES 6 / PES 2012 (telas de menu e Edit Position): densidade de informação,
+   chips de posição coloridos (GK dourado, DEF azul, MEI verde, ATA vermelho),
+   radar hexagonal de atributos, mini-campo tático, navegação que parece console.
+2. Jogo "7-0 / Dream World Cup": tipografia display gigante e condensada,
+   estética de pôster impresso, números enormes como herói da tela.
+3. Jogos de pênalti em Flash dos anos 2000: charme 2D direto, arquibancada viva,
+   feedback imediato — mas executado com tecnologia moderna e fluida.
+
+Identidade resultante: "transmissão de TV de futebol dos anos 2000 encontra
+menu de console". Noite de estádio, verde gramado saturado, grafismos diagonais,
+tipografia condensada pesada, textura sutil de ruído/halftone, e SOM em tudo.
+
+## REGRAS INEGOCIÁVEIS
+- TELAS, não páginas. Nada de landing page que rola. Cada estado do jogo é uma
+  tela cheia com transição animada (slide/wipe estilo console + whoosh sonoro).
+- Toda interação tem feedback duplo: motion + áudio. Hover = blip. Confirmar =
+  thunk. Voltar = swipe reverso. Sortear = rufar. Gol = explosão.
+- Densidade tipo PES: tabelas, escalações e stats compactos e legíveis,
+  não cards espaçados de SaaS.
+- Copy da interface continua em PT-BR, tom de narração esportiva
+  ("CONVOCAÇÃO", "PRANCHETA", "MATA-MATA", "VESTIÁRIO").
+- ARQUITETURA: separar rigorosamente lógica de simulação (mantém intocada) da
+  camada de apresentação (refeita). Antes de qualquer mudança, mapear o código
+  atual e listar onde lógica e UI estão acopladas.
+- ÁUDIO LEGAL: proibido usar assets ripados de PES/Konami ou de qualquer jogo.
+  Criar SFX "estilo PES" via síntese (jsfxr/Tone.js/Web Audio) ou packs CC0
+  (ex.: Kenney.nl, freesound CC0). Mesma vibe, zero risco.
+
+## STACK PERMITIDA (instalar conforme necessário)
+- Phaser 3 → cenas de partida 2D e mini-game de pênalti
+- Howler.js → gerenciador central de áudio (sprites de som, loops de torcida)
+- GSAP (ou Framer Motion se o app for React) → transições de tela e micro-interações
+- jsfxr / Tone.js → síntese de SFX retrô estilo PES
+- Sprite sheets + TexturePacker-style atlas para animação de jogadores
+- canvas-confetti ou partículas próprias no Phaser para celebrações
+
+## PROCESSO
+- Trabalhar em fases com checkpoint. Ao fim de cada fase: rodar o jogo,
+  tirar screenshots, comparar com as referências e listar o que ainda
+  "parece site". Só avançar quando a fase estiver aprovada.
+
+## STATUS DAS FASES
+- Fase 1 (design system + /styleguide): ENTREGUE — tokens de jogo em globals.css,
+  componentes em components/game/, AudioManager em lib/sfx.ts, demo em /styleguide.
+- Fases 2–5: pendentes (telas, Phaser, pênaltis, polimento).
