@@ -179,11 +179,7 @@ export function currentRound(cup: CupState): number {
   return LAST_ROUND + 1; // done
 }
 
-export function userFixture(cup: CupState, round: number): Fixture | null {
-  return cup.fixtures.find(
-    (f) => f.round === round && f.scoreH === null && (f.homeId === "USER" || f.awayId === "USER")
-  ) ?? null;
-}
+
 
 /** First unplayed fixture involving the user, lowest round first. */
 export function nextUserFixture(cup: CupState): Fixture | null {
@@ -391,16 +387,7 @@ export function advanceCup(cup: CupState): void {
     const champ = winnerOf({ scoreH: final.scoreH, scoreA: final.scoreA!, pensH: final.pensH, pensA: final.pensA }) === "h" ? final.homeId : final.awayId;
     cup.phase = champ === "USER" ? "champion" : "eliminated";
   }
-}
 
-/** Is the user still alive (has or will have a match)? */
-export function userAlive(cup: CupState): boolean {
-  if (cup.phase === "champion") return true;
-  if (nextUserFixture(cup)) return true;
-  const groupsDone = cup.fixtures.filter((f) => f.round <= 3).every((f) => f.scoreH !== null);
-  if (!groupsDone) return true;
-  // groups done, no upcoming user fixture: maybe the next KO round isn't built yet
-  if (!cup.fixtures.some((f) => f.round === 4)) {
     return r32Qualifiers(cup).includes("USER");
   }
   for (let round = 5; round <= 7; round++) {

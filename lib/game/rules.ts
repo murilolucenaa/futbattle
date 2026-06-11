@@ -36,14 +36,10 @@ export function squadWeight(s: SquadDef): number {
  * Bench draw is harsher: the curve's midpoint shifts down ~3 points,
  * so elite squads (and their 90+ stars) rarely show up for reserves.
  */
-export function benchSquadWeight(s: SquadDef): number {
+function benchSquadWeight(s: SquadDef): number {
   const p = squadPower(s);
   return 0.15 + 1.3 / (1 + Math.exp((p - 83.5) / 1.8));
 }
-
-/** Chance that a 90+ star accepts a BENCH call-up ("o olheiro convenceu"). */
-export const BENCH_ELITE_UNLOCK_P = 0.2;
-export const BENCH_ELITE_OVR = 90;
 
 export interface DrawOpts {
   rand?: () => number;

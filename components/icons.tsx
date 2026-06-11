@@ -125,18 +125,6 @@ export const IconMic = (p: P) => base(p, (
   </>
 ));
 
-export const IconClipboard = (p: P) => base(p, (
-  <>
-    <rect x="5" y="4.5" width="14" height="17" rx="2" />
-    <rect x="9" y="2.5" width="6" height="4" rx="1.2" />
-    <path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" />
-  </>
-));
-
-export const IconArrow = (p: P) => base(p, (
-  <path d="M5 12h14m-6-6 6 6-6 6" />
-));
-
 export const IconLock = (p: P) => base(p, (
   <>
     <rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
@@ -164,16 +152,6 @@ export const IconWeather = ({ kind = "sun", ...p }: P & { kind?: "sun" | "clouds
   ));
 };
 
-export const IconDice = (p: P) => base(p, (
-  <>
-    <rect x="4" y="4" width="16" height="16" rx="3" />
-    <circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none" />
-    <circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none" />
-    <circle cx="9" cy="15" r="1.3" fill="currentColor" stroke="none" />
-    <circle cx="15" cy="15" r="1.3" fill="currentColor" stroke="none" />
-  </>
-));
 
-export const IconFlame = (p: P) => base(p, (
-  <path d="M12 21c-3.9 0-6.5-2.5-6.5-6 0-2.6 1.6-4.4 3-6 .3 1.2 1 2 2 2.4C10.3 8.6 11 5.4 14 3c-.3 2.6.6 4 2 5.5 1.3 1.4 2.5 3 2.5 5.5 0 4.5-2.6 7-6.5 7Z" />
-));
+
+

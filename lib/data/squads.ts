@@ -1189,7 +1189,7 @@ export const SQUAD_BY_ID: Record<string, SquadDef> = Object.fromEntries(
 );
 
 /** Current-generation squads — the pool for the "Copa 2026" mode. */
-export const CURRENT_SQUADS: SquadDef[] = SQUADS.filter((s) => s.year === 2026);
+
 
 export function squadLabel(s: SquadDef): string {
   return `${s.nation} ${s.year}`;
@@ -1208,7 +1208,7 @@ const NATION_CODE: Record<string, string> = {
   "Estados Unidos": "USA",
 };
 
-export function nationCode(nation: string): string {
+function nationCode(nation: string): string {
   return NATION_CODE[nation] ?? nation.slice(0, 3).toUpperCase();
 }
 
