@@ -1,6 +1,6 @@
 # FUTBATTLE — CLAUDE.md
 
-Jogo single-player de futebol em Next.js: o jogador convoca lendas de seleções históricas reais via roleta, comanda o time como técnico e disputa uma Copa do Mundo completa (grupos + mata-mata). Inspirado em head soccer e Brasfoot. Todo o estado vive no cliente (localStorage) — **não há backend**.
+Jogo single-player de futebol em Next.js: o jogador é o **técnico** (a seleção leva o nome dele), convoca lendas de seleções históricas reais via roleta, escolhe a edição da Copa (país-sede + ano, com estádios reais) e disputa o torneio no **formato 2026**: 48 seleções, 12 grupos (A–L), 16 avos → final, com disputa de 3º lugar. Inspirado em head soccer, Brasfoot e PES 2010. Todo o estado vive no cliente (localStorage) — **não há backend**.
 
 ## Comandos
 
@@ -14,68 +14,86 @@ npx tsc --noEmit # type-check isolado
 ## Arquitetura
 
 ```
-lib/game/types.ts       # Tipos de domínio: Position, Card, Tactics, CupState, MatchResult…
-lib/data/squads.ts      # Dataset: ~39 seleções reais (1950–2022), ~490 jogadores
-lib/game/formations.ts  # 7 formações com coordenadas 2D + effectiveOvr + assignLineup
+lib/game/types.ts       # Tipos de domínio: Position (+POSITION_SHORT pt-BR), Card, Tactics, CupState, WCEdition…
+lib/data/squads.ts      # Dataset: ~53 seleções reais (1950–2022), ~560 jogadores, kit2 por seleção, squadCode "BRA 70"
+lib/data/editions.ts    # 20 edições de Copa 1950–2026: sede, estádios reais (nome/cidade/capacidade), era visual
+lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + assignLineup
 lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tacticMods)
-lib/game/rules.ts       # Regras de balanceamento do draft (anti-apelão)
-lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed
-lib/game/cup.ts         # Sorteio, tabelas de grupo, rodadas simultâneas, mata-mata
-lib/game/store.ts       # Zustand + persist (chave "futbattle-career") — carreira inteira
+lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio ponderado por força (squadWeight)
+lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed, cooling break
+lib/game/cup.ts         # Sorteio 48 times, grupos A–L, melhores 3ºs, R32→final+3º lugar, líderes (playerTotals)
+lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 2) — carreira inteira + moral
+lib/sfx.ts              # SFX sintetizados via WebAudio (estilo menu de PES) — sem assets, offline
 
-app/page.tsx            # Home (nova jornada / continuar)
-app/squad/page.tsx      # DraftView (convocação via roleta) + ManageView (escalação/tática)
-app/cup/page.tsx        # Tabelas dos 8 grupos + chaveamento
-app/match/page.tsx      # Partida ao vivo 2D + ResultScreen (notas, MOTM, outros jogos)
+app/page.tsx            # Home: logo gigante, Novo Campeonato, Online/idiomas "em manutenção", técnico + edição
+app/squad/page.tsx      # DraftView (roleta + escolha livre + medidores ATA/MEI/DEF) + ManageView (prancheta drag)
+app/cup/page.tsx        # Grupos A–L, ranking dos 3ºs, líderes (gols/assist/notas), chaveamento de 2 lados
+app/match/page.tsx      # Pré-jogo (estádio/clima/público/odds/uniformes) + partida 2D + pós-jogo
 components/Pitch.tsx    # Campo SVG reutilizável (vertical p/ escalação, horizontal p/ partida)
-components/RouletteModal.tsx  # Roleta de seleções com tetos e orçamento de giros
+components/RouletteModal.tsx   # Roleta de seleções com suspense, elenco completo e "mudar geração"
+components/PressConference.tsx # Cena animada de coletiva antes do draft (pulável, introSeen)
+components/TopBar.tsx   # Nav com "Copa" travada até o sorteio ("Faça o sorteio primeiro, mister")
+components/icons.tsx    # Ícones SVG inline — não usar emojis genéricos na UI
 ```
 
-Fluxo: Home → `newCareer` → draft em `/squad` → `completeDraft` → `startCup` → loop `/cup` → `/match` → `recordResult` (grava o jogo do usuário, simula o resto da rodada "ao mesmo tempo" e avança fases) → campeão ou eliminado.
+Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coletiva → draft em `/squad` → `completeDraft` → `startCup` → loop `/cup` → `/match` (pré-jogo → ao vivo → pós-jogo) → `recordResult` (grava o jogo, simula a rodada simultânea, atualiza moral e líderes, avança fases) → campeão ou eliminado.
 
 ## Regras do jogo (não quebrar)
 
 ### Draft
-- 11 titulares (posições da formação base) + **4 reservas**, máx. **1 reserva por posição**.
-- A roleta sorteia uma **seleção**; o jogador escolhe um elegível daquela posição ou gira de novo.
-- O 1º giro de cada vaga é grátis. Giros extras consomem o orçamento global (`REROLL_BUDGET = 10`). Sem orçamento → obrigado a escolher. Giro é **grátis** quando a seleção sorteada não tem ninguém aproveitável (sem elegíveis ou todos bloqueados por teto).
-- **Tetos de estrelas** (`lib/game/rules.ts`): máx. `CAP_CRACK = 1` jogador OVR ≥ 95 e `CAP_ELITE = 3` jogadores OVR ≥ 90 no elenco de 15 (o craque conta no teto de elite). Jogadores acima do teto aparecem bloqueados (🔒) na roleta. Esses tetos existem para impedir times "apelões" só de 99 — o desafio é o sorteio real.
+- 11 titulares (posições da formação base, trocável durante o draft via `setDraftFormation`) + **4 reservas** (posição livre — vem do jogador escolhido).
+- A roleta sorteia uma **seleção** com **peso inverso à força** (`squadWeight`): elencos 90+ são raros, elencos fracos são comuns. Pegar Brasil 1970 é sorte; pegar México 1970 é azar. Sem tetos de craque — o equilíbrio É o sorteio.
+- O jogador escolhe **qualquer jogador** do elenco sorteado (qualquer posição) e o posiciona no campo; posições naturais acendem, improvisar pede confirmação ("Certeza disso, mister?").
+- O 1º giro de cada vaga é grátis. Giros extras consomem `REROLL_BUDGET = 4`; fechar os 11 titulares dá `BENCH_REROLL_BONUS = +1`. **Mudar a geração** da seleção sorteada (ex.: Brasil 1950 → 2002) também custa 1 giro. Giro grátis quando a seleção não tem ninguém aproveitável.
 - Mesmo **nome** não pode ser convocado duas vezes (Pelé 1958 e Pelé 1970 são o mesmo jogador).
 
-### Ratings
-- Cada carta usa o rating de **auge da carreira** do jogador, independente do ano da seleção (Pelé 99 em 1958 e em 1970).
-- Escala: 74–99. Reservados ≥ 95 para o tier GOAT (Pelé, Maradona, Messi, Ronaldo 99).
-- **Dados são seleções reais** — jogadores, elencos e anos precisam ser historicamente corretos. Nunca inventar jogador. Todo squad precisa de ≥ 11 jogadores, ≥ 1 GK e cobrir o suficiente para fechar um XI (testado em `game.test.ts`).
+### Ratings & dados
+- Cada carta usa o rating de **auge da carreira** (Pelé 99 em 1958 e em 1970). Escala 74–99; ≥95 reservado ao tier GOAT.
+- **Dados são seleções reais** — jogadores, elencos e anos historicamente corretos. Nunca inventar jogador. Todo squad: ≥11 jogadores, ≥1 GK, fecha um XI (testado).
+- Posições exibidas em pt-BR via `POSITION_SHORT` (GOL, LD, ZAG, LE, VOL, MC, MEI, PD, PE, CA); códigos internos seguem em inglês.
+- Edições (`editions.ts`): estádios reais com cidade/capacidade; `era` ("vintage"→"ultra") controla o tema do gramado/arquibancada (`.pitch-*`/`.stands-*` em globals.css).
 
 ### Táticas
-- 7 formações (4-3-3, 4-4-2, 4-2-3-1, 4-3-1-2, 3-5-2, 3-4-3, 5-4-1) × 3 mentalidades × 5 estilos (posse, contra-ataque, laterais, pressão alta, falso 9). Tudo altera multiplicadores do motor via `tacticMods`.
-- Fora de posição: mesma linha −4 OVR, linha diferente −9, GK ↔ linha −20/−25 (`effectiveOvr`).
-- Mudar formação reatribui o elenco via `assignLineup` (greedy, posição natural primeiro).
+- 13 formações × 3 mentalidades × 5 estilos via `tacticMods`. Fora de posição: mesma linha −4, linha diferente −9, GK ↔ linha −20/−25.
+- Na prancheta: arrastar um jogador sobre outro troca posição (drag framer-motion, raio de captura ~14%); troca entre setores pede confirmação engraçada.
+- Medidores ATA/MEI/DEF (FIFA-like) atualizam conforme o time entra em campo.
 
 ### Partida
-- `tick()` = 1 minuto. Estado mutável em ref no client; UI roda em `setInterval` (650ms ÷ velocidade). "Pular para o fim" roda os ticks restantes síncronos.
-- Máx. **3 substituições**; mudanças de tática no meio do jogo valem só para aquela partida.
-- Mata-mata empatado → pênaltis (`simulatePenalties`), nunca termina empatado.
-- Calibração: ~2,7 gols/jogo na média (teste trava entre 1,2 e 5,5 em 200 sims). Ao mexer em `SHOT_BASE`/`goalP`, rodar `npm test`.
-- Determinismo: mesmo seed ⇒ mesmo jogo (seed da fixture vem de `fixtureSeed`). Ações ao vivo do usuário alteram o fluxo do RNG — esperado.
+- `tick()` = 1 minuto; estado mutável vive em `useRef` na página. UI roda em `setInterval` (650ms ÷ velocidade 1/1.5/2x). "Pular para o fim" roda síncrono.
+- **Pré-jogo** obrigatório: estádio do fixture, clima/público determinísticos pelo seed, odds fake, escalações, escolha de uniforme (kit 1/2). Adversário troca pro `kit2` se as cores baterem (`colorDist < 160`).
+- Máx. **3 substituições**; sugestão automática (GK → GK). Painel tático mostra o adversário **somente leitura**, com cansaço e moral.
+- **Cooling break** aos 25'/70' quando a edição é ≥2022 ou clima "heat" (`createMatch(..., coolingBreaks)`).
+- No 2º tempo o render do campo é **espelhado** (troca de lado); a bola anda "colada" no jogador mais próximo (carrier).
+- Mata-mata empatado → pênaltis, nunca termina empatado. Gol = tremor de tela + rede + sfxGoal.
+- Calibração: ~2,7 gols/jogo (teste trava 1,2–5,5 em 200 sims). Mexeu em `SHOT_BASE`/`goalP` → `npm test`.
+- Determinismo: mesmo seed ⇒ mesmo jogo (`fixtureSeed`). Ações ao vivo alteram o fluxo do RNG — esperado.
+- Narração do engine **sem emojis** — a UI põe ícones SVG por tipo de evento.
 
-### Copa
-- 32 times (usuário + 31 squads distintos), 8 grupos de 4, round-robin de 3 rodadas.
-- Classificação: pontos → saldo → gols pró (→ hash estável). Top 2 avançam.
-- Oitavas: 1A×2B, 1C×2D, 1E×2F, 1G×2H, 1B×2A, 1D×2C, 1F×2E, 1H×2G.
-- Quando o usuário joga, `recordResult` simula o resto da rodada como "jogos simultâneos"; se eliminado, o resto da copa é simulado até definir o campeão.
+### Copa (formato 2026)
+- 48 times (usuário + 47), **12 grupos A–L** de 4, round-robin de 3 rodadas. Estádio em todo fixture.
+- Classificação: pontos → saldo → gols pró (→ hash estável). **Top 2 + 8 melhores 3ºs** avançam (`thirdPlaceTable`, `r32Qualifiers`).
+- Rounds: 1–3 grupos · 4 = 16 avos (R32) · 5 = oitavas · 6 = quartas · 7 = semi · **8 = 3º lugar** · 9 = FINAL (`LAST_ROUND = 9`).
+- R32: vencedores × terceiros/vices de grupos diferentes (fix-up evita confronto do mesmo grupo); chaveamento em 2 lados de 8.
+- Semis completas criam **3º lugar e final juntos**; se o usuário está na final, a disputa de 3º é simulada antes (loop em `recordResult` usa `nextUserFixture`, não assuma round único).
+- `leaders(cup, "goals"|"assists"|"rating")` lê `cup.playerTotals`, alimentado por `recordUserResult`/`simulateRound`. Notas exigem ≥2 jogos.
+- Moral do elenco (`store.morale`, 20–99): resultado ±6, gol +4, assistência +3, cartão −2, nota ≥8/<6 ±3.
+- Quando o usuário joga, `recordResult` simula o resto da rodada "ao mesmo tempo"; eliminado → simula até o campeão e mostra pódio (`podium`).
 
 ## Convenções
 
 - UI em **pt-BR** (narração, labels, mensagens). Código/comentários em inglês.
-- Tema dark via CSS vars em `globals.css` (`--accent` verde neon, glassmorphism `.glass`/`.glass-strong`, fonte display Anton via `.font-display`). Animações com framer-motion; respeitar `prefers-reduced-motion` (já tratado no CSS global).
-- Coordenadas de formação: `x` 0→100 = gol próprio→gol adversário; `y` 0→100 = lateral esquerda→direita. No campo vertical render é `left = y%`, `bottom = x%`; no horizontal o time visitante é espelhado.
+- **Sem emojis genéricos de iPhone na UI** — usar `components/icons.tsx` (SVG). Exceções: bandeiras de seleções e ⭐ do time do usuário.
+- Tema dark via CSS vars em `globals.css` (`--accent` verde neon, glassmorphism, fonte display Anton). Animações com framer-motion; respeitar `prefers-reduced-motion` (tratado no CSS global).
+- SFX: só via `lib/sfx.ts` (WebAudio sintetizado) — nunca adicionar arquivos de áudio.
+- Coordenadas de formação: `x` 0→100 = gol próprio→adversário; `y` 0→100 = lateral esquerda→direita. Campo vertical: `left = y%`, `bottom = x%`; horizontal espelha o visitante (e os dois lados após o intervalo).
 - Páginas client-side com zustand persist precisam do guard `mounted` antes de ler o store (hidratação).
-- Sem Supabase/serviços externos — qualquer feature nova deve funcionar offline. Multiplayer não existe hoje; se voltar, é feature nova.
-- Estado persistido: mudanças de shape no store devem tolerar saves antigos (merge raso do persist preenche chaves novas com o default).
+- Sem Supabase/serviços externos — tudo offline. "Online" e idiomas ES/EN existem na home como **placeholders "em manutenção"**; implementar é feature nova.
+- Estado persistido: `version: 2` + `migrate` no persist. Saves v1 (teamName, 8 grupos) são descartados de propósito; mudanças de shape futuras devem subir a versão ou tolerar merge raso.
 
 ## Armadilhas conhecidas
 
-- `currentRound()` retorna o primeiro round com fixture **existente** não jogada; rounds de mata-mata só existem depois de `advanceCup` criá-los — sempre chamar `advanceCup` após completar uma rodada (já feito em `recordResult`).
-- `engine.ts` muta o estado; nunca guardar `LiveMatchState` no zustand (não serializável e gigante). Ele vive em `useRef` na página de partida.
-- Nome de exibição nos chips usa `shortName()` (último nome, exceto sufixos tipo "Júnior") — duplicado em `app/squad/page.tsx` e `app/match/page.tsx`.
+- `currentRound()` retorna o primeiro round com fixture existente não jogada; rounds de mata-mata só existem após `advanceCup`. Com a disputa de 3º lugar, o usuário pode ter fixture num round **maior** que `currentRound()` — use `nextUserFixture(cup)` para achar o jogo do usuário, nunca `userFixture(currentRound())`.
+- `engine.ts` muta o estado; nunca guardar `LiveMatchState` no zustand. Ele vive em `useRef` na página de partida; o pré-jogo (`PreMatch`) só monta o engine no "Apito inicial".
+- Nome de exibição nos chips usa `shortName()` (último nome, exceto sufixos) — duplicado em `app/squad/page.tsx` e `app/match/page.tsx`.
+- Se usuário e adversário escalarem a **mesma carta** (mesmo player id de squads iguais), `playerStats` colide no engine — caso raro conhecido, não tratado.
+- `KIT2_BY_NATION` em squads.ts é chaveado pelo nome da nação em pt-BR; nova seleção com nação nova precisa de entrada lá (ou herda cores invertidas).

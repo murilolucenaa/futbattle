@@ -162,6 +162,121 @@ button, a { cursor: pointer; }
 }
 .confetti { animation: confetti-fall linear forwards; }
 
+/* ── Pitch era themes ─────────────────────────────────────── */
+/* vintage: 1950s — worn, patchy, yellowed grass */
+.pitch-vintage {
+  background:
+    radial-gradient(180px 90px at 30% 40%, rgba(140, 110, 60, 0.25), transparent 70%),
+    radial-gradient(220px 110px at 70% 65%, rgba(130, 100, 55, 0.22), transparent 70%),
+    radial-gradient(140px 80px at 50% 20%, rgba(120, 95, 50, 0.18), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 12%, transparent 12% 24%),
+    radial-gradient(ellipse at 50% 50%, #5C6E2E 0%, #4D5C26 55%, #41501F 100%);
+}
+.pitch-vintage .pitch-lines, .pitch-vintage ~ svg .pitch-lines { stroke: rgba(255,255,255,0.28); }
+
+/* retro: 60s–70s — deep natural green, broad mow bands */
+.pitch-retro {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 14%, transparent 14% 28%),
+    radial-gradient(ellipse at 50% 50%, #2F6B33 0%, #275A2A 55%, #1F4A22 100%);
+}
+
+/* classic: 80s–90s — vivid green, classic stripes */
+.pitch-classic {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.028) 0 9%, transparent 9% 18%),
+    radial-gradient(ellipse at 50% 50%, #0E5E33 0%, #0A4527 55%, #073A20 100%);
+}
+
+/* modern: 1998–2018 — bright broadcast green, checker mow */
+.pitch-modern {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 8%, transparent 8% 16%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.04) 0 12%, transparent 12% 24%),
+    radial-gradient(ellipse at 50% 50%, #12793F 0%, #0D5F31 55%, #0A4E28 100%);
+}
+
+/* ultra: 2022–2026 — pristine hybrid turf, fine stripes, glow */
+.pitch-ultra {
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 6%, transparent 6% 12%),
+    radial-gradient(ellipse at 50% 38%, #169A50 0%, #0F7A3D 55%, #0B6231 100%);
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Stadium shake on goal ────────────────────────────────── */
+@keyframes stadium-shake {
+  0%, 100% { transform: translate(0, 0); }
+  12% { transform: translate(-5px, 3px); }
+  25% { transform: translate(5px, -3px); }
+  37% { transform: translate(-4px, -2px); }
+  50% { transform: translate(4px, 2px); }
+  62% { transform: translate(-2px, 1px); }
+  75% { transform: translate(2px, -1px); }
+}
+.shake { animation: stadium-shake 0.65s ease-out; }
+
+@keyframes net-ripple {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+.net-ripple { animation: net-ripple 1.4s ease-out forwards; }
+
+/* ── Press conference scene ───────────────────────────────── */
+.pressroom {
+  background:
+    radial-gradient(600px 280px at 50% 0%, rgba(77, 163, 255, 0.10), transparent 70%),
+    linear-gradient(180deg, #0A1020 0%, #0D1426 60%, #0A101C 100%);
+}
+@keyframes camera-flash {
+  0%, 92%, 100% { opacity: 0; }
+  94% { opacity: 0.85; }
+  96% { opacity: 0.1; }
+  98% { opacity: 0.55; }
+}
+.camera-flash { animation: camera-flash 3.2s linear infinite; }
+
+/* ── Roulette suspense ────────────────────────────────────── */
+@keyframes spotlight-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+.spotlight-pulse { animation: spotlight-pulse 0.8s ease-in-out infinite; }
+
+@keyframes reveal-pop {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; filter: blur(8px); }
+  60% { transform: scale(1.12) rotate(1.5deg); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.reveal-pop { animation: reveal-pop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+
+/* ── Stands (crowd ring around the live pitch) ────────────── */
+.stands {
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 3px, transparent 3px 6px),
+    linear-gradient(180deg, #141C2E 0%, #0E1526 100%);
+}
+.stands-vintage { background: repeating-linear-gradient(90deg, rgba(210,190,150,0.10) 0 4px, transparent 4px 8px), linear-gradient(180deg, #1D1A12 0%, #14110B 100%); }
+.stands-retro   { background: repeating-linear-gradient(90deg, rgba(220,220,220,0.08) 0 4px, transparent 4px 8px), linear-gradient(180deg, #1A1D16 0%, #12140F 100%); }
+.stands-classic { background: repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 3px, transparent 3px 6px), linear-gradient(180deg, #161D2C 0%, #0F1422 100%); }
+.stands-modern  { background: repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0 3px, transparent 3px 6px), linear-gradient(180deg, #131C30 0%, #0C1322 100%); }
+.stands-ultra   { background: repeating-linear-gradient(90deg, rgba(0,255,135,0.05) 0 2px, transparent 2px 5px), linear-gradient(180deg, #101A30 0%, #0A1224 100%); }
+
+/* ── Marquee logo glow sweep (home) ───────────────────────── */
+@keyframes logo-sweep {
+  0% { background-position: -200% 50%; }
+  100% { background-position: 300% 50%; }
+}
+.logo-sweep {
+  background: linear-gradient(110deg, #EAF2EC 35%, #00FF87 50%, #EAF2EC 65%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logo-sweep 5s linear infinite;
+}
+
 /* ── Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
