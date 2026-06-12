@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import Pitch from "@/components/Pitch";
 import SoundProvider from "@/src/audio/SoundProvider";
+import MatchStage from "@/src/match/presentation/MatchStage";
+import { createDirector, type Director } from "@/src/match/presentation/director";
 import { useCareer, buildUserTeam, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { EDITION_BY_ID, DEFAULT_EDITION_ID } from "@/lib/data/editions";
@@ -43,8 +44,6 @@ interface View {
   minute: number;
   scoreH: number;
   scoreA: number;
-  ballX: number;
-  ballY: number;
   possH: number;
   eventCount: number;
 }
@@ -90,10 +89,12 @@ export default function MatchPage() {
 
   const stateRef = useRef<LiveMatchState | null>(null);
   const metaRef = useRef<Meta | null>(null);
+  const directorRef = useRef<Director | null>(null);
   const [view, setView] = useState<View | null>(null);
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
-  const [panel, setPanel] = useState<"feed" | "stats" | "tactics">("feed");
+  const [panel, setPanel] = useState<"feed" | "stats">("feed");
+  const [tacticsOpen, setTacticsOpen] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
   const [goalFlash, setGoalFlash] = useState<MatchEvent | null>(null);
   const [cooling, setCooling] = useState(false);
@@ -165,45 +166,37 @@ export default function MatchPage() {
       weather: pre.weather,
       weatherLabel: pre.weatherLabel,
     };
+    // the director owns the game loop from here: it ticks the engine lazily
+    // and choreographs each minute; the page only renders HUD + overlays
+    directorRef.current = createDirector(st, {
+      userSide: pre.userIsHome ? "h" : "a",
+      presSeed: pre.seed ^ 0x9d2c5680,
+      audio: sound,
+      baseMinuteMs: BASE_TICK_MS,
+      onView: (v) => setView(v),
+      onEvents: (evs) => {
+        const goal = evs.find((e) => e.type === "goal");
+        if (goal) {
+          setGoalFlash(goal);
+          setTimeout(() => setGoalFlash(null), 2600);
+        } else if (evs.length) {
+          sound.play("ui.tick");
+        }
+        if (evs.some((e) => e.type === "cooling")) {
+          setCooling(true);
+          setTimeout(() => setCooling(false), 1800);
+        }
+      },
+      onFinished: () => {
+        const s = stateRef.current;
+        if (s) setResult(resultOf(s));
+      },
+    });
     sound.play("whistle.kickoff");
     sound.ambience("crowd.loop", { intensity: 0.5 });
-    setView({ minute: 0, scoreH: 0, scoreA: 0, ballX: 50, ballY: 50, possH: 50, eventCount: 1 });
+    setView({ minute: 0, scoreH: 0, scoreA: 0, possH: 50, eventCount: 1 });
     setPhase("live");
   }
-
-  // ── Game loop ──
-  useEffect(() => {
-    if (phase !== "live" || !view || paused || result || cooling) return;
-    const st = stateRef.current;
-    if (!st || st.finished) return;
-    const id = setInterval(() => {
-      const s = stateRef.current!;
-      const meta = metaRef.current!;
-      const evs = tick(s);
-      aiMaybeAct(s, meta.userSide === "h" ? "a" : "h");
-      const goal = evs.find((e) => e.type === "goal");
-      if (goal) {
-        sound.play("goal.horn");
-        sound.setAmbienceIntensity(1);
-        setGoalFlash(goal);
-        setTimeout(() => { setGoalFlash(null); sound.setAmbienceIntensity(0.55); }, 2100);
-      }
-      if (evs.some((e) => e.type === "halftime")) { sound.play("whistle.half"); sound.setAmbienceIntensity(0.3); }
-      if (evs.some((e) => e.type === "fulltime")) sound.play("whistle.end");
-      if (evs.some((e) => e.type === "cooling")) {
-        setCooling(true);
-        setTimeout(() => setCooling(false), 1800);
-      }
-      setView({
-        minute: s.minute, scoreH: s.scoreH, scoreA: s.scoreA,
-        ballX: s.ballX, ballY: s.ballY,
-        possH: s.statsH.possession,
-        eventCount: s.events.length,
-      });
-      if (s.finished) setResult(resultOf(s));
-    }, BASE_TICK_MS / speed);
-    return () => clearInterval(id);
-  }, [phase, view !== null, paused, speed, result, cooling]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Record result into the cup (once) ──
   useEffect(() => {
@@ -219,13 +212,14 @@ export default function MatchPage() {
     const s = stateRef.current;
     const meta = metaRef.current;
     if (!s || !meta) return;
+    directorRef.current?.destroy();
     while (!s.finished) {
       tick(s);
       aiMaybeAct(s, meta.userSide === "h" ? "a" : "h");
     }
     setGoalFlash(null);
     setCooling(false);
-    setView({ minute: s.minute, scoreH: s.scoreH, scoreA: s.scoreA, ballX: 50, ballY: 50, possH: s.statsH.possession, eventCount: s.events.length });
+    setView({ minute: s.minute, scoreH: s.scoreH, scoreA: s.scoreA, possH: s.statsH.possession, eventCount: s.events.length });
     setResult(resultOf(s));
   }
 
@@ -243,13 +237,69 @@ export default function MatchPage() {
     return <ResultScreen result={result} state={st} meta={meta} />;
   }
 
+  const closeTactics = () => {
+    setTacticsOpen(false);
+    directorRef.current?.syncLineups();
+    sound.play("whistle.kickoff");
+  };
+
   return (
     <main className="arc-bg flex-1 w-full">
       <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-3 sm:px-4 py-4 flex flex-col gap-3">
         <Scoreboard st={st} view={view} meta={meta} />
         <PossessionBar st={st} view={view} />
-        <LivePitch st={st} view={view} goalFlash={goalFlash} cooling={cooling} meta={meta} />
+
+        {/* Pixi stage + DOM overlays (HUD only) */}
+        <div className={goalFlash ? "shake" : ""}>
+          <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden border-[3px] border-[var(--ink)]">
+            {directorRef.current && (
+              <MatchStage
+                director={directorRef.current}
+                era={meta.era}
+                paused={paused || tacticsOpen}
+                speed={speed}
+                homeColor={st.h.team.colors[0]}
+                awayColor={st.a.team.colors[0]}
+                crowdSeed={pre.seed ^ 0x51ab3c}
+                crowdDensity={meta.attendance / meta.capacity}
+              />
+            )}
+
+            {/* Cooling break overlay */}
+            <AnimatePresence>
+              {cooling && (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[rgba(10,20,40,0.6)] pointer-events-none"
+                >
+                  <IconSnow size={40} className="text-[#9CD2FF] mb-2" />
+                  <div className="font-display text-2xl text-[#9CD2FF]">COOLING BREAK</div>
+                  <div className="text-xs text-white/70">hidratação à beira do campo</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Goal banner — non-blocking strip so the celebration stays visible */}
+            <AnimatePresence>
+              {goalFlash && (
+                <motion.div
+                  initial={{ opacity: 0, y: -16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  className="absolute top-2 inset-x-0 z-20 flex flex-col items-center pointer-events-none"
+                >
+                  <div className="arc-logo text-4xl sm:text-6xl" style={{ color: "var(--amarelo)", textShadow: "0 2px 0 var(--ink)" }}>
+                    GOOOOOL!
+                  </div>
+                  <div className="font-arc text-xs sm:text-sm font-extrabold text-white bg-black/65 rounded-lg px-3 py-1 mt-1 text-center max-w-[90%]">
+                    {goalFlash.text}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
 
         {/* Controls */}
         <div className="arc-strip !rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
@@ -271,20 +321,27 @@ export default function MatchPage() {
                 {sp}x
               </button>
             ))}
+            <button
+              data-sound="confirm"
+              onClick={() => setTacticsOpen(true)}
+              className="arc-btn px-4 py-1.5 text-xs"
+            >
+              TÁTICA
+            </button>
           </div>
           <button data-sound="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano px-4 py-1.5 text-xs">
             Pular pro fim
           </button>
         </div>
 
-        {/* Panels */}
+        {/* Panels: narration & stats only — tactics live in the overlay */}
         <div className="arc-panel p-3 flex-1 min-h-[220px]">
           <div className="flex gap-2 mb-3">
-            {([["feed", "Narração"], ["stats", "Estatísticas"], ["tactics", "Vestiário"]] as const).map(([k, label]) => (
+            {([["feed", "Narração"], ["stats", "Estatísticas"]] as const).map(([k, label]) => (
               <button
                 key={k}
                 data-sound="confirm"
-                onClick={() => { setPanel(k); if (k === "tactics") setPaused(true); }}
+                onClick={() => setPanel(k)}
                 className={`arc-btn px-4 py-1 text-[11px] ${panel === k ? "" : "arc-btn--paper"}`}
               >
                 {label}
@@ -293,8 +350,40 @@ export default function MatchPage() {
           </div>
           {panel === "feed" && <EventFeed st={st} count={view.eventCount} />}
           {panel === "stats" && <StatsBars statsH={st.statsH} statsA={st.statsA} />}
-          {panel === "tactics" && <TacticsPanel st={st} meta={meta} morale={c.morale} onChanged={() => setView((v) => v && { ...v })} />}
         </div>
+
+        {/* TÁTICA overlay — full-screen, pauses the show (sim is deterministic, pausing is safe) */}
+        <AnimatePresence>
+          {tacticsOpen && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75"
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 18 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 10 }}
+                className="arc-panel p-4 sm:p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="font-display text-2xl">VESTIÁRIO</div>
+                    <div className="font-arc text-[10px] font-bold opacity-55 uppercase tracking-widest">
+                      jogo pausado · {Math.min(90, view.minute)}&apos; · {view.scoreH}–{view.scoreA}
+                    </div>
+                  </div>
+                  <button data-sound="confirm" onClick={closeTactics} className="arc-btn arc-btn--lima px-4 py-2 text-xs">
+                    <span className="inline-flex items-center gap-1.5"><IconWhistle size={14} /> Voltar ao jogo</span>
+                  </button>
+                </div>
+                <TacticsPanel
+                  st={st}
+                  meta={meta}
+                  morale={c.morale}
+                  onChanged={() => { directorRef.current?.syncLineups(); setView((v) => v && { ...v }); }}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </main>
   );
@@ -527,220 +616,6 @@ function PossessionBar({ st, view }: { st: LiveMatchState; view: View }) {
   );
 }
 
-// ── 2D live pitch — rAF-interpolated motion, no teleports ────
-function LivePitch({ st, view, goalFlash, cooling, meta }: {
-  st: LiveMatchState; view: View; goalFlash: MatchEvent | null; cooling: boolean; meta: Meta;
-}) {
-  const secondHalf = view.minute > 45; // teams swap ends at the break
-  const mx = (x: number) => (secondHalf ? 100 - x : x);
-  const ballShift = (view.ballX - 50) / 50; // -1..1 (engine coords)
-
-  // targets recomputed every tick; rAF eases the rendered position toward them
-  const targets = useRef(new Map<string, { x: number; y: number }>());
-  const curPos = useRef(new Map<string, { x: number; y: number }>());
-  const els = useRef(new Map<string, HTMLDivElement>());
-
-  // collect dot positions to find the ball carrier (closest player)
-  const dots: { id: string; x: number; y: number; color: string; gk: boolean; name: string }[] = [];
-  for (const side of ["h", "a"] as const) {
-    const ts = side === "h" ? st.h : st.a;
-    const slots = FORMATIONS[ts.team.tactics.formation];
-    ts.team.lineup.forEach((card, i) => {
-      if (!card) return;
-      const s = slots[i];
-      const push = side === "h" ? Math.max(0, ballShift) * 14 : Math.max(0, -ballShift) * 14;
-      const retreat = side === "h" ? Math.max(0, -ballShift) * 7 : Math.max(0, ballShift) * 7;
-      const depth = 3 + s.x * 0.44 + push - retreat;
-      const ex = side === "h" ? depth : 100 - depth;
-      const ey = side === "h" ? s.y : 100 - s.y;
-      dots.push({
-        id: card.player.id, x: ex, y: ey,
-        color: slots[i].pos === "GK" ? "#FFC81B" : ts.team.colors[0],
-        gk: slots[i].pos === "GK",
-        name: shortName(card.player.name),
-      });
-    });
-  }
-  // ball "carrier": nearest non-GK dot snaps to the ball — contact, not ghost ball
-  let carrierId: string | null = null, bestD = Infinity;
-  for (const d of dots) {
-    if (d.gk) continue;
-    const dist = Math.hypot(d.x - view.ballX, d.y - view.ballY);
-    if (dist < bestD) { bestD = dist; carrierId = d.id; }
-  }
-  for (const d of dots) {
-    if (d.id === carrierId && bestD < 30) {
-      d.x = d.x + (view.ballX - d.x) * 0.75;
-      d.y = d.y + (view.ballY - d.y) * 0.75;
-    }
-  }
-  const carrier = dots.find((d) => d.id === carrierId && bestD < 30);
-  const ballX = carrier ? carrier.x + 1.6 : view.ballX;
-  const ballY = carrier ? carrier.y + 1.2 : view.ballY;
-  const goalSideLeft = goalFlash ? (goalFlash.side === "h" ? !secondHalf : secondHalf) === false : false;
-
-  // publish targets (mirrored for the second half)
-  const live = new Set<string>();
-  for (const d of dots) {
-    targets.current.set(d.id, { x: mx(d.x), y: d.y });
-    live.add(d.id);
-  }
-  targets.current.set("__ball", { x: mx(ballX), y: ballY });
-  live.add("__ball");
-  for (const id of [...targets.current.keys()]) if (!live.has(id)) targets.current.delete(id);
-
-  // rAF loop: exponential easing toward targets — players jog, ball zips
-  useEffect(() => {
-    let raf = 0;
-    let last = performance.now();
-    const step = (now: number) => {
-      const dt = Math.min(0.08, (now - last) / 1000);
-      last = now;
-      const kPlayer = 1 - Math.exp(-dt * 4.6);
-      const kBall = 1 - Math.exp(-dt * 8.5);
-      for (const [id, t] of targets.current) {
-        const el = els.current.get(id);
-        if (!el) continue;
-        let cur = curPos.current.get(id);
-        if (!cur) { cur = { x: t.x, y: t.y }; curPos.current.set(id, cur); }
-        const k = id === "__ball" ? kBall : kPlayer;
-        cur.x += (t.x - cur.x) * k;
-        cur.y += (t.y - cur.y) * k;
-        el.style.left = `${cur.x}%`;
-        el.style.top = `${cur.y}%`;
-      }
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  const bindEl = (id: string) => (el: HTMLDivElement | null) => {
-    if (el) els.current.set(id, el);
-    else { els.current.delete(id); curPos.current.delete(id); }
-  };
-
-  return (
-    <div className={goalFlash ? "shake" : ""}>
-      <Stands meta={meta} excited={goalFlash !== null} pos="top" />
-
-      <div className="border-x-[3px] border-[var(--ink)] overflow-hidden">
-        <Pitch horizontal className={`aspect-[16/9] w-full pitch-${meta.era} !rounded-none`}>
-          {dots.map((d) => (
-            <div
-              key={d.id}
-              ref={bindEl(d.id)}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none"
-              style={{ left: `${mx(d.x)}%`, top: `${d.y}%` }}
-            >
-              <div
-                className="dot-bob w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2"
-                style={{
-                  background: d.color,
-                  borderColor: d.id === carrierId && bestD < 30 ? "#fff" : "rgba(0,0,0,0.55)",
-                  boxShadow: d.id === carrierId && bestD < 30 ? "0 0 8px rgba(255,255,255,0.8)" : "0 2px 3px rgba(0,0,0,0.55)",
-                  animationDelay: `${(d.id.length % 7) * 0.09}s`,
-                }}
-              />
-              <span className="text-[7px] sm:text-[8px] font-bold text-white/90 bg-black/55 rounded px-0.5 mt-0.5 whitespace-nowrap">
-                {d.name}
-              </span>
-            </div>
-          ))}
-
-          {/* Ball — eased separately, faster than the players */}
-          <div
-            ref={bindEl("__ball")}
-            className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
-            style={{ left: `${mx(ballX)}%`, top: `${ballY}%` }}
-          >
-            <div className="w-2.5 h-2.5 rounded-full bg-white border border-black/40 shadow-[0_2px_3px_rgba(0,0,0,0.6)]" />
-            <div className="w-2 h-[3px] rounded-full bg-black/35 mx-auto mt-[1px]" />
-          </div>
-
-          {/* Cooling break overlay */}
-          <AnimatePresence>
-            {cooling && (
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[rgba(10,20,40,0.6)]"
-              >
-                <IconSnow size={40} className="text-[#9CD2FF] mb-2" />
-                <div className="font-display text-2xl text-[#9CD2FF]">COOLING BREAK</div>
-                <div className="text-xs text-white/70">hidratação à beira do campo</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Goal overlay: net ripple + roar */}
-          <AnimatePresence>
-            {goalFlash && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55"
-              >
-                <div
-                  className="net-ripple absolute top-1/2 -translate-y-1/2 w-24 h-40 rounded-full pointer-events-none"
-                  style={{
-                    [goalSideLeft ? "left" : "right"]: "-2%",
-                    background: "radial-gradient(closest-side, rgba(255,255,255,0.55), transparent)",
-                    backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px), repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 2px, transparent 2px 7px)",
-                  } as React.CSSProperties}
-                />
-                <motion.div
-                  initial={{ y: 18, scale: 0.8 }}
-                  animate={{ y: 0, scale: 1 }}
-                  className="arc-logo text-6xl sm:text-8xl"
-                  style={{ color: "var(--amarelo)" }}
-                >
-                  GOOOOOL!
-                </motion.div>
-                <div className="font-arc text-base sm:text-lg font-extrabold mt-2 text-center px-6">{goalFlash.text}</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Pitch>
-      </div>
-
-      <Stands meta={meta} excited={goalFlash !== null} pos="bottom" />
-    </div>
-  );
-}
-
-// ── Animated stands (crowd rows hugging the pitch) ───────────
-function Stands({ meta, excited, pos }: { meta: Meta; excited: boolean; pos: "top" | "bottom" }) {
-  const density = Math.max(0.35, Math.min(1, meta.attendance / meta.capacity));
-  const cols = 56;
-  const rows = 2;
-  return (
-    <div
-      className={`overflow-hidden border-[3px] border-[var(--ink)] ${pos === "top" ? "rounded-t-2xl border-b-0" : "rounded-b-2xl border-t-0"} stands stands-${meta.era} px-2 py-1`}
-      aria-hidden
-    >
-      {Array.from({ length: rows }).map((_, ri) => (
-        <div key={ri} className="flex items-center justify-center gap-[3px]" style={{ opacity: 1 - ri * 0.25 }}>
-          {Array.from({ length: cols }).map((_, i) => {
-            const filled = ((i * 7 + ri * 13) % 100) / 100 < density;
-            return (
-              <span
-                key={i}
-                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${excited ? "crowd-goal" : "crowd-dot"}`}
-                style={{
-                  background: filled ? ["#FFC81B", "#9ACD1E", "#2FD0C8", "#E91E8C", "#F2EAD3"][(i + ri) % 5] : "rgba(255,255,255,0.08)",
-                  animationDelay: `${((i + ri * 5) % 12) * 0.18}s`,
-                  opacity: filled ? 0.85 : 0.35,
-                }}
-              />
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Event feed ───────────────────────────────────────────────
 function EventIcon({ type }: { type: MatchEvent["type"] }) {
   const cls = "shrink-0 mt-0.5";
@@ -758,7 +633,9 @@ function EventIcon({ type }: { type: MatchEvent["type"] }) {
 }
 
 function EventFeed({ st, count }: { st: LiveMatchState; count: number }) {
-  const events = useMemo(() => [...st.events].reverse(), [count]); // eslint-disable-line react-hooks/exhaustive-deps
+  // only events the director already "released" — a goal line never appears
+  // in the feed before the shot lands on screen
+  const events = useMemo(() => st.events.slice(0, count).reverse(), [count]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
       <AnimatePresence initial={false}>
