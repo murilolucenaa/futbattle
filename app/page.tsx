@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import SoundProvider from "@/src/audio/SoundProvider";
@@ -436,7 +437,9 @@ export default function Home() {
         </AnimatePresence>
       </motion.div>
 
-      {/* Popup de modo (Fiel/Tradicional) com "?" lore */}
+      {/* Popup de modo (Fiel/Tradicional) — em portal no body p/ escapar do
+          transform do framer-motion (senão `fixed` vira relativo ao container) */}
+      {mounted && createPortal(
       <AnimatePresence>
         {pickedEd && (() => {
           const ed = EDITION_BY_ID[pickedEd];
@@ -444,7 +447,7 @@ export default function Home() {
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 z-[300] flex items-center justify-end p-4 pr-[5%] sm:pr-[8%] bg-black/60 backdrop-blur-md"
               onClick={() => setPickedEd(null)}
             >
               <motion.div
@@ -485,7 +488,8 @@ export default function Home() {
             </motion.div>
           );
         })()}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body)}
     </main>
   );
 }
