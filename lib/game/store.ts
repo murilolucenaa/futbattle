@@ -3,10 +3,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
-  Card, CupState, FormationId, MatchResult, MatchTeam, Position, Tactics,
+  Card, CupMode, CupState, FormationId, MatchResult, MatchTeam, Position, Tactics,
 } from "./types";
 import { FORMATIONS, assignLineup } from "./formations";
-import { advanceCup, drawCup, recordUserResult, simulateRound, currentRound, nextUserFixture, buildAiTeam, LAST_ROUND } from "./cup";
+import { advanceCup, drawCup, recordUserResult, simulateRound, currentRound, nextUserFixture, buildAiTeam, lastRound } from "./cup";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
 import { REROLL_BUDGET, BENCH_REROLL_BONUS } from "./rules";
@@ -39,6 +39,7 @@ interface CareerState {
   squadName: string;         // cosmetic team name (fallback: `Seleção {coachName}`)
   careerMode: CareerMode;    // "legends" = draft de lendas · "wc2026" = seleção atual
   editionId: string;         // chosen World Cup edition (host + year + stadiums)
+  cupMode: CupMode;          // "fiel" (formato real do ano) · "tradicional" (formato 2026)
   userColors: [string, string];  // chosen at career creation
   userColors2: [string, string]; // away kit
   userPattern: string;           // home jersey pattern (KitPattern id)
@@ -62,7 +63,7 @@ interface CareerState {
   lastResult: { fixtureId: string; result: MatchResult; round: number } | null;
 
   // actions
-  newCareer: (coachName: string, editionId: string, formation: FormationId, kit?: { kit1: [string, string]; kit2: [string, string]; pattern1?: string; pattern2?: string }) => void;
+  newCareer: (coachName: string, editionId: string, formation: FormationId, mode: CupMode, kit?: { kit1: [string, string]; kit2: [string, string]; pattern1?: string; pattern2?: string }) => void;
   newCareer2026: (coachName: string, squadId: string, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
   setSquadName: (name: string) => void;
   setDraftFormation: (f: FormationId) => void;
@@ -129,6 +130,7 @@ const freshCareer = {
   squadName: "",
   careerMode: "legends" as CareerMode,
   editionId: DEFAULT_EDITION_ID,
+  cupMode: "tradicional" as CupMode,
   userColors: USER_COLORS,
   userColors2: USER_KIT2,
   userPattern: "solid",
@@ -157,12 +159,13 @@ export const useCareer = create<CareerState>()(
     (set, get) => ({
       ...freshCareer,
 
-      newCareer: (coachName, editionId, formation, kit) =>
+      newCareer: (coachName, editionId, formation, mode, kit) =>
         set({
           ...freshCareer,
           coachName,
           careerMode: "legends",
           editionId,
+          cupMode: mode,
           userColors: kit?.kit1 ?? USER_COLORS,
           userColors2: kit?.kit2 ?? USER_KIT2,
           userPattern: kit?.pattern1 ?? "solid",
@@ -192,6 +195,7 @@ export const useCareer = create<CareerState>()(
           coachName,
           careerMode: "wc2026",
           editionId: "america-do-norte-2026",
+          cupMode: "tradicional",
           userColors: kit?.kit1 ?? squad.colors,
           userColors2: kit?.kit2 ?? squad.kit2,
           draftFormation: formation,
@@ -295,7 +299,8 @@ export const useCareer = create<CareerState>()(
         const cup = drawCup(
           { name: userTeamName(s), flag: "⭐", colors: s.userColors ?? USER_COLORS },
           Math.floor(Math.random() * 2 ** 31),
-          s.editionId
+          s.editionId,
+          s.cupMode,
         );
         set({ cup });
       },
@@ -343,7 +348,7 @@ export const useCareer = create<CareerState>()(
           if (!nf) {
             // user out (or cup over): simulate everything that remains
             const r = currentRound(cup);
-            if (r > LAST_ROUND) { advanceCup(cup); break; }
+            if (r > lastRound(cup)) { advanceCup(cup); break; }
             simulateRound(cup, r);
             continue;
           }
@@ -367,13 +372,22 @@ export const useCareer = create<CareerState>()(
     }),
     {
       name: "futbattle-career",
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         // pre-v3 saves reference re-anchored squad ids (fra-1984 → fra-1986
         // etc.) and lack draftDraw — start clean, keeping nothing.
         if (version < 3) return { ...freshCareer } as CareerState;
-        // v3 → v4: cosmetic squadName added; tolerate its absence.
-        return { squadName: "", ...(persisted as object) } as CareerState;
+        const p = persisted as Record<string, unknown>;
+        // v3→v4: squadName cosmético · v4→v5: cupMode + Fixture.knockout
+        const merged = { squadName: "", cupMode: "tradicional", ...p } as Record<string, unknown>;
+        const cup = merged.cup as { mode?: string; fixtures?: Array<Record<string, unknown>> } | null;
+        if (cup) {
+          if (!cup.mode) cup.mode = "tradicional";
+          if (cup.fixtures) for (const f of cup.fixtures) {
+            if (f.knockout === undefined) f.knockout = (f.round as number) >= 4;
+          }
+        }
+        return merged as unknown as CareerState;
       },
     }
   )
