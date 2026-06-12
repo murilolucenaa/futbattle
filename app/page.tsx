@@ -7,7 +7,9 @@ import SoundProvider from "@/src/audio/SoundProvider";
 import { sound } from "@/src/audio/SoundManager";
 import KitJersey, { PATTERNS, type KitPattern } from "@/components/game/KitJersey";
 import { useCareer, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
-import { EDITIONS, editionLabel } from "@/lib/data/editions";
+import { EDITIONS, EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
+import { fielAvailable } from "@/lib/game/formats/registry";
+import type { CupMode } from "@/lib/game/types";
 import { IconLock, IconStadium } from "@/components/icons";
 
 type Step = "menu" | "coach" | "kit" | "edition";
@@ -88,6 +90,7 @@ export default function Home() {
   const [step, setStep] = useState<Step>("menu");
   const [name, setName] = useState("");
   const [langOpen, setLangOpen] = useState(false);
+  const [pickedEd, setPickedEd] = useState<string | null>(null);
   const [kit1, setKit1] = useState<Kit>([...USER_COLORS]);
   const [kit2, setKit2] = useState<Kit>([...USER_KIT2]);
   const [pat1, setPat1] = useState<KitPattern>("solid");
@@ -110,8 +113,9 @@ export default function Home() {
   const setPrimary = (hex: string) => setActive([hex, active[1]]);
   const setSecondary = (hex: string) => setActive([active[0], hex]);
 
-  function pickEdition(editionId: string) {
-    career.newCareer(name.trim() || "Mister", editionId, "4-2-3-1", {
+  function openEdition(editionId: string) { setPickedEd(editionId); }
+  function startWithMode(editionId: string, mode: CupMode) {
+    career.newCareer(name.trim() || "Mister", editionId, "4-2-3-1", mode, {
       kit1, kit2, pattern1: pat1, pattern2: pat2,
     });
     router.push("/squad");
@@ -388,28 +392,34 @@ export default function Home() {
               className="arc-panel p-5 sm:p-6 max-w-2xl mx-auto text-left"
             >
               <span className="arc-tag">★ Passo 3 de 3</span>
-              <h2 className="font-display text-3xl mt-3 mb-1 text-[var(--ink)]">EM QUAL COPA DO MUNDO?</h2>
-              <p className="font-arc text-sm font-semibold opacity-65 mb-4 text-[var(--ink)]">
-                País-sede e época definem estádios reais e clima. O torneio segue o formato
-                2026: 48 seleções, grupos de A a L.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[44vh] overflow-y-auto pr-1">
-                {EDITIONS.map((e) => (
-                  <button
-                    key={e.id}
-                    data-sound="confirm"
-                    onClick={() => pickEdition(e.id)}
-                    className="rounded-2xl border-[3px] border-[var(--ink)] bg-white p-3 text-left shadow-[3px_4px_0_var(--ink)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_var(--ink)] active:translate-y-1 active:shadow-[1px_2px_0_var(--ink)] transition-all"
-                  >
-                    <div className="text-2xl mb-1">{e.flag}</div>
-                    <div className="font-display text-base leading-tight text-[var(--ink)]">
-                      {editionLabel(e)}
-                    </div>
-                    <div className="font-arc text-[10px] font-bold opacity-55 text-[var(--ink)] flex items-center gap-1 mt-1">
-                      <IconStadium size={12} /> {e.stadiums.length} estádios
-                    </div>
-                  </button>
-                ))}
+              <h2 className="font-display text-3xl mt-3 mb-3 text-[var(--ink)]">EM QUAL COPA DO MUNDO?</h2>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="sm:w-44 shrink-0 arc-mini p-3 self-start">
+                  <div className="font-arc text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] mb-1">Dica do mister</div>
+                  <p className="font-arc text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-80">
+                    Cada Copa tem regras próprias. Ao escolher, decida: <b>Fiel</b> (o formato real
+                    daquele ano) ou <b>Tradicional</b> (o formato de hoje, 48 seleções, com o estádio
+                    e o clima da época).
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[44vh] overflow-y-auto pr-1 flex-1">
+                  {EDITIONS.map((e) => (
+                    <button
+                      key={e.id}
+                      data-sound="confirm"
+                      onClick={() => openEdition(e.id)}
+                      className="rounded-2xl border-[3px] border-[var(--ink)] bg-white p-3 text-left shadow-[3px_4px_0_var(--ink)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_var(--ink)] active:translate-y-1 active:shadow-[1px_2px_0_var(--ink)] transition-all"
+                    >
+                      <div className="text-2xl mb-1">{e.flag}</div>
+                      <div className="font-display text-base leading-tight text-[var(--ink)]">
+                        {editionLabel(e)}
+                      </div>
+                      <div className="font-arc text-[10px] font-bold opacity-55 text-[var(--ink)] flex items-center gap-1 mt-1">
+                        <IconStadium size={12} /> {e.stadiums.length} estádios
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
               <button data-sound="cancel" onClick={() => setStep("kit")} className="arc-btn arc-btn--paper w-full py-2.5 mt-4 text-sm">
                 Voltar
@@ -418,6 +428,56 @@ export default function Home() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Popup de modo (Fiel/Tradicional) com "?" lore */}
+      <AnimatePresence>
+        {pickedEd && (() => {
+          const ed = EDITION_BY_ID[pickedEd];
+          const fiel = fielAvailable(pickedEd);
+          return (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70"
+              onClick={() => setPickedEd(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
+                className="arc-panel p-5 sm:p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-3xl mb-1">{ed.flag}</div>
+                <h3 className="font-display text-2xl text-[var(--ink)]">{editionLabel(ed)}</h3>
+                {ed.lore && (
+                  <div className="arc-mini p-3 my-3 flex gap-2">
+                    <span className="font-display text-lg text-[var(--gold)] shrink-0">?</span>
+                    <p className="font-arc text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-80">{ed.lore}</p>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 mt-2">
+                  <button
+                    data-sound="confirm" disabled={!fiel}
+                    onClick={() => startWithMode(pickedEd, "fiel")}
+                    className={`arc-btn arc-btn--lima w-full py-3 ${fiel ? "" : "opacity-40 pointer-events-none"}`}
+                  >
+                    <span className="block font-display text-lg">JOGAR FIEL</span>
+                    <span className="block font-arc text-[10px] font-bold opacity-75">
+                      {fiel ? "o formato real daquela Copa" : "Modo Fiel em breve nesta Copa"}
+                    </span>
+                  </button>
+                  <button
+                    data-sound="confirm"
+                    onClick={() => startWithMode(pickedEd, "tradicional")}
+                    className="arc-btn arc-btn--ciano w-full py-3"
+                  >
+                    <span className="block font-display text-lg">JOGAR TRADICIONAL</span>
+                    <span className="block font-arc text-[10px] font-bold opacity-75">formato de hoje (48 times) com o tema de {ed.year}</span>
+                  </button>
+                  <button data-sound="cancel" onClick={() => setPickedEd(null)} className="arc-btn arc-btn--paper w-full py-2 text-sm mt-1">Voltar</button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </main>
   );
 }
