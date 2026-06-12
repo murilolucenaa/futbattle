@@ -6,7 +6,7 @@
 // Dev/approval screen — not linked from the game flow.
 // ============================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Position } from "@/lib/game/types";
 import PosChip from "@/components/game/PosChip";
 import PlayerCard from "@/components/game/PlayerCard";
@@ -14,20 +14,14 @@ import HexRadar from "@/components/game/HexRadar";
 import Scoreboard from "@/components/game/Scoreboard";
 import GroupTable, { type GroupRow } from "@/components/game/GroupTable";
 import GameButton from "@/components/game/GameButton";
+import PlayerChip from "@/components/game/PlayerChip";
+import GameShell from "@/components/game/GameShell";
 import { useScreenWipe } from "@/components/game/ScreenWipe";
-import {
-  SFX_MAP, isMuted, setMuted, getVolume, setVolume,
-  sfxMove, sfxConfirm, sfxBack, sfxWhoosh, sfxCount, sfxDrumroll, sfxTick,
-  sfxReveal, sfxStamp, sfxWhistle, sfxGoal, sfxElimination, sfxTrophy,
-  startCrowd, stopCrowd, type AudioChannel,
-} from "@/lib/sfx";
+import { sound, isMuted, setMuted, getVolume, setVolume, type Channel } from "@/src/audio/SoundManager";
 
-const SFX_PLAYERS: Record<string, () => void> = {
-  sfxMove, sfxConfirm, sfxBack, sfxWhoosh: () => sfxWhoosh(), sfxCount,
-  sfxDrumroll: () => sfxDrumroll(), sfxTick, sfxReveal, sfxStamp,
-  sfxWhistle: () => sfxWhistle(true), sfxGoal, sfxElimination, sfxTrophy,
-  "startCrowd / setCrowdIntensity": () => { startCrowd(0.6); setTimeout(stopCrowd, 3000); },
-};
+// Demo rows straight from the manifest contract — every declared sound.
+const SFX_DEMO: { event: string; channel: string; desc: string }[] =
+  Object.entries(sound.events()).map(([event, e]) => ({ event, channel: e.channel, desc: e.desc ?? "" }));
 
 const PALETTE = [
   { name: "Noite de estádio", varName: "--night", hex: "#050B14" },
@@ -65,7 +59,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function VolumeSlider({ label, ch }: { label: string; ch: AudioChannel | "master" }) {
+function VolumeSlider({ label, ch }: { label: string; ch: Channel | "master" }) {
   const [v, setV] = useState(() => getVolume(ch));
   return (
     <label className="flex items-center gap-3">
@@ -73,7 +67,7 @@ function VolumeSlider({ label, ch }: { label: string; ch: AudioChannel | "master
       <input
         type="range" min={0} max={100} value={Math.round(v * 100)}
         onChange={(e) => { const nv = Number(e.target.value) / 100; setV(nv); setVolume(ch, nv); }}
-        onMouseUp={() => sfxMove()}
+        onMouseUp={() => sound.play("ui.move")}
         className="w-40 accent-[var(--accent)]"
       />
       <span className="type-stat w-8 text-right text-xs text-white/60">{Math.round(v * 100)}</span>
@@ -84,9 +78,14 @@ function VolumeSlider({ label, ch }: { label: string; ch: AudioChannel | "master
 export default function StyleguidePage() {
   const { wipe, overlay } = useScreenWipe();
   const [radarIdx, setRadarIdx] = useState(0);
-  const [muted, setMutedState] = useState(() => isMuted());
+  const [mounted, setMounted] = useState(false);
+  const [muted, setMutedState] = useState(false);
   const [stamped, setStamped] = useState(false);
   const player = SAMPLE_PLAYERS[radarIdx];
+
+  // read persisted audio settings only after hydration (localStorage is
+  // client-only — reading during render mismatches the SSR HTML)
+  useEffect(() => { setMounted(true); setMutedState(isMuted()); }, []);
 
   return (
     <main className="texture-noise min-h-dvh pb-20">
@@ -152,7 +151,7 @@ export default function StyleguidePage() {
                   key={p.name}
                   {...p}
                   selected={i === radarIdx}
-                  onClick={() => { setRadarIdx(i); sfxMove(); }}
+                  onClick={() => { setRadarIdx(i); sound.play("ui.move"); }}
                 />
               ))}
             </div>
@@ -188,11 +187,11 @@ export default function StyleguidePage() {
         <section>
           <SectionTitle>7 · Botões com peso</SectionTitle>
           <div className="flex flex-wrap items-center gap-4">
-            <GameButton onClick={() => { setStamped(true); sfxStamp(); setTimeout(() => setStamped(false), 900); }} silent>
+            <GameButton onClick={() => { setStamped(true); sound.play("ui.stamp"); setTimeout(() => setStamped(false), 900); }} silent>
               Convocar
             </GameButton>
-            <GameButton variant="gold" onClick={() => sfxTrophy()} silent>Erguer a taça</GameButton>
-            <GameButton variant="steel" onClick={() => sfxBack()} silent>Vestiário</GameButton>
+            <GameButton variant="gold" onClick={() => sound.play("match.trophy")} silent>Erguer a taça</GameButton>
+            <GameButton variant="steel" onClick={() => sound.play("ui.cancel")} silent>Vestiário</GameButton>
             <GameButton disabled>Travado</GameButton>
             {stamped && (
               <span className="reveal-pop tv-slab bg-[var(--card-red)] px-3 py-1 font-display uppercase tracking-wider">
@@ -215,42 +214,45 @@ export default function StyleguidePage() {
         {/* 9 · Mapa de som */}
         <section>
           <SectionTitle>9 · Mapa de som</SectionTitle>
-          <div className="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-md border border-white/10 bg-black/30 p-4">
-            <GameButton
-              variant={muted ? "steel" : "grass"}
-              silent
-              onClick={() => { const m = !muted; setMuted(m); setMutedState(m); if (!m) sfxConfirm(); }}
-              className="!text-sm !px-4 !py-1.5"
-            >
-              {muted ? "Som: OFF" : "Som: ON"}
-            </GameButton>
-            <VolumeSlider label="Master" ch="master" />
-            <VolumeSlider label="Interface" ch="ui" />
-            <VolumeSlider label="Torcida" ch="crowd" />
-            <VolumeSlider label="Narração" ch="voice" />
-          </div>
+          {mounted && (
+            <div className="mb-4 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-md border border-white/10 bg-black/30 p-4">
+              <GameButton
+                variant={muted ? "steel" : "grass"}
+                silent
+                onClick={() => { const m = !muted; setMuted(m); setMutedState(m); if (!m) sound.play("ui.confirm"); }}
+                className="!text-sm !px-4 !py-1.5"
+              >
+                {muted ? "Som: OFF" : "Som: ON"}
+              </GameButton>
+              <VolumeSlider label="Master" ch="master" />
+              <VolumeSlider label="Interface" ch="ui" />
+              <VolumeSlider label="Torcida" ch="ambience" />
+              <VolumeSlider label="Música" ch="music" />
+              <VolumeSlider label="Partida" ch="match" />
+            </div>
+          )}
           <div className="overflow-hidden rounded-md border border-white/10 bg-[var(--night-2)]">
             <table className="tv-table">
               <thead>
                 <tr>
-                  <th className="text-left">Interação</th>
-                  <th className="text-left">Função</th>
+                  <th className="text-left">Evento</th>
                   <th className="text-left">Canal</th>
+                  <th className="text-left">Descrição</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {SFX_MAP.map((row) => (
-                  <tr key={row.fn}>
-                    <td className="font-semibold">{row.interaction}</td>
-                    <td className="type-stat text-xs text-white/60">{row.fn}</td>
+                {SFX_DEMO.map((row) => (
+                  <tr key={row.event}>
+                    <td className="type-stat font-semibold text-xs">{row.event}</td>
                     <td className="text-xs text-white/60">{row.channel}</td>
+                    <td className="text-[11px] text-white/50">{row.desc}</td>
                     <td className="text-right">
                       <button
                         type="button"
                         className="tv-slab bg-white/10 px-3 py-0.5 font-display text-xs uppercase tracking-wider hover:bg-[var(--accent)] hover:text-[#04130B]"
-                        onMouseEnter={() => sfxMove()}
-                        onClick={() => SFX_PLAYERS[row.fn]?.()}
+                        onMouseEnter={() => sound.play("ui.move")}
+                        onClick={() => sound.play(row.event)}
                       >
                         Ouvir
                       </button>
@@ -262,9 +264,42 @@ export default function StyleguidePage() {
           </div>
         </section>
 
-        {/* 10 · Demo composta: o "veredito" */}
+        {/* 10 · Slots de campo + shell de 3 colunas */}
         <section>
-          <SectionTitle>10 · Critério de pronto</SectionTitle>
+          <SectionTitle>10 · Slots de campo (PlayerChip) & GameShell</SectionTitle>
+          <div className="mb-4 flex flex-wrap items-end gap-6 rounded-md border border-white/10 bg-[var(--grass-deep)] p-6">
+            <div className="text-center">
+              <PlayerChip variant="filled" name="Pelé" ovr={99} flag="🇧🇷" pos="ST" />
+              <p className="type-label mt-2 !text-[9px]">filled · carimbo</p>
+            </div>
+            <div className="text-center">
+              <PlayerChip variant="empty" pos="AM" state="open" onClick={() => sound.play("ui.stamp")} />
+              <p className="type-label mt-2 !text-[9px]">empty · open</p>
+            </div>
+            <div className="text-center">
+              <PlayerChip variant="empty" pos="CB" state="dim" />
+              <p className="type-label mt-2 !text-[9px]">empty · dim</p>
+            </div>
+            <div className="text-center">
+              <PlayerChip variant="empty" pos="GK" state="idle" />
+              <p className="type-label mt-2 !text-[9px]">empty · idle</p>
+            </div>
+          </div>
+          <div className="h-[260px] overflow-hidden rounded-md border border-white/10">
+            <GameShell
+              leftWidth={180}
+              rightWidth={160}
+              left={<div className="arc-panel flex h-full items-center justify-center p-3 font-display text-lg">ESQUERDA</div>}
+              center={<div className="flex h-full items-center justify-center rounded-md border-2 border-dashed border-white/20 font-display text-lg text-white/60">CENTRO (flex)</div>}
+              right={<div className="arc-panel flex h-full items-center justify-center p-3 font-display text-lg">DIREITA</div>}
+            />
+          </div>
+          <p className="type-label mt-2 !text-[10px]">3 colunas, 100dvh, scroll só interno por coluna — base da tela de convocação</p>
+        </section>
+
+        {/* 11 · Demo composta: o "veredito" */}
+        <section>
+          <SectionTitle>11 · Critério de pronto</SectionTitle>
           <div className="texture-halftone rounded-md border border-white/10 bg-black/40 p-6">
             <p className="type-title mb-2">Isso parece site ou menu de jogo?</p>
             <p className="text-sm text-white/70">

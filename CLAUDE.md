@@ -23,8 +23,12 @@ lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio pondera
 lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed, cooling break
 lib/game/cup.ts         # Sorteio 48 times, grupos A–L, melhores 3ºs, R32→final+3º lugar, líderes (playerTotals)
 lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 3) — carreira + moral + draftDraw
-lib/sfx.ts              # SFX sintetizados via WebAudio + clicker pack (pitch aleatório), haptics e
-                        #   delegação global [data-sfx] (initUiSfx, montada por components/game/SfxRoot)
+src/audio/SoundManager.ts # Motor de áudio único (howler.js): canais ui/music/ambience/match,
+                        #   volumes+mute persistidos, autoplay-unlock com fila, duck, silent-fail
+src/audio/manifest.json # Contrato de sons (path extensionless → /public/audio/<path>.webm), canal, volume, desc
+src/audio/useUISound.ts # Delegação global [data-sound] + navegação por teclado (setas/Enter/Esc) estilo PS2
+src/audio/SoundProvider.tsx # Monta a delegação + unlock no 1º gesto (substitui o antigo SfxRoot)
+scripts/gen-placeholder-sfx.ts # Gera placeholders WAV-em-.webm p/ cada som do manifesto (npm run gen:sfx)
 
 app/page.tsx            # Home: logo gigante, Novo Campeonato, Online/idiomas "em manutenção", técnico + edição
 app/squad/page.tsx      # DraftView (fluxo 7-0: dado → seleção inteira → carimbo) + ManageView (prancheta FIFA)
@@ -85,8 +89,8 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 
 - UI em **pt-BR** (narração, labels, mensagens). Código/comentários em inglês.
 - **Sem emojis genéricos de iPhone na UI** — usar `components/icons.tsx` (SVG). Exceções: bandeiras de seleções e ⭐ do time do usuário.
-- Linguagem visual: **"Fliperama da Copa"** — tokens/classes `arc-*` em globals.css (`--ink/--paper/--amarelo/--lima/--laranja/--ciano/--rosa`, `.arc-btn/.arc-panel/.arc-mini/.arc-strip/.arc-tag/.arc-bg/.arc-logo/.pitch-arc`): bordas de tinta 3px, sombras duras deslocadas, cores chapadas, papel sobre gramado, display Anton + Archivo 600–900. Dentro de `.arc-panel/.arc-mini` as vars do tema escuro (`--muted/--accent/--gold`…) são re-mapeadas pra tinta legível. **Proibido**: gradiente roxo/glow neon/glassmorphism em telas novas. Som/haptics: `data-sfx="click|confirm|back|error|stamp|dice"` em qualquer elemento clicável (delegação global via `SfxRoot`).
-- SFX: só via `lib/sfx.ts` (WebAudio sintetizado) — nunca adicionar arquivos de áudio.
+- Linguagem visual: **"Fliperama da Copa"** — tokens/classes `arc-*` em globals.css (`--ink/--paper/--amarelo/--lima/--laranja/--ciano/--rosa`, `.arc-btn/.arc-panel/.arc-mini/.arc-strip/.arc-tag/.arc-bg/.arc-logo/.pitch-arc`): bordas de tinta 3px, sombras duras deslocadas, cores chapadas, papel sobre gramado, display Anton + Archivo 600–900. Dentro de `.arc-panel/.arc-mini` as vars do tema escuro (`--muted/--accent/--gold`…) são re-mapeadas pra tinta legível. **Proibido**: gradiente roxo/glow neon/glassmorphism em telas novas. Som/haptics: `data-sound` em qualquer elemento clicável (valor opcional: `confirm|cancel|back|tab|error|dice|stamp|reveal`; hover/foco → `ui.move`, press → o evento). Delegação global via `SoundProvider`.
+- Áudio: tudo pelo `src/audio/SoundManager` (`sound.play/music/ambience/duck/stopAll`). Sons declarados no `manifest.json` e servidos de `/public/audio/<path>.webm` — trocar o arquivo troca o som sem mexer no código. Sons reais devem ser **CC0** (Kenney/freesound CC0) ou sintetizados — nunca rips de PES/Konami. `npm run gen:sfx` gera placeholders.
 - Coordenadas de formação: `x` 0→100 = gol próprio→adversário; `y` 0→100 = lateral esquerda→direita. Campo vertical: `left = y%`, `bottom = x%`; horizontal espelha o visitante (e os dois lados após o intervalo).
 - Páginas client-side com zustand persist precisam do guard `mounted` antes de ler o store (hidratação).
 - Sem Supabase/serviços externos — tudo offline. "Online" e idiomas ES/EN existem na home como **placeholders "em manutenção"**; implementar é feature nova.
@@ -151,5 +155,5 @@ tipografia condensada pesada, textura sutil de ruído/halftone, e SOM em tudo.
 
 ## STATUS DAS FASES
 - Fase 1 (design system + /styleguide): ENTREGUE — tokens de jogo em globals.css,
-  componentes em components/game/, AudioManager em lib/sfx.ts, demo em /styleguide.
+  componentes em components/game/, áudio migrado p/ src/audio/SoundManager (howler), demo em /styleguide.
 - Fases 2–5: pendentes (telas, Phaser, pênaltis, polimento).

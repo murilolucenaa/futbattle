@@ -1,6 +1,6 @@
 "use client";
 
-import { sfxConfirm, sfxMove } from "@/lib/sfx";
+import { sound } from "@/src/audio/SoundManager";
 
 interface GameButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "grass" | "gold" | "steel";
@@ -15,8 +15,8 @@ export default function GameButton({ variant = "grass", silent, className = "", 
     <button
       type="button"
       className={`btn-game px-5 py-2.5 text-lg ${variantClass} ${className}`}
-      onMouseEnter={(e) => { sfxMove(); onMouseEnter?.(e); }}
-      onClick={(e) => { if (!silent) sfxConfirm(); onClick?.(e); }}
+      onMouseEnter={(e) => { sound.play("ui.move"); onMouseEnter?.(e); }}
+      onClick={(e) => { if (!silent) sound.play("ui.confirm"); onClick?.(e); }}
       {...rest}
     >
       {children}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
-import { sfxConfirm } from "@/lib/sfx";
+import { sound } from "@/src/audio/SoundManager";
 import { IconMic } from "@/components/icons";
 
 /**
@@ -118,7 +118,7 @@ export default function PressConference({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: line >= lines.length ? 0 : 2.2 }}
-        onClick={() => { sfxConfirm(); onDone(); }}
+        onClick={() => { sound.play("ui.confirm"); onDone(); }}
         className="btn-hero px-10 py-4 text-lg mt-4 relative z-10"
       >
         Anunciar a convocação →

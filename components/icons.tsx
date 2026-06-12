@@ -177,3 +177,18 @@ export const IconDice = (p: P) => base(p, (
 export const IconFlame = (p: P) => base(p, (
   <path d="M12 21c-3.9 0-6.5-2.5-6.5-6 0-2.6 1.6-4.4 3-6 .3 1.2 1 2 2 2.4C10.3 8.6 11 5.4 14 3c-.3 2.6.6 4 2 5.5 1.3 1.4 2.5 3 2.5 5.5 0 4.5-2.6 7-6.5 7Z" />
 ));
+
+export const IconSound = (p: P) => base(p, (
+  <>
+    <path d="M4 9v6h4l5 4V5L8 9H4Z" />
+    <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M19 6a8 8 0 0 1 0 12" />
+  </>
+));
+
+export const IconMute = (p: P) => base(p, (
+  <>
+    <path d="M4 9v6h4l5 4V5L8 9H4Z" />
+    <path d="M17 9.5l4 5M21 9.5l-4 5" />
+  </>
+));

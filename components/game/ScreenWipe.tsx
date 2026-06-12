@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { sfxWhoosh } from "@/lib/sfx";
+import { sound } from "@/src/audio/SoundManager";
 
 // Console-style diagonal screen wipe. Usage:
 //   const { wipe, overlay } = useScreenWipe();
@@ -25,7 +25,7 @@ export function useScreenWipe() {
     coveredCb.current = onCovered ?? null;
     setReverse(back);
     setPhase("in");
-    sfxWhoosh(back);
+    sound.play("transition.whoosh");
   }, []);
 
   const from = reverse ? "110%" : "-110%";

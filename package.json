@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "gen:sfx": "tsx scripts/gen-placeholder-sfx.ts",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "dependencies": {
     "framer-motion": "^12.40.0",
+    "howler": "^2.2.4",
     "lucide-react": "^1.17.0",
     "next": "^14.2.29",
     "react": "^18.3.1",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/howler": "^2.2.13",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -31,6 +34,7 @@
     "jest-environment-node": "^30.4.1",
     "tailwindcss": "^3.4.19",
     "ts-jest": "^29.4.11",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
