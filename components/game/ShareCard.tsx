@@ -70,8 +70,8 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
             lineHeight: 1,
             letterSpacing: 2,
             color: "#FFC81B",
-            WebkitTextStroke: "4px #141512",
-            textShadow: "6px 7px 0 #141512",
+            textShadow:
+              "-3px -3px 0 #141512, 3px -3px 0 #141512, -3px 3px 0 #141512, 3px 3px 0 #141512, 6px 7px 0 #141512",
           }}
         >
           FUTBATTLE
@@ -166,7 +166,7 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
                   borderRadius: "50%",
                   background: color,
                   border: goat ? "6px solid #FFC81B" : "5px solid #141512",
-                  boxShadow: goat ? "0 0 24px rgba(255,200,27,0.8), 4px 5px 0 #141512" : "4px 5px 0 #141512",
+                  boxShadow: goat ? "0 0 0 6px rgba(255,200,27,0.55), 4px 5px 0 #141512" : "4px 5px 0 #141512",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

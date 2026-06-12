@@ -402,9 +402,10 @@ function TeamSide({ team, accent, kitColor, slideFrom, editable, onCycle, onEdit
 }
 
 /** Central strip: VS + strengths, match metadata, kit choice, kickoff CTA. */
-function CenterStrip({ uo, oo, pre, f, userKit, onKit, onKickoff }: {
+function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit, onKickoff }: {
   uo: number; oo: number; pre: PreInfo; f: Fixture;
-  userKit: 1 | 2; onKit: (k: 1 | 2) => void; onKickoff: () => void;
+  userKit: 1 | 2; userColors1: [string, string]; userColors2: [string, string];
+  onKit: (k: 1 | 2) => void; onKickoff: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -436,7 +437,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, onKit, onKickoff }: {
       <div className="arc-panel p-3">
         <div className="mb-1.5 text-center font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50">Seu uniforme</div>
         <div className="flex justify-center gap-2">
-          {([["1º", USER_COLORS, 1], ["2º", USER_KIT2, 2]] as const).map(([lbl, colors, k]) => (
+          {([["1º", userColors1, 1], ["2º", userColors2, 2]] as const).map(([lbl, colors, k]) => (
             <button
               key={k}
               data-sound="confirm"
@@ -500,7 +501,14 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
             onCycle={cycleForm}
             onEdit={() => router.push("/squad")}
           />
-          <CenterStrip uo={uo} oo={oo} pre={pre} f={f} userKit={c.userKit} onKit={(k) => c.setUserKit(k)} onKickoff={kickoff} />
+          <CenterStrip
+            uo={uo} oo={oo} pre={pre} f={f}
+            userKit={c.userKit}
+            userColors1={c.userColors ?? USER_COLORS}
+            userColors2={c.userColors2 ?? USER_KIT2}
+            onKit={(k) => c.setUserKit(k)}
+            onKickoff={kickoff}
+          />
           <TeamSide team={oppTeam} accent="var(--rosa)" kitColor={oppKit[0]} slideFrom={1} />
         </div>
       </div>
