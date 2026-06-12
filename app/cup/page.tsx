@@ -101,7 +101,7 @@ export default function CupPage() {
                 <span className="text-[var(--muted)]">x</span>
                 <TeamLabel cup={cup} id={next.awayId} bold />
               </div>
-              <button data-sfx="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3">
+              <button data-sound="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3">
                 <span className="block text-xl leading-tight">Bora pro jogo</span>
                 <span className="block font-arc text-[10px] font-bold opacity-80 mt-0.5">aquece que é sua vez, mister</span>
               </button>
@@ -125,7 +125,7 @@ export default function CupPage() {
             <p className="text-sm text-[var(--muted)] mb-4">
               Acompanhe o desfecho abaixo — ou comece uma nova campanha.
             </p>
-            <button data-sfx="confirm" onClick={() => router.push("/")} className="arc-btn arc-btn--lima px-6 py-3 text-base">Nova campanha</button>
+            <button data-sound="confirm" onClick={() => router.push("/")} className="arc-btn arc-btn--lima px-6 py-3 text-base">Nova campanha</button>
           </div>
         )}
 
@@ -134,7 +134,7 @@ export default function CupPage() {
           {([["groups", "Fase de grupos"], ["leaders", "Líderes"], ["bracket", "Mata-mata"]] as const).map(([k, label]) => (
             <button
               key={k}
-              data-sfx="click"
+              data-sound="confirm"
               onClick={() => setTab(k)}
               className={`arc-btn px-5 py-1.5 text-xs ${tab === k ? "" : "arc-btn--paper"}`}
             >
@@ -191,7 +191,7 @@ export default function CupPage() {
                 ) : (
                   <p className="text-center text-sm text-[var(--muted)] mt-4">Sem gols — jogo truncado.</p>
                 )}
-                <button data-sfx="back" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
+                <button data-sound="cancel" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
               </motion.div>
             </motion.div>
           )}
@@ -216,7 +216,7 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
         {GROUP_NAMES.map((g) => (
           <button
             key={g}
-            data-sfx="click"
+            data-sound="confirm"
             onClick={() => setSel(g)}
             className={`arc-btn arc-btn--card w-10 h-10 font-display text-base relative ${sel === g ? "" : "arc-btn--paper"}`}
           >

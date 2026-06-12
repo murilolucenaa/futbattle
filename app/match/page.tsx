@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Pitch from "@/components/Pitch";
-import SfxRoot from "@/components/game/SfxRoot";
+import SoundProvider from "@/src/audio/SoundProvider";
 import { useCareer, buildUserTeam, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { EDITION_BY_ID, DEFAULT_EDITION_ID } from "@/lib/data/editions";
@@ -15,7 +15,7 @@ import {
 import { buildAiTeam, nextUserFixture, fixtureSeed, ROUND_LABEL } from "@/lib/game/cup";
 import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL } from "@/lib/game/tactics";
-import { sfxGoal, sfxWhistle, startCrowd, setCrowdIntensity, stopCrowd } from "@/lib/sfx";
+import { sound } from "@/src/audio/SoundManager";
 import {
   IconAssist, IconBall, IconCard, IconChart, IconCrowd, IconGlove, IconShirt, IconSnow,
   IconStadium, IconStar, IconSub, IconWeather, IconWhistle,
@@ -100,7 +100,7 @@ export default function MatchPage() {
   const recordedRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
-  useEffect(() => () => stopCrowd(), []);
+  useEffect(() => () => sound.stopAmbience(), []);
 
   // ── Resolve the fixture & ambiance (pre-match) ──
   const pre = useMemo((): PreInfo | null => {
@@ -165,8 +165,8 @@ export default function MatchPage() {
       weather: pre.weather,
       weatherLabel: pre.weatherLabel,
     };
-    sfxWhistle();
-    startCrowd(0.5);
+    sound.play("whistle.kickoff");
+    sound.ambience("crowd.loop", { intensity: 0.5 });
     setView({ minute: 0, scoreH: 0, scoreA: 0, ballX: 50, ballY: 50, possH: 50, eventCount: 1 });
     setPhase("live");
   }
@@ -183,13 +183,13 @@ export default function MatchPage() {
       aiMaybeAct(s, meta.userSide === "h" ? "a" : "h");
       const goal = evs.find((e) => e.type === "goal");
       if (goal) {
-        sfxGoal();
-        setCrowdIntensity(1);
+        sound.play("goal.horn");
+        sound.setAmbienceIntensity(1);
         setGoalFlash(goal);
-        setTimeout(() => { setGoalFlash(null); setCrowdIntensity(0.55); }, 2100);
+        setTimeout(() => { setGoalFlash(null); sound.setAmbienceIntensity(0.55); }, 2100);
       }
-      if (evs.some((e) => e.type === "halftime")) { sfxWhistle(true); setCrowdIntensity(0.3); }
-      if (evs.some((e) => e.type === "fulltime")) sfxWhistle(true);
+      if (evs.some((e) => e.type === "halftime")) { sound.play("whistle.half"); sound.setAmbienceIntensity(0.3); }
+      if (evs.some((e) => e.type === "fulltime")) sound.play("whistle.end");
       if (evs.some((e) => e.type === "cooling")) {
         setCooling(true);
         setTimeout(() => setCooling(false), 1800);
@@ -209,7 +209,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (!result || recordedRef.current) return;
     recordedRef.current = true;
-    stopCrowd();
+    sound.stopAmbience();
     const meta = metaRef.current!;
     c.recordResult(meta.fixture.id, result, meta.round);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,7 +245,7 @@ export default function MatchPage() {
 
   return (
     <main className="arc-bg flex-1 w-full">
-      <SfxRoot />
+      <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-3 sm:px-4 py-4 flex flex-col gap-3">
         <Scoreboard st={st} view={view} meta={meta} />
         <PossessionBar st={st} view={view} />
@@ -255,7 +255,7 @@ export default function MatchPage() {
         <div className="arc-strip !rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button
-              data-sfx="click"
+              data-sound="confirm"
               onClick={() => setPaused((p) => !p)}
               className={`arc-btn px-4 py-1.5 text-xs ${paused ? "arc-btn--lima" : "arc-btn--paper"}`}
             >
@@ -264,7 +264,7 @@ export default function MatchPage() {
             {([1, 1.5, 2] as Speed[]).map((sp) => (
               <button
                 key={sp}
-                data-sfx="click"
+                data-sound="confirm"
                 onClick={() => setSpeed(sp)}
                 className={`arc-btn px-3 py-1.5 text-xs ${speed === sp ? "" : "arc-btn--paper"}`}
               >
@@ -272,7 +272,7 @@ export default function MatchPage() {
               </button>
             ))}
           </div>
-          <button data-sfx="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano px-4 py-1.5 text-xs">
+          <button data-sound="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano px-4 py-1.5 text-xs">
             Pular pro fim
           </button>
         </div>
@@ -283,7 +283,7 @@ export default function MatchPage() {
             {([["feed", "Narração"], ["stats", "Estatísticas"], ["tactics", "Vestiário"]] as const).map(([k, label]) => (
               <button
                 key={k}
-                data-sfx="click"
+                data-sound="confirm"
                 onClick={() => { setPanel(k); if (k === "tactics") setPaused(true); }}
                 className={`arc-btn px-4 py-1 text-[11px] ${panel === k ? "" : "arc-btn--paper"}`}
               >
@@ -347,7 +347,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
 
   return (
     <main className="arc-bg flex-1 w-full">
-      <SfxRoot />
+      <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-4">
         {/* marquee */}
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="arc-strip px-5 py-4 text-center relative overflow-hidden">
@@ -384,7 +384,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
               <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
               <div className="flex flex-wrap gap-1 mb-2">
                 {FORMATION_IDS.map((fo) => (
-                  <button key={fo} data-sfx="click" onClick={() => c.setFormation(fo as FormationId)}
+                  <button key={fo} data-sound="confirm" onClick={() => c.setFormation(fo as FormationId)}
                     className={`arc-btn px-2 py-0.5 text-[10px] ${c.tactics.formation === fo ? "" : "arc-btn--paper"}`}>
                     {fo}
                   </button>
@@ -392,13 +392,13 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
               </div>
               <div className="flex flex-wrap gap-1">
                 {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
-                  <button key={m} data-sfx="click" onClick={() => c.setTactics({ mentality: m })}
+                  <button key={m} data-sound="confirm" onClick={() => c.setTactics({ mentality: m })}
                     className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
                     {MENTALITY_LABEL[m]}
                   </button>
                 ))}
                 {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
-                  <button key={s} data-sfx="click" onClick={() => c.setTactics({ style: s })}
+                  <button key={s} data-sound="confirm" onClick={() => c.setTactics({ style: s })}
                     className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
                     {STYLE_LABEL[s]}
                   </button>
@@ -428,7 +428,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
               {([["1º uniforme", USER_COLORS, 1], ["2º uniforme", USER_KIT2, 2]] as const).map(([label, colors, k]) => (
                 <button
                   key={k}
-                  data-sfx="click"
+                  data-sound="confirm"
                   onClick={() => c.setUserKit(k)}
                   className={`flex-1 rounded-2xl border-[3px] p-3 flex flex-col items-center gap-2 transition-all ${
                     c.userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
@@ -469,7 +469,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
           </div>
         </div>
 
-        <button data-sfx="confirm" onClick={onKickoff} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
+        <button data-sound="confirm" onClick={onKickoff} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
           <span className="text-2xl leading-tight inline-flex items-center gap-2"><IconWhistle size={22} /> Apito inicial</span>
           <span className="block font-arc text-[11px] font-bold opacity-75 mt-0.5">fim de papo — bola rolando</span>
         </button>
@@ -872,7 +872,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
           <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
           <div className="flex flex-wrap gap-1.5">
             {FORMATION_IDS.map((f) => (
-              <button key={f} data-sfx="click" onClick={() => setTactic({ formation: f })}
+              <button key={f} data-sound="confirm" onClick={() => setTactic({ formation: f })}
                 className={`arc-btn px-2 py-0.5 text-[10px] ${ts.team.tactics.formation === f ? "" : "arc-btn--paper"}`}>
                 {f}
               </button>
@@ -881,7 +881,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
-            <button key={m} data-sfx="click" onClick={() => setTactic({ mentality: m })}
+            <button key={m} data-sound="confirm" onClick={() => setTactic({ mentality: m })}
               className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
               {MENTALITY_LABEL[m]}
             </button>
@@ -889,7 +889,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
-            <button key={s} data-sfx="click" onClick={() => setTactic({ style: s })}
+            <button key={s} data-sound="confirm" onClick={() => setTactic({ style: s })}
               className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
               {STYLE_LABEL[s]}
             </button>
@@ -906,7 +906,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
             <div className="space-y-1">
               <p className="font-arc text-xs font-bold opacity-55 mb-1">Quem sai?</p>
               {ts.team.lineup.map((card, i) => card && (
-                <button key={card.player.id} data-sfx="click" onClick={() => setSubOut(card.player.id)}
+                <button key={card.player.id} data-sound="confirm" onClick={() => setSubOut(card.player.id)}
                   className="w-full rounded-xl border-[2.5px] border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)] px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center gap-2 transition-colors">
                   <span className="truncate">{POSITION_SHORT[slots[i].pos]} · {card.player.name}</span>
                   <span className="flex items-center gap-2 shrink-0">
@@ -918,7 +918,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
             </div>
           ) : (
             <div className="space-y-1">
-              <button data-sfx="back" onClick={() => setSubOut(null)} className="font-arc text-xs font-extrabold opacity-60 hover:opacity-100 mb-1">← cancelar</button>
+              <button data-sound="cancel" onClick={() => setSubOut(null)} className="font-arc text-xs font-extrabold opacity-60 hover:opacity-100 mb-1">← cancelar</button>
               <p className="font-arc text-xs font-bold opacity-55 mb-1">
                 Quem entra?{outIsGk && " Sugestão óbvia: o goleiro reserva."}
               </p>
@@ -926,7 +926,7 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
               {benchSorted.map((card, i) => {
                 const suggested = i === 0 && (outIsGk ? card.player.positions.includes("GK") : true);
                 return (
-                  <button key={card.player.id} data-sfx="confirm" onClick={() => doSub(card.player.id)}
+                  <button key={card.player.id} data-sound="confirm" onClick={() => doSub(card.player.id)}
                     className={`w-full px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center rounded-xl border-[2.5px] transition-colors ${
                       suggested ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)]" : "border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)]"
                     }`}>
@@ -1042,7 +1042,7 @@ function ResultScreen({ result, state, meta }: {
             return (
               <button
                 key={card.player.id}
-                data-sfx="click"
+                data-sound="confirm"
                 onClick={() => setDetail({ card, pos })}
                 className="w-full flex items-center gap-2 font-arc text-sm font-bold rounded-lg px-2 py-1.5 hover:bg-[var(--surface)] transition-colors text-left"
               >
@@ -1068,7 +1068,7 @@ function ResultScreen({ result, state, meta }: {
 
   return (
     <main className="arc-bg flex-1 w-full">
-      <SfxRoot />
+      <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-5">
         {/* Final score */}
         <motion.div
@@ -1096,7 +1096,7 @@ function ResultScreen({ result, state, meta }: {
             {userWon ? "VITÓRIA!" : draw ? "EMPATE" : "DERROTA"}
           </div>
           <button
-            data-sfx="click"
+            data-sound="confirm"
             onClick={() => setStatsOpen(true)}
             className="arc-btn arc-btn--paper px-5 py-1.5 mt-3 text-xs inline-flex items-center gap-2"
           >
@@ -1141,7 +1141,7 @@ function ResultScreen({ result, state, meta }: {
                   {fs.map((f) => (
                     <div key={f.id} className="font-arc text-sm font-bold">
                       <button
-                        data-sfx="click"
+                        data-sound="confirm"
                         onClick={() => setOpenOther(openOther === f.id ? null : f.id)}
                         className="w-full flex items-center justify-between gap-2 py-1 hover:bg-[var(--surface)] rounded-lg px-1 transition-colors"
                       >
@@ -1174,7 +1174,7 @@ function ResultScreen({ result, state, meta }: {
         )}
 
         <button
-          data-sfx="confirm"
+          data-sound="confirm"
           onClick={() => { c.clearLastResult(); router.push("/cup"); }}
           className="arc-btn arc-btn--lima arc-btn--card w-full py-4"
         >
@@ -1199,7 +1199,7 @@ function ResultScreen({ result, state, meta }: {
                   {state.h.team.flag} {result.scoreH}–{result.scoreA} {state.a.team.flag}
                 </h3>
                 <StatsBars statsH={result.statsH} statsA={result.statsA} />
-                <button data-sfx="back" onClick={() => setStatsOpen(false)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
+                <button data-sound="cancel" onClick={() => setStatsOpen(false)} className="arc-btn arc-btn--paper w-full py-2.5 mt-5 text-sm">Fechar</button>
               </motion.div>
             </motion.div>
           )}
@@ -1245,7 +1245,7 @@ function ResultScreen({ result, state, meta }: {
                           </div>
                         ))}
                       </div>
-                      <button data-sfx="back" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-4 text-sm">
+                      <button data-sound="cancel" onClick={() => setDetail(null)} className="arc-btn arc-btn--paper w-full py-2.5 mt-4 text-sm">
                         Fechar
                       </button>
                     </>

@@ -6,17 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "@/components/TopBar";
 import Pitch from "@/components/Pitch";
 import PressConference from "@/components/PressConference";
-import SfxRoot from "@/components/game/SfxRoot";
-import { useCareer, allCards, cardById, BENCH_SIZE } from "@/lib/game/store";
+import GameShell from "@/components/game/GameShell";
+import PlayerChip from "@/components/game/PlayerChip";
+import SoundProvider from "@/src/audio/SoundProvider";
+import { useCareer, allCards, cardById } from "@/lib/game/store";
 import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL, STYLE_DESC } from "@/lib/game/tactics";
-import { EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
 import { SQUADS, SQUAD_BY_ID, squadLabel } from "@/lib/data/squads";
 import { drawSquad, squadPower } from "@/lib/game/rules";
-import {
-  sfxClick, sfxStamp, sfxError, sfxDrumroll, sfxTick, sfxReveal,
-  vibrate, isMuted, setMuted,
-} from "@/lib/sfx";
+import { sound, vibrate, isMuted, setMuted } from "@/src/audio/SoundManager";
 import type { Card, FormationId, GameStyle, Mentality, PlayerDef, Position, Sector, SquadDef } from "@/lib/game/types";
 import { POSITION_SHORT, POSITION_SECTOR } from "@/lib/game/types";
 
@@ -56,9 +54,18 @@ export default function SquadPage() {
 
   return (
     <>
-      <SfxRoot />
-      <TopBar />
-      {c.draftDone ? <ManageView /> : <DraftView />}
+      <SoundProvider />
+      {c.draftDone ? (
+        <>
+          <TopBar />
+          <ManageView />
+        </>
+      ) : (
+        <div className="flex h-[100dvh] flex-col overflow-hidden">
+          <TopBar />
+          <DraftView />
+        </div>
+      )}
     </>
   );
 }
@@ -105,6 +112,17 @@ function powerTier(p: number): { label: string; color: string } {
   return { label: "TIME DE GUERREIROS", color: "var(--ciano)" };
 }
 
+function StatBig({ label, value, color }: { label: string; value: number | null; color: string }) {
+  return (
+    <div className="text-center">
+      <div className="font-display text-2xl leading-none text-[var(--ink)]" style={{ color }}>
+        {value && value > 0 ? value : "—"}
+      </div>
+      <div className="font-arc text-[8px] font-extrabold uppercase tracking-widest opacity-55">{label}</div>
+    </div>
+  );
+}
+
 function DraftView() {
   const c = useCareer();
   const slots = FORMATIONS[c.draftFormation];
@@ -123,10 +141,9 @@ function DraftView() {
   useEffect(() => { setMutedState(isMuted()); }, []);
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
 
-  const drafted = allCards(c).length;
-  const total = 11 + BENCH_SIZE;
   const startersDone = c.slots.every((s) => s.card);
   const allDone = startersDone && c.benchSlots.every((b) => b.card);
+  const draftedXI = c.slots.filter((s) => s.card).length;
 
   const usedNames = useMemo(
     () => new Set(allCards(c).map((x) => x.player.name)),
@@ -164,11 +181,11 @@ function DraftView() {
     setPicked(null);
     setSquad(null);
     setPhase("rolling");
-    sfxDrumroll(1.2);
+    sound.play("dado.roll");
     let n = 0;
     const spin = () => {
       setFlicker(pool[Math.floor(Math.random() * pool.length)]);
-      sfxTick();
+      sound.play("ui.tick");
       n++;
       if (n < 13) {
         timers.current.push(setTimeout(spin, 55 + n * 16));
@@ -177,7 +194,7 @@ function DraftView() {
           setSquad(target);
           setFlicker(null);
           setPhase("squad");
-          sfxReveal();
+          sound.play("card.reveal");
           vibrate(24);
         }, 240));
       }
@@ -185,7 +202,8 @@ function DraftView() {
     spin();
   }
 
-  /** Full roll: any nation, any year (weighted by squad power). */
+  /** OUTRA SELEÇÃO — any other nation (weighted by squad power). Free after a
+   *  placement / on the first spin / when the drawn squad is unusable. */
   function roll() {
     if (!canRoll) return;
     const pool = SQUADS.filter((s) => usable(s).length > 0);
@@ -196,7 +214,7 @@ function DraftView() {
     runSpin(SQUADS, target);
   }
 
-  /** Same nation, random OTHER year — you don't get to pick which. */
+  /** OUTRA ÉPOCA — same nation, random OTHER year (you don't pick which). */
   const genPool = squad
     ? SQUADS.filter((s) => s.nation === squad.nation && s.id !== squad.id && usable(s).length > 0)
     : [];
@@ -208,48 +226,44 @@ function DraftView() {
     runSpin(genPool.length > 1 ? genPool : SQUADS, target);
   }
 
-  /** Different nation, SAME year (nearest year as fallback). */
-  const yearPool = useMemo(() => {
-    if (!squad) return [];
-    const same = SQUADS.filter((s) => s.year === squad.year && s.nation !== squad.nation && usable(s).length > 0);
-    if (same.length > 0) return same;
-    const others = SQUADS.filter((s) => s.nation !== squad.nation && usable(s).length > 0);
-    if (others.length === 0) return [];
-    const minD = Math.min(...others.map((s) => Math.abs(s.year - squad.year)));
-    return others.filter((s) => Math.abs(s.year - squad.year) === minD);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [squad, c.slots, c.benchSlots]);
-  function rollSameYear() {
-    if (!squad || squadUsed || c.rerollsLeft <= 0 || yearPool.length === 0) return;
-    const target = drawSquad(yearPool) ?? yearPool[0];
-    c.spendReroll();
-    c.setDraftDraw({ squadId: target.id, used: false, freeRoll: false });
-    runSpin(yearPool.length > 1 ? yearPool : SQUADS, target);
-  }
-
   function makeCard(p: PlayerDef): Card {
     return { player: p, squadId: squad!.id, nation: squad!.nation, year: squad!.year, flag: squad!.flag };
   }
 
-  function afterPlace(name: string) {
+  function revealSound(ovr: number) {
+    sound.play(ovr >= 95 ? "card.reveal.legendary" : ovr >= 88 ? "card.reveal.rare" : "card.reveal");
+  }
+
+  function afterPlace(name: string, ovr: number) {
     setPicked(null);
     c.setDraftDraw({ used: true, freeRoll: true });
-    sfxStamp();
+    revealSound(ovr);
     vibrate(24);
     showToast(`${name.toUpperCase()} TÁ ESCALADO!`);
   }
 
   function placeStarter(i: number) {
     if (!picked || c.slots[i].card) return;
-    if (!picked.positions.includes(c.slots[i].pos)) { sfxError(); return; }
+    if (!picked.positions.includes(c.slots[i].pos)) { sound.play("ui.error"); return; }
     c.fillSlot(i, makeCard(picked));
-    afterPlace(picked.name);
+    afterPlace(picked.name, picked.ovr);
   }
 
   function placeBench(i: number) {
     if (!picked || !startersDone || c.benchSlots[i].card) return;
     c.fillBench(i, makeCard(picked));
-    afterPlace(picked.name);
+    afterPlace(picked.name, picked.ovr);
+  }
+
+  /** Click a list row a second time → drop into the first compatible open slot. */
+  function confirmPick(p: PlayerDef) {
+    const si = c.slots.findIndex((s) => !s.card && p.positions.includes(s.pos));
+    if (si >= 0) { c.fillSlot(si, makeCard(p)); afterPlace(p.name, p.ovr); return; }
+    if (benchOpen) {
+      const bi = c.benchSlots.findIndex((b) => !b.card);
+      if (bi >= 0) { c.fillBench(bi, makeCard(p)); afterPlace(p.name, p.ovr); return; }
+    }
+    sound.play("ui.error");
   }
 
   const roster = squad
@@ -259,312 +273,289 @@ function DraftView() {
       })
     : [];
 
-  const ed = EDITION_BY_ID[c.editionId];
+  // box-score numbers (current XI)
+  const meterEntries = c.slots.map((s) => ({ card: s.card, pos: s.pos }));
+  const filledStarters = c.slots.filter((s) => s.card);
+  const teamOvr = filledStarters.length
+    ? Math.round(filledStarters.reduce((sum, s) => sum + effectiveOvr(s.card!, s.pos), 0) / filledStarters.length)
+    : 0;
 
-  return (
-    <main className="arc-bg flex-1 w-full">
-      <div className="mx-auto max-w-6xl w-full px-3 sm:px-4 py-5">
+  const tier = squad ? powerTier(squadPower(squad)) : null;
+  const showSpend = !squadUsed && (c.rerollsLeft > 0 || deadSquad);
 
-        {/* ── Faixa de status ── */}
-        <div className="arc-strip px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 mb-5">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <span className="font-display text-2xl tracking-wide leading-none">CONVOCAÇÃO</span>
-            <span className="hidden md:block font-arc text-[10px] font-bold uppercase tracking-[0.18em] opacity-65 truncate">
-              Seleção {c.coachName}{ed ? ` · ${editionLabel(ed)}` : ""}
+  // ── LEFT: sorteio ─────────────────────────────────────────
+  const left = (
+    <div className="arc-panel flex h-full min-h-0 flex-col p-4">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <span className="font-display text-xl leading-none tracking-wide">CONVOCAÇÃO</span>
+        <div className="flex items-center gap-2.5">
+          <span className="font-arc font-extrabold uppercase">
+            <b className="font-display text-2xl align-middle" style={{ color: "var(--amarelo)" }}>{c.rerollsLeft}</b>
+            <span className="ml-1 text-[10px] opacity-65">{c.rerollsLeft === 1 ? "giro" : "giros"}</span>
+          </span>
+          <button
+            data-sound="confirm"
+            onClick={() => { const m = !muted; setMuted(m); setMutedState(m); }}
+            className="rounded-full border-2 border-[rgba(20,21,18,0.3)] px-2 py-0.5 font-arc text-[9px] font-extrabold tracking-widest"
+            style={{ color: muted ? "var(--rosa)" : "var(--ciano)" }}
+          >
+            {muted ? "SOM OFF" : "SOM ON"}
+          </button>
+        </div>
+      </div>
+
+      {allDone ? (
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
+          <div className="font-display text-4xl leading-none text-[var(--ink)]">GRUPO FECHADO!</div>
+          <p className="mb-5 mt-2 font-arc text-sm font-bold opacity-65">15 lendas no vestiário. Agora é contigo.</p>
+          <button data-sound="confirm" onClick={() => c.completeDraft()} className="arc-btn arc-btn--rosa arc-btn--card w-full py-4">
+            <span className="block text-xl leading-tight">Fechar convocação</span>
+            <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-80">sem choro depois, mister</span>
+          </button>
+        </div>
+      ) : phase === "rolling" ? (
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
+          <div className="dice-tumble mb-5 inline-block"><DiceIcon size={84} /></div>
+          <div className="h-8 font-display text-2xl text-[var(--ink)]">
+            {flicker ? `${flicker.flag} ${squadLabel(flicker)}` : "…"}
+          </div>
+          <div className="mt-2 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-55">sorteando…</div>
+        </div>
+      ) : phase === "idle" || squadUsed ? (
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
+          <DiceIcon size={84} className="mb-4 drop-shadow-[3px_4px_0_rgba(20,21,18,0.85)]" />
+          <button data-sound="dice" disabled={!canRoll} onClick={roll} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
+            <span className="block text-2xl leading-tight">RODA O DADO</span>
+            <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-75">
+              {squadUsed ? "tá escalado! próxima vaga — de graça" : "sai uma seleção histórica inteira"}
+            </span>
+          </button>
+        </div>
+      ) : squad ? (
+        <>
+          {/* header da seleção sorteada */}
+          <div className="reveal-pop flex shrink-0 items-center gap-3 rounded-2xl border-[3px] border-[var(--ink)] bg-[var(--ink)] px-4 py-2.5 text-[var(--paper)]">
+            <span className="text-4xl drop-shadow">{squad.flag}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-display text-2xl leading-none">{squad.nation} {squad.year}</span>
+              <span className="mt-1 block font-arc text-[10px] font-extrabold uppercase tracking-widest" style={{ color: tier!.color }}>
+                {tier!.label} · média {Math.round(squadPower(squad))}
+              </span>
             </span>
           </div>
-          <div className="flex items-center gap-4 font-arc font-extrabold text-sm uppercase">
-            <span><b className="font-display text-lg" style={{ color: "var(--rosa)" }}>{drafted}</b><span className="text-[10px] opacity-65">/{total} no grupo</span></span>
-            <span><b className="font-display text-lg" style={{ color: "var(--amarelo)" }}>{c.rerollsLeft}</b><span className="text-[10px] opacity-65"> giros</span></span>
-            <button
-              data-sfx="click"
-              onClick={() => { const m = !muted; setMuted(m); setMutedState(m); }}
-              className="text-[10px] tracking-widest border-2 border-[rgba(255,253,245,0.4)] rounded-full px-2.5 py-1"
-              style={{ color: muted ? "var(--rosa)" : "var(--ciano)" }}
-            >
-              {muted ? "SOM OFF" : "SOM ON"}
-            </button>
-          </div>
-        </div>
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_390px] gap-5 items-start">
-
-          {/* ── ESQUERDA: meu plantel ── */}
-          <div className="order-2 lg:order-1">
-            <div className="flex flex-wrap items-center gap-1.5 mb-3">
-              <span className="arc-tag">★ Formação</span>
-              {FORMATION_IDS.map((f) => (
-                <button
-                  key={f}
-                  data-sfx="click"
-                  onClick={() => c.setDraftFormation(f)}
-                  className={`arc-btn px-2.5 py-1 text-[11px] ${c.draftFormation === f ? "" : "arc-btn--paper"}`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-
-            <div className="rounded-[22px] border-[3px] border-[var(--ink)] shadow-[5px_6px_0_var(--ink)] overflow-hidden">
-              <Pitch className="pitch-arc aspect-[3/4] w-full !rounded-none">
-                {slots.map((slot, i) => {
-                  const card = c.slots[i].card;
-                  const ok = picked !== null && !card && picked.positions.includes(slot.pos);
-                  return (
-                    <div
-                      key={i}
-                      className="absolute -translate-x-1/2 translate-y-1/2"
-                      style={{ left: `${slot.y}%`, bottom: `${slot.x}%` }}
-                    >
-                      {card ? (
-                        <div className={`flex flex-col items-center stamp-in ${picked ? "opacity-35 grayscale" : ""}`}>
-                          <div className="relative w-12 h-12 rounded-full border-[3px] border-[var(--ink)] bg-[var(--paper)] flex items-center justify-center font-display text-base text-[var(--ink)] shadow-[2px_3px_0_var(--ink)]">
-                            {card.player.ovr}
-                            <span className="absolute -top-2 -right-2 text-sm drop-shadow">{card.flag}</span>
-                          </div>
-                          <span className="mt-1 font-arc text-[10px] font-extrabold uppercase bg-[var(--ink)] text-[var(--paper)] rounded-full px-2 py-0.5 max-w-[88px] truncate">
-                            {shortName(card.player.name)}
-                          </span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { if (ok) placeStarter(i); else if (picked) sfxError(); }}
-                          className={`flex flex-col items-center ${ok ? "" : picked ? "cursor-not-allowed" : "cursor-default"}`}
-                        >
-                          <div className={`w-12 h-12 rounded-full border-[3px] flex items-center justify-center font-display text-xl transition-colors ${
-                            ok
-                              ? "border-[var(--ink)] bg-[var(--lima)] text-[var(--ink)] slot-call"
-                              : picked
-                                ? "border-[var(--ink)] bg-[#A8AC9C] text-[var(--ink)] opacity-45"
-                                : "border-dashed border-white/55 bg-black/25 text-white/65"
-                          }`}>
-                            +
-                          </div>
-                          <span className={`mt-1 font-arc text-[10px] font-extrabold uppercase rounded-full px-2 py-0.5 ${
-                            ok ? "bg-[var(--lima)] text-[var(--ink)] border-2 border-[var(--ink)]" : "bg-black/55 text-white/85"
-                          }`}>
-                            {POSITION_SHORT[slot.pos]}
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </Pitch>
-            </div>
-
-            {/* banco */}
-            <div className="arc-panel px-4 py-3 mt-4">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="arc-tag">★ Banco</span>
-                {!startersDone && (
-                  <span className="font-arc text-[10px] font-extrabold uppercase tracking-wider opacity-55">
-                    fecha os 11 primeiro, mister
-                  </span>
-                )}
+          {/* dica de estado */}
+          <div className="shrink-0">
+            {deadSquad ? (
+              <div className="mt-2.5 rounded-xl border-[3px] border-[var(--ink)] bg-[var(--laranja)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[#FFF9EE]">
+                Ninguém aqui serve pras vagas que sobraram. Outra seleção — de graça.
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {c.benchSlots.map((b, i) => {
-                  const ok = picked !== null && benchOpen && !b.card;
-                  return b.card ? (
-                    <div key={i} className={`stamp-in flex items-center gap-2 rounded-2xl border-[3px] border-[var(--ink)] bg-[var(--paper)] px-2 py-1.5 ${picked ? "opacity-40 grayscale" : ""}`}>
-                      <span className="font-display text-lg text-[var(--ink)]">{b.card.player.ovr}</span>
-                      <span className="min-w-0">
-                        <span className="block font-arc text-[11px] font-extrabold uppercase truncate text-[var(--ink)]">{shortName(b.card.player.name)}</span>
-                        <span className="block font-arc text-[9px] font-bold uppercase opacity-55 text-[var(--ink)]">{b.card.flag} {b.card.year}</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      key={i}
-                      onClick={() => { if (ok) placeBench(i); else if (picked) sfxError(); }}
-                      className={`rounded-2xl border-[3px] px-2 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide transition-colors ${
-                        ok
-                          ? "border-[var(--ink)] bg-[var(--lima)] text-[var(--ink)] slot-call"
-                          : !startersDone
-                            ? "border-dashed border-[rgba(20,21,18,0.3)] text-[rgba(20,21,18,0.35)] cursor-not-allowed"
-                            : picked
-                              ? "border-[var(--ink)] bg-[#A8AC9C] text-[var(--ink)] opacity-45 cursor-not-allowed"
-                              : "border-dashed border-[rgba(20,21,18,0.4)] text-[rgba(20,21,18,0.5)]"
-                      }`}
-                    >
-                      {!startersDone ? "—" : `+ reserva ${i + 1}`}
-                    </button>
-                  );
-                })}
+            ) : picked ? (
+              <div className="mt-2.5 rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
+                Clica numa vaga verde no campo, ou de novo no nome ({picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})
               </div>
-            </div>
+            ) : (
+              <div className="mt-2.5 px-1 font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55">
+                Sua vez: clica num craque pra ver onde ele joga
+              </div>
+            )}
           </div>
 
-          {/* ── DIREITA: painel do sorteio ── */}
-          <div className="order-1 lg:order-2 arc-panel p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="arc-tag">★ Sorteio</span>
-              <span className="font-arc text-[10px] font-extrabold uppercase tracking-widest opacity-55">
-                {c.rerollsLeft} {c.rerollsLeft === 1 ? "giro extra" : "giros extras"}
-              </span>
-            </div>
-
-            {allDone ? (
-              <div className="text-center py-5">
-                <div className="font-display text-4xl text-[var(--ink)] leading-none mb-1.5">GRUPO FECHADO!</div>
-                <p className="font-arc text-sm font-bold opacity-65 mb-5">15 lendas no vestiário. Agora é contigo.</p>
+          {/* elenco — lista com scroll interno */}
+          <div className="mt-2 flex-1 min-h-0 space-y-1 overflow-y-auto pr-1">
+            {roster.map((p) => {
+              const used = usedNames.has(p.name);
+              const noFit = !used && !fits(p);
+              const can = !used && !noFit && !squadUsed;
+              const isPicked = picked?.id === p.id;
+              return (
                 <button
-                  data-sfx="confirm"
-                  onClick={() => c.completeDraft()}
-                  className="arc-btn arc-btn--rosa arc-btn--card w-full py-4"
+                  key={p.id}
+                  disabled={!can}
+                  data-sound={can ? "confirm" : undefined}
+                  onClick={() => (isPicked ? confirmPick(p) : setPicked(p))}
+                  className={`flex w-full items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left transition-colors ${
+                    isPicked
+                      ? "border-[var(--ink)] bg-[var(--amarelo)]"
+                      : can
+                        ? "border-[rgba(20,21,18,0.25)] bg-transparent hover:border-[var(--ink)] hover:bg-[rgba(20,21,18,0.05)]"
+                        : "cursor-not-allowed border-transparent opacity-35"
+                  }`}
                 >
-                  <span className="block text-xl leading-tight">Fechar convocação</span>
-                  <span className="block font-arc text-[11px] font-bold opacity-80 mt-0.5">sem choro depois, mister</span>
-                </button>
-              </div>
-            ) : phase === "idle" ? (
-              <div className="text-center py-6">
-                <DiceIcon size={84} className="mx-auto mb-4 drop-shadow-[3px_4px_0_rgba(20,21,18,0.85)]" />
-                <div className="font-display text-4xl text-[var(--ink)] leading-none">BORA CONVOCAR</div>
-                <p className="font-arc text-sm font-bold opacity-65 mt-1.5 mb-5">o dado escolhe a seleção, você escolhe o craque</p>
-                <button data-sfx="dice" onClick={roll} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
-                  <span className="block text-2xl leading-tight">Roda o dado</span>
-                  <span className="block font-arc text-[11px] font-bold opacity-75 mt-0.5">sai uma seleção histórica inteira, vai na fé</span>
-                </button>
-              </div>
-            ) : phase === "rolling" ? (
-              <div className="text-center py-9">
-                <div className="dice-tumble inline-block mb-5"><DiceIcon size={84} /></div>
-                <div className="font-display text-2xl text-[var(--ink)] h-8">
-                  {flicker ? `${flicker.flag} ${squadLabel(flicker)}` : "…"}
-                </div>
-                <div className="font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-55 mt-2">sorteando…</div>
-              </div>
-            ) : squad ? (
-              <div>
-                {/* seleção sorteada */}
-                <div className="reveal-pop rounded-2xl border-[3px] border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)] px-4 py-3 flex items-center gap-3">
-                  <span className="text-4xl drop-shadow">{squad.flag}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-display text-2xl leading-none truncate">{squad.nation} {squad.year}</span>
-                    <span className="block font-arc text-[10px] font-extrabold uppercase tracking-widest mt-1" style={{ color: powerTier(squadPower(squad)).color }}>
-                      {powerTier(squadPower(squad)).label} · média {Math.round(squadPower(squad))}
-                    </span>
+                  <span className="flex shrink-0 gap-1">
+                    {p.positions.map((x) => <ArcPos key={x} pos={x} dim={!can && !isPicked} />)}
                   </span>
-                </div>
-
-                {/* estado do draw */}
-                {squadUsed ? (
-                  <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--amarelo)] px-3 py-2 mt-3 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
-                    Tá escalado! Roda o dado pra próxima vaga — esse é de graça.
-                  </div>
-                ) : deadSquad ? (
-                  <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--laranja)] px-3 py-2 mt-3 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[#FFF9EE]">
-                    Ninguém aqui serve pras vagas que sobraram. Roda de novo — de graça.
-                  </div>
-                ) : picked ? (
-                  <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 mt-3 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
-                    Agora carimba: clica numa vaga verde no campo ({picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})
-                  </div>
-                ) : (
-                  <div className="font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55 px-1 mt-3">
-                    Sua vez: clica num craque pra ver onde ele joga
-                  </div>
-                )}
-
-                {/* elenco completo, do goleiro ao centroavante */}
-                <div className="mt-2.5 space-y-1 max-h-[37vh] overflow-y-auto pr-1">
-                  {roster.map((p) => {
-                    const used = usedNames.has(p.name);
-                    const noFit = !used && !fits(p);
-                    const can = !used && !noFit && !squadUsed;
-                    const isPicked = picked?.id === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        disabled={!can}
-                        data-sfx={can ? "click" : undefined}
-                        onClick={() => setPicked(isPicked ? null : p)}
-                        className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left transition-colors ${
-                          isPicked
-                            ? "border-[var(--ink)] bg-[var(--amarelo)]"
-                            : can
-                              ? "border-[rgba(20,21,18,0.25)] bg-transparent hover:border-[var(--ink)] hover:bg-[rgba(20,21,18,0.05)]"
-                              : "border-transparent opacity-35 cursor-not-allowed"
-                        }`}
-                      >
-                        <span className="flex gap-1 shrink-0">
-                          {p.positions.map((x) => <ArcPos key={x} pos={x} dim={!can && !isPicked} />)}
-                        </span>
-                        <span className="min-w-0 flex-1 font-arc text-[13px] font-extrabold truncate text-[var(--ink)]">{p.name}</span>
-                        {used && (
-                          <span className="font-arc text-[8px] font-extrabold uppercase tracking-wider bg-[var(--ink)] text-[var(--paper)] rounded-full px-1.5 py-0.5 shrink-0">já é seu</span>
-                        )}
-                        {noFit && (
-                          <span className="font-arc text-[8px] font-extrabold uppercase tracking-wider border-2 border-[var(--ink)] rounded-full px-1.5 py-0.5 shrink-0 text-[var(--ink)]">sem vaga</span>
-                        )}
-                        <span className="font-display text-lg w-8 text-right shrink-0 text-[var(--ink)]">{p.ovr}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* ações */}
-                <div className="mt-3.5 space-y-2">
-                  <button
-                    data-sfx="dice"
-                    disabled={!canRoll}
-                    onClick={roll}
-                    className="arc-btn arc-btn--lima arc-btn--card w-full py-3"
-                  >
-                    <span className="block text-lg leading-tight">Roda o dado</span>
-                    <span className="block font-arc text-[10px] font-bold opacity-75 mt-0.5">
-                      {rollIsFree ? "esse é de graça" : c.rerollsLeft > 0 ? `custa 1 giro · sobram ${c.rerollsLeft}` : "acabaram os giros — escolhe alguém aí"}
-                    </span>
-                  </button>
-                  {!squadUsed && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        data-sfx="dice"
-                        disabled={c.rerollsLeft <= 0 || genPool.length === 0}
-                        onClick={rollGeneration}
-                        className="arc-btn arc-btn--ciano arc-btn--card py-2.5"
-                      >
-                        <span className="block text-sm leading-tight">Mudar geração</span>
-                        <span className="block font-arc text-[9px] font-bold opacity-70 mt-0.5">
-                          {squad.nation} de outro ano · −1 giro
-                        </span>
-                      </button>
-                      <button
-                        data-sfx="dice"
-                        disabled={c.rerollsLeft <= 0 || yearPool.length === 0}
-                        onClick={rollSameYear}
-                        className="arc-btn arc-btn--laranja arc-btn--card py-2.5"
-                      >
-                        <span className="block text-sm leading-tight">Outra seleção</span>
-                        <span className="block font-arc text-[9px] font-bold opacity-70 mt-0.5">
-                          mesma época, sorte de novo · −1 giro
-                        </span>
-                      </button>
-                    </div>
+                  <span className="min-w-0 flex-1 truncate font-arc text-[13px] font-extrabold text-[var(--ink)]">{p.name}</span>
+                  {used && (
+                    <span className="shrink-0 rounded-full bg-[var(--ink)] px-1.5 py-0.5 font-arc text-[8px] font-extrabold uppercase tracking-wider text-[var(--paper)]">já é seu</span>
                   )}
-                </div>
+                  {noFit && (
+                    <span className="shrink-0 rounded-full border-2 border-[var(--ink)] px-1.5 py-0.5 font-arc text-[8px] font-extrabold uppercase tracking-wider text-[var(--ink)]">sem vaga</span>
+                  )}
+                  <span className="w-8 shrink-0 text-right font-display text-lg text-[var(--ink)]">{p.ovr}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* rodapé fixo: 2 ações de re-sorteio */}
+          <div className="mt-3 shrink-0">
+            {showSpend ? (
+              <div className="flex gap-2">
+                <button
+                  data-sound="dice"
+                  onClick={roll}
+                  className="arc-btn arc-btn--laranja arc-btn--card flex-1 py-2.5"
+                >
+                  <span className="block text-sm leading-tight">Outra seleção</span>
+                  <span className="mt-0.5 block font-arc text-[9px] font-bold opacity-70">{deadSquad ? "de graça" : "−1 giro"}</span>
+                </button>
+                {c.rerollsLeft > 0 && genPool.length > 0 && (
+                  <button
+                    data-sound="dice"
+                    onClick={rollGeneration}
+                    className="arc-btn arc-btn--ciano arc-btn--card flex-1 py-2.5"
+                  >
+                    <span className="block text-sm leading-tight">Outra época</span>
+                    <span className="mt-0.5 block font-arc text-[9px] font-bold opacity-70">{squad.nation} de outro ano · −1 giro</span>
+                  </button>
+                )}
               </div>
+            ) : !squadUsed ? (
+              <p className="rounded-xl border-[3px] border-dashed border-[rgba(20,21,18,0.3)] px-3 py-2.5 text-center font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-60">
+                Giros esgotados — fecha os 11, mister.
+              </p>
             ) : null}
           </div>
-        </div>
+        </>
+      ) : null}
+    </div>
+  );
 
-        {/* toast carimbo */}
-        <AnimatePresence>
-          {toast && (
-            <motion.div
-              initial={{ opacity: 0, scale: 1.6, rotate: -8 }}
-              animate={{ opacity: 1, scale: 1, rotate: -2 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 500, damping: 24 }}
-              className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50 font-display text-lg px-6 py-2.5 rounded-full border-[3px] border-[var(--ink)] bg-[var(--amarelo)] text-[var(--ink)] shadow-[5px_6px_0_var(--ink)]"
-            >
-              {toast}
-            </motion.div>
-          )}
-        </AnimatePresence>
+  // ── CENTER: campo ─────────────────────────────────────────
+  const center = (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-2 flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1">
+        <span className="arc-tag shrink-0">★ Formação</span>
+        {FORMATION_IDS.map((f) => (
+          <button
+            key={f}
+            data-sound="confirm"
+            onClick={() => c.setDraftFormation(f)}
+            className={`arc-btn shrink-0 px-2.5 py-1 text-[11px] ${c.draftFormation === f ? "" : "arc-btn--paper"}`}
+          >
+            {f}
+          </button>
+        ))}
       </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative h-full max-w-full overflow-hidden rounded-[22px] border-[3px] border-[var(--ink)] shadow-[5px_6px_0_var(--ink)]" style={{ aspectRatio: "3 / 4" }}>
+          <Pitch className="pitch-arc h-full w-full !rounded-none">
+            {slots.map((slot, i) => {
+              const card = c.slots[i].card;
+              const ok = picked !== null && !card && picked.positions.includes(slot.pos);
+              return (
+                <div key={i} className="absolute -translate-x-1/2 translate-y-1/2" style={{ left: `${slot.y}%`, bottom: `${slot.x}%` }}>
+                  {card ? (
+                    <PlayerChip variant="filled" name={shortName(card.player.name)} ovr={card.player.ovr} flag={card.flag} pos={slot.pos} dim={picked !== null} />
+                  ) : (
+                    <PlayerChip
+                      variant="empty"
+                      pos={slot.pos}
+                      state={ok ? "open" : picked ? "dim" : "idle"}
+                      onClick={() => { if (ok) placeStarter(i); else if (picked) sound.play("ui.error"); }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </Pitch>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── RIGHT: box score ──────────────────────────────────────
+  const right = (
+    <div className="arc-panel flex h-full min-h-0 flex-col p-4">
+      <input
+        value={c.squadName}
+        onChange={(e) => c.setSquadName(e.target.value)}
+        placeholder={`Seleção ${c.coachName}`}
+        className="w-full shrink-0 truncate border-b-[3px] border-[rgba(20,21,18,0.25)] bg-transparent pb-1 font-display text-2xl leading-none text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+      />
+      <div className="my-3 grid shrink-0 grid-cols-4 gap-1 rounded-2xl border-[3px] border-[var(--ink)] bg-[var(--paper)] py-2.5">
+        <StatBig label="Força" value={teamOvr} color="var(--ink)" />
+        <StatBig label="Ata" value={sectorOvr(meterEntries, "ATT")} color="var(--rosa)" />
+        <StatBig label="Mei" value={sectorOvr(meterEntries, "MID")} color="var(--lima)" />
+        <StatBig label="Def" value={sectorOvr(meterEntries, "DEF")} color="var(--ciano)" />
+      </div>
+
+      <div className="mb-1.5 flex shrink-0 items-center justify-between">
+        <span className="arc-tag">★ Escalação</span>
+        <span className="font-arc text-[11px] font-extrabold uppercase">
+          <b className="font-display text-base" style={{ color: draftedXI === 11 ? "var(--lima)" : "var(--amarelo)" }}>{draftedXI}</b>
+          <span className="opacity-55">/11</span>
+        </span>
+      </div>
+      <div className="flex-1 min-h-0 space-y-0.5 overflow-y-auto pr-1">
+        {c.slots.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 rounded-lg px-1.5 py-1" style={{ background: s.card ? "rgba(20,21,18,0.05)" : "transparent" }}>
+            <ArcPos pos={s.pos} dim={!s.card} />
+            <span className={`min-w-0 flex-1 truncate font-arc text-[12px] font-extrabold uppercase ${s.card ? "text-[var(--ink)]" : "opacity-35"}`}>
+              {s.card ? shortName(s.card.player.name) : "—"}
+            </span>
+            {s.card && <span className="shrink-0 font-display text-base text-[var(--ink)]">{s.card.player.ovr}</span>}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 shrink-0">
+        <span className="arc-tag mb-1.5">★ Banco</span>
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+          {c.benchSlots.map((b, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-1.5 rounded-xl border-[2.5px] px-2 py-1 ${
+                b.card ? "border-[var(--ink)] bg-[var(--paper)]" : "border-dashed border-[rgba(20,21,18,0.3)]"
+              }`}
+            >
+              {b.card ? (
+                <>
+                  <span className="font-display text-base text-[var(--ink)]">{b.card.player.ovr}</span>
+                  <span className="min-w-0 truncate font-arc text-[10px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
+                </>
+              ) : (
+                <span className="font-arc text-[10px] font-extrabold uppercase opacity-35">reserva {i + 1}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        {!startersDone && (
+          <p className="mt-1.5 font-arc text-[9px] font-extrabold uppercase tracking-wider opacity-45">fecha os 11 pra liberar o banco</p>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <main className="arc-bg min-h-0 flex-1">
+      <GameShell left={left} center={center} right={right} className="h-full" />
+
+      {/* toast carimbo */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.6, rotate: -8 }}
+            animate={{ opacity: 1, scale: 1, rotate: -2 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 500, damping: 24 }}
+            className="fixed bottom-7 left-1/2 z-50 -translate-x-1/2 rounded-full border-[3px] border-[var(--ink)] bg-[var(--amarelo)] px-6 py-2.5 font-display text-lg text-[var(--ink)] shadow-[5px_6px_0_var(--ink)]"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
@@ -624,18 +615,18 @@ function ManageView() {
   function requestSwap(a: number, b: number) {
     if (a === b) return;
     if (crossSector(a, b)) setConfirmSwap({ a, b });
-    else { sfxStamp(); vibrate(12); c.swapLineup(a, b); }
+    else { sound.play("ui.stamp"); vibrate(12); c.swapLineup(a, b); }
   }
 
   function clickLineup(i: number) {
-    sfxClick();
+    sound.play("ui.confirm");
     if (selIdx === null) setSelIdx(i);
     else if (selIdx === i) setSelIdx(null);
     else { requestSwap(selIdx, i); setSelIdx(null); }
   }
   function clickBench(card: Card) {
     if (selIdx === null) return;
-    sfxStamp();
+    sound.play("ui.stamp");
     vibrate(12);
     c.swapWithBench(selIdx, card.player.id);
     setSelIdx(null);
@@ -685,7 +676,7 @@ function ManageView() {
             </div>
           </div>
           <button
-            data-sfx="confirm"
+            data-sound="confirm"
             onClick={() => { if (!c.cup) c.startCup(); router.push("/cup"); }}
             className="arc-btn arc-btn--rosa arc-btn--card px-6 py-2"
           >
@@ -704,7 +695,7 @@ function ManageView() {
               {FORMATION_IDS.map((f) => (
                 <button
                   key={f}
-                  data-sfx="click"
+                  data-sound="confirm"
                   onClick={() => { c.setFormation(f as FormationId); setSelIdx(null); }}
                   className={`arc-btn px-2.5 py-1 text-[11px] ${c.tactics.formation === f ? "" : "arc-btn--paper"}`}
                 >
@@ -744,7 +735,7 @@ function ManageView() {
                           />
                         </motion.div>
                       ) : (
-                        <button onClick={() => { sfxClick(); setSelIdx(i); }} className="flex flex-col items-center">
+                        <button onClick={() => { sound.play("ui.confirm"); setSelIdx(i); }} className="flex flex-col items-center">
                           <div className={`w-11 h-11 rounded-full border-[3px] border-dashed flex items-center justify-center font-display text-lg ${
                             selIdx === i ? "border-[var(--amarelo)] text-[var(--amarelo)]" : "border-white/55 bg-black/25 text-white/65"
                           }`}>
@@ -778,7 +769,7 @@ function ManageView() {
                 {bench.map((card) => (
                   <button
                     key={card.player.id}
-                    data-sfx={selIdx !== null ? undefined : "error"}
+                    data-sound={selIdx !== null ? undefined : "error"}
                     onClick={() => clickBench(card)}
                     className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left transition-all ${
                       selIdx !== null
@@ -808,7 +799,7 @@ function ManageView() {
                   {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
                     <button
                       key={m}
-                      data-sfx="click"
+                      data-sound="confirm"
                       onClick={() => c.setTactics({ mentality: m })}
                       className={`arc-btn arc-btn--card py-1.5 text-[11px] ${
                         c.tactics.mentality === m
@@ -827,7 +818,7 @@ function ManageView() {
                   {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
                     <button
                       key={s}
-                      data-sfx="click"
+                      data-sound="confirm"
                       onClick={() => c.setTactics({ style: s })}
                       className={`w-full text-left rounded-xl border-[2.5px] px-2.5 py-1.5 transition-colors ${
                         c.tactics.style === s
@@ -859,9 +850,9 @@ function ManageView() {
                   (até −9 de OVR, −20 se envolver o goleiro).
                 </p>
                 <div className="flex gap-3">
-                  <button data-sfx="back" onClick={() => setConfirmSwap(null)} className="arc-btn arc-btn--paper flex-1 py-2.5 text-sm">Melhor não</button>
+                  <button data-sound="cancel" onClick={() => setConfirmSwap(null)} className="arc-btn arc-btn--paper flex-1 py-2.5 text-sm">Melhor não</button>
                   <button
-                    data-sfx="confirm"
+                    data-sound="confirm"
                     onClick={() => { c.swapLineup(confirmSwap.a, confirmSwap.b); setConfirmSwap(null); }}
                     className="arc-btn arc-btn--rosa flex-1 py-2.5 text-sm"
                   >

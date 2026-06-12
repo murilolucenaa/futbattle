@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCareer } from "@/lib/game/store";
-import { sfxError } from "@/lib/sfx";
+import { sound } from "@/src/audio/SoundManager";
+import SoundToggle from "@/components/game/SoundToggle";
 import { IconLock } from "@/components/icons";
 
 export default function TopBar() {
@@ -22,7 +23,7 @@ export default function TopBar() {
 
   function clickCopa() {
     if (cupReady) { router.push("/cup"); return; }
-    sfxError();
+    sound.play("ui.error");
     setToast(draftDone ? "Já está tudo pronto, mister? Faça o sorteio na tela da Seleção." : "Primeiro a convocação, mister. Depois o sorteio da Copa.");
     setTimeout(() => setToast(null), 2600);
   }
@@ -35,16 +36,17 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-40 bg-[var(--ink)] border-b-[3px] border-black/60">
       <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" data-sfx="back" className="font-display text-2xl tracking-wide text-[var(--paper)]">
+        <Link href="/" data-sound="cancel" className="font-display text-2xl tracking-wide text-[var(--paper)]">
           <span className="text-[var(--amarelo)]">FUT</span>BATTLE
         </Link>
         <nav className="flex items-center gap-2">
-          <Link href="/squad" data-sfx="click" className={navCls(pathname.startsWith("/squad"))}>
+          <Link href="/squad" data-sound="confirm" className={navCls(pathname.startsWith("/squad"))}>
             Seleção
           </Link>
-          <button onClick={clickCopa} data-sfx={cupReady ? "click" : undefined} className={navCls(pathname.startsWith("/cup"), !cupReady)}>
+          <button onClick={clickCopa} data-sound={cupReady ? "confirm" : undefined} className={navCls(pathname.startsWith("/cup"), !cupReady)}>
             {!cupReady && <IconLock size={12} />} Copa
           </button>
+          <SoundToggle className="ml-1" />
         </nav>
       </div>
       <AnimatePresence>

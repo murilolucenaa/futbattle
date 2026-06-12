@@ -36,10 +36,13 @@ export const BENCH_SIZE = 4;
 
 interface CareerState {
   coachName: string;
+  squadName: string;         // cosmetic team name (fallback: `Seleção {coachName}`)
   careerMode: CareerMode;    // "legends" = draft de lendas · "wc2026" = seleção atual
   editionId: string;         // chosen World Cup edition (host + year + stadiums)
   userColors: [string, string];  // chosen at career creation
   userColors2: [string, string]; // away kit
+  userPattern: string;           // home jersey pattern (KitPattern id)
+  userPattern2: string;          // away jersey pattern
   draftFormation: FormationId;
   slots: DraftSlot[];        // 11, positions from draftFormation
   benchSlots: BenchSlot[];   // 4, position set by the chosen player
@@ -59,8 +62,9 @@ interface CareerState {
   lastResult: { fixtureId: string; result: MatchResult; round: number } | null;
 
   // actions
-  newCareer: (coachName: string, editionId: string, formation: FormationId, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
+  newCareer: (coachName: string, editionId: string, formation: FormationId, kit?: { kit1: [string, string]; kit2: [string, string]; pattern1?: string; pattern2?: string }) => void;
   newCareer2026: (coachName: string, squadId: string, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
+  setSquadName: (name: string) => void;
   setDraftFormation: (f: FormationId) => void;
   setDraftDraw: (d: Partial<DraftDraw>) => void;
   fillSlot: (index: number, card: Card) => void;
@@ -98,7 +102,8 @@ export function cardById(state: Pick<CareerState, "slots" | "benchSlots">, id: s
   return allCards(state).find((c) => c.player.id === id) ?? null;
 }
 
-export function userTeamName(s: Pick<CareerState, "coachName">): string {
+export function userTeamName(s: Pick<CareerState, "coachName"> & { squadName?: string }): string {
+  if (s.squadName && s.squadName.trim()) return s.squadName.trim();
   return s.coachName ? `Seleção ${s.coachName}` : "";
 }
 
@@ -121,10 +126,13 @@ const initialTactics: Tactics = { formation: "4-2-3-1", mentality: "equilibrado"
 
 const freshCareer = {
   coachName: "",
+  squadName: "",
   careerMode: "legends" as CareerMode,
   editionId: DEFAULT_EDITION_ID,
   userColors: USER_COLORS,
   userColors2: USER_KIT2,
+  userPattern: "solid",
+  userPattern2: "solid",
   draftFormation: "4-2-3-1" as FormationId,
   slots: slotsForFormation("4-2-3-1"),
   benchSlots: emptyBench(),
@@ -157,6 +165,8 @@ export const useCareer = create<CareerState>()(
           editionId,
           userColors: kit?.kit1 ?? USER_COLORS,
           userColors2: kit?.kit2 ?? USER_KIT2,
+          userPattern: kit?.pattern1 ?? "solid",
+          userPattern2: kit?.pattern2 ?? "solid",
           draftFormation: formation,
           slots: slotsForFormation(formation),
           tactics: { ...initialTactics, formation },
@@ -196,6 +206,8 @@ export const useCareer = create<CareerState>()(
           morale,
         });
       },
+
+      setSquadName: (name) => set({ squadName: name.slice(0, 28) }),
 
       setDraftFormation: (f) =>
         set((s) => {
@@ -355,12 +367,13 @@ export const useCareer = create<CareerState>()(
     }),
     {
       name: "futbattle-career",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         // pre-v3 saves reference re-anchored squad ids (fra-1984 → fra-1986
         // etc.) and lack draftDraw — start clean, keeping nothing.
         if (version < 3) return { ...freshCareer } as CareerState;
-        return persisted as CareerState;
+        // v3 → v4: cosmetic squadName added; tolerate its absence.
+        return { squadName: "", ...(persisted as object) } as CareerState;
       },
     }
   )
