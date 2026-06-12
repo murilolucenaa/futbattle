@@ -17,7 +17,7 @@ npx tsc --noEmit # type-check isolado
 lib/game/types.ts       # Tipos de domínio: Position (+POSITION_SHORT pt-BR), Card, Tactics, CupState, WCEdition…
 lib/data/squads.ts      # Dataset: ~53 seleções reais (1950–2022), ~560 jogadores, kit2 por seleção, squadCode "BRA 70"
 lib/data/editions.ts    # 20 edições de Copa 1950–2026: sede, estádios reais (nome/cidade/capacidade), era visual
-lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + assignLineup
+lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + assignLineup + formationLayout (offset por mentalidade, só visual)
 lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tacticMods)
 lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio ponderado por força (squadWeight)
 lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed, cooling break
@@ -33,9 +33,10 @@ scripts/gen-placeholder-sfx.ts # Gera placeholders WAV-em-.webm p/ cada som do m
 app/page.tsx            # Home: logo gigante, Novo Campeonato, Online/idiomas "em manutenção", técnico + edição
 app/squad/page.tsx      # DraftView (fluxo 7-0: dado → seleção inteira → carimbo) + ManageView (prancheta FIFA)
 app/cup/page.tsx        # Grupos A–L, ranking dos 3ºs, líderes (gols/assist/notas), chaveamento de 2 lados
-app/match/page.tsx      # Pré-jogo (estádio/clima/público/odds/uniformes) + partida 2D + pós-jogo
+app/match/page.tsx      # Pré-jogo (face-off PES: mini-campo/uniformes/forças) + partida 2D + pós-jogo
 components/Pitch.tsx    # Campo SVG reutilizável (vertical p/ escalação, horizontal p/ partida)
-components/PressConference.tsx # Cena animada de coletiva antes do draft (pulável, introSeen)
+components/PressConference.tsx # Coletiva de TV animada antes do draft: flashes em canvas, typewriter, lower-third (pulável, introSeen)
+components/game/ShareCard.tsx   # Card 1080×1920 da escalação (html-to-image) — usado pela prancheta
 components/TopBar.tsx   # Nav com "Copa" travada até o sorteio ("Faça o sorteio primeiro, mister")
 components/icons.tsx    # Ícones SVG inline — não usar emojis genéricos na UI
 ```
@@ -61,12 +62,12 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 
 ### Táticas
 - 13 formações × 3 mentalidades × 5 estilos via `tacticMods`. Fora de posição: mesma linha −4, linha diferente −9, GK ↔ linha −20/−25.
-- Na prancheta (FIFA-style: campo + banco na lateral): arrastar um jogador sobre outro troca posição (raio ~17%); o transform de centralização fica no wrapper e o framer-motion só anima o nó interno — **não juntar os dois** (transform fight = chips pulando). Troca entre setores pede confirmação engraçada.
+- Na prancheta (FIFA-style: campo + banco na lateral): arrastar um jogador sobre outro troca posição (raio ~17%); o transform de centralização fica no wrapper e o framer-motion só anima o nó interno — **não juntar os dois** (transform fight = chips pulando). Troca entre setores pede confirmação engraçada. Drag-swap é framer-motion **de propósito** (não migrar pra dnd-kit). Trocar a mentalidade reposiciona os chips via `formationLayout` (transição CSS em left/bottom, com stagger) — o time "respira". Botão "Compartilhar" gera o `ShareCard` via html-to-image.
 - Medidores ATA/MEI/DEF (FIFA-like) atualizam conforme o time entra em campo.
 
 ### Partida
 - `tick()` = 1 minuto; estado mutável vive em `useRef` na página. UI roda em `setInterval` (650ms ÷ velocidade 1/1.5/2x). "Pular para o fim" roda síncrono.
-- **Pré-jogo** obrigatório: estádio do fixture, clima/público determinísticos pelo seed, odds fake, escalações, escolha de uniforme (kit 1/2). Adversário troca pro `kit2` se as cores baterem (`colorDist < 160`).
+- **Pré-jogo** obrigatório (face-off estilo PES): estádio do fixture, clima/público determinísticos pelo seed, dois times espelhados com mini-campo (setas ‹ › trocam a formação ao vivo só no seu lado), faixa central com VS + forças + uniforme (kit 1/2). Hino (`anthem`) toca e corta no apito. Adversário troca pro `kit2` se as cores baterem (`colorDist < 160`). **Sem odds/apostas** — removido.
 - Máx. **3 substituições**; sugestão automática (GK → GK). Painel tático mostra o adversário **somente leitura**, com cansaço e moral.
 - **Cooling break** aos 25'/70' quando a edição é ≥2022 ou clima "heat" (`createMatch(..., coolingBreaks)`).
 - No 2º tempo o render do campo é **espelhado** (troca de lado); a bola anda "colada" no jogador mais próximo (carrier). O movimento visual é interpolado por **rAF** (easing exponencial, alvo por tick; jogadores k≈4.6, bola k≈8.5) com mutação direta de style — nunca voltar a transicionar posição via CSS `transition: all`.
@@ -147,6 +148,7 @@ tipografia condensada pesada, textura sutil de ruído/halftone, e SOM em tudo.
 - jsfxr / Tone.js → síntese de SFX retrô estilo PES
 - Sprite sheets + TexturePacker-style atlas para animação de jogadores
 - canvas-confetti ou partículas próprias no Phaser para celebrações
+- html-to-image (JÁ EM USO) → rasteriza o `ShareCard` 1080×1920 pro compartilhamento
 
 ## PROCESSO
 - Trabalhar em fases com checkpoint. Ao fim de cada fase: rodar o jogo,
@@ -156,4 +158,18 @@ tipografia condensada pesada, textura sutil de ruído/halftone, e SOM em tudo.
 ## STATUS DAS FASES
 - Fase 1 (design system + /styleguide): ENTREGUE — tokens de jogo em globals.css,
   componentes em components/game/, áudio migrado p/ src/audio/SoundManager (howler), demo em /styleguide.
-- Fases 2–5: pendentes (telas, Phaser, pênaltis, polimento).
+- Fase 4 (coletiva animada): ENTREGUE — `PressConference` virou cena de transmissão
+  (flashes em `<canvas>` 60fps, typewriter, lower-third, fade-to-black, reduced-motion).
+  Sons `camera.flash`/`crowd.murmur` no manifesto; `sound.play(..., { rate })` p/ pitch.
+- Fase 5 (prancheta): ENTREGUE — `formationLayout(formation, mentality)` move o bloco
+  (presentation-only) e os chips animam ao trocar a mentalidade; card de compartilhar
+  1080×1920 (`components/game/ShareCard.tsx` + `html-to-image`, Web Share API/download).
+  Drag-swap segue em framer-motion (NÃO migrado p/ dnd-kit, de propósito).
+- Fase 6 (copa): ENTREGUE — card do próximo jogo como herói (bandeiras grandes, Anton,
+  "VS" pequeno, à prova de overflow); tabela com `tabular-nums` + barra de classificação.
+- Fase 7 (pré-jogo): ENTREGUE — face-off PES espelhado, mini-campo com setas ‹ › que
+  trocam a formação ao vivo, faixa central (VS + forças + uniforme), hino até o apito.
+  Painel de odds/zebra + apostas REMOVIDO. "Editar escalação" leva à prancheta (/squad);
+  overlay modal embutido ainda pendente.
+- Fases 2–3 (telas base) absorvidas no redesign "fliperama"; Fase 8 (partida em Pixi/Phaser,
+  steering, torcida, pênaltis): PENDENTE.
