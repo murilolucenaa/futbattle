@@ -13,7 +13,7 @@ import {
   createMatch, tick, aiMaybeAct, applySub, applyTactics, resultOf, winnerOf, mulberry32,
   type LiveMatchState,
 } from "@/lib/game/engine";
-import { buildAiTeam, nextUserFixture, fixtureSeed, ROUND_LABEL } from "@/lib/game/cup";
+import { buildAiTeam, nextUserFixture, fixtureSeed, roundLabel } from "@/lib/game/cup";
 import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL } from "@/lib/game/tactics";
 import { sound } from "@/src/audio/SoundManager";
@@ -153,7 +153,7 @@ export default function MatchPage() {
     const home: MatchTeam = pre.userIsHome ? userTeam : aiTeam;
     const away: MatchTeam = pre.userIsHome ? aiTeam : userTeam;
     const coolingBreaks = pre.ed.year >= 2022 || pre.weather === "heat";
-    const st = createMatch(home, away, pre.seed, pre.f.round >= 4, coolingBreaks);
+    const st = createMatch(home, away, pre.seed, pre.f.knockout, coolingBreaks);
     stateRef.current = st;
     metaRef.current = {
       fixture: pre.f, round: pre.f.round,
@@ -496,6 +496,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit,
   userKit: 1 | 2; userColors1: [string, string]; userColors2: [string, string];
   onKit: (k: 1 | 2) => void; onKickoff: () => void;
 }) {
+  const cup = useCareer().cup!;
   return (
     <div className="flex flex-col gap-3">
       <motion.div
@@ -505,7 +506,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit,
         className="arc-strip px-4 py-4 text-center"
       >
         <div className="mb-1 font-arc text-[10px] font-extrabold uppercase tracking-[0.3em]" style={{ color: "var(--amarelo)" }}>
-          {ROUND_LABEL[f.round]}{f.group ? ` · Grupo ${f.group}` : ""}
+          {roundLabel(cup, f.round)}{f.group ? ` · Grupo ${f.group}` : ""}
         </div>
         <div className="font-display text-5xl leading-none" style={{ color: "var(--amarelo)" }}>VS</div>
         <div className="mt-2 flex items-center justify-center gap-3 font-display text-2xl">
@@ -607,6 +608,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
 
 // ── Scoreboard (faixa preta com valores vivos) ───────────────
 function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: Meta }) {
+  const cup = useCareer().cup!;
   return (
     <div className="arc-strip !rounded-2xl px-4 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -619,7 +621,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
             {view.scoreH} <span className="text-white/40">–</span> {view.scoreA}
           </div>
           <div className="font-arc text-[11px] font-extrabold" style={{ color: "var(--lima)" }}>
-            {Math.min(90, view.minute)}&apos; · {ROUND_LABEL[meta.round]}
+            {Math.min(90, view.minute)}&apos; · {roundLabel(cup, meta.round)}
           </div>
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -932,7 +934,7 @@ function ResultScreen({ result, state, meta }: {
   );
   const byGroup = new Map<string, Fixture[]>();
   for (const f of others) {
-    const k = f.group ? `Grupo ${f.group}` : ROUND_LABEL[f.round];
+    const k = f.group ? `Grupo ${f.group}` : roundLabel(c.cup!, f.round);
     byGroup.set(k, [...(byGroup.get(k) ?? []), f]);
   }
 
@@ -992,7 +994,7 @@ function ResultScreen({ result, state, meta }: {
           className="arc-strip !rounded-2xl p-6 text-center relative overflow-hidden"
         >
           <div className="font-arc text-xs font-extrabold uppercase tracking-[0.3em] text-white/60 mb-1">
-            Fim de papo · {ROUND_LABEL[meta.round]}
+            Fim de papo · {roundLabel(c.cup!, meta.round)}
           </div>
           <div className="font-arc text-[10px] font-bold text-white/55 mb-2 flex items-center justify-center gap-1.5">
             <IconStadium size={12} /> {meta.stadium} · {meta.attendance.toLocaleString("pt-BR")} presentes
