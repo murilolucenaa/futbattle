@@ -10,6 +10,7 @@ import type { WCEdition } from "@/lib/game/types";
 export const EDITIONS: WCEdition[] = [
   {
     id: "brasil-1950", year: 1950, host: "Brasil", flag: "🇧🇷", era: "vintage",
+    lore: "Aqui era assim: 4 grupos e um quadrangular final, sem decisão única. Foi onde nasceu o Maracanazo.",
     stadiums: [
       { name: "Maracanã", city: "Rio de Janeiro", capacity: 173850 },
       { name: "Pacaembu", city: "São Paulo", capacity: 60000 },
@@ -21,6 +22,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "suica-1954", year: 1954, host: "Suíça", flag: "🇨🇭", era: "vintage",
+    lore: "16 seleções, grupos e mata-mata a partir das quartas. A Copa dos gols: média recorde por jogo.",
     stadiums: [
       { name: "Wankdorf", city: "Berna", capacity: 64000 },
       { name: "St. Jakob", city: "Basileia", capacity: 54800 },
@@ -32,6 +34,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "suecia-1958", year: 1958, host: "Suécia", flag: "🇸🇪", era: "vintage",
+    lore: "16 seleções, 4 grupos e quartas direto. O mundo conheceu um garoto de 17 anos chamado Pelé.",
     stadiums: [
       { name: "Råsunda", city: "Solna", capacity: 52400 },
       { name: "Ullevi", city: "Gotemburgo", capacity: 53500 },
@@ -43,6 +46,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "chile-1962", year: 1962, host: "Chile", flag: "🇨🇱", era: "retro",
+    lore: "16 seleções no formato clássico de grupos e quartas, nas montanhas do Chile.",
     stadiums: [
       { name: "Estádio Nacional", city: "Santiago", capacity: 66660 },
       { name: "Sausalito", city: "Viña del Mar", capacity: 18037 },
@@ -52,6 +56,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "inglaterra-1966", year: 1966, host: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", era: "retro",
+    lore: "16 seleções, grupos e quartas. Em casa, os ingleses ergueram a taça pela única vez.",
     stadiums: [
       { name: "Wembley", city: "Londres", capacity: 98600 },
       { name: "Goodison Park", city: "Liverpool", capacity: 50151 },
@@ -65,6 +70,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "mexico-1970", year: 1970, host: "México", flag: "🇲🇽", era: "retro",
+    lore: "16 seleções, quartas direto após os grupos. A Copa do tricampeonato e do melhor time de todos os tempos.",
     stadiums: [
       { name: "Estádio Azteca", city: "Cidade do México", capacity: 107247 },
       { name: "Jalisco", city: "Guadalajara", capacity: 71100 },
@@ -75,6 +81,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "alemanha-1974", year: 1974, host: "Alemanha Ocidental", flag: "🇩🇪", era: "retro",
+    lore: "16 seleções com uma 2ª fase de grupos no lugar das oitavas — sem semifinal. (Modo Fiel em breve.)",
     stadiums: [
       { name: "Olympiastadion", city: "Munique", capacity: 77573 },
       { name: "Westfalenstadion", city: "Dortmund", capacity: 53600 },
@@ -89,6 +96,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "argentina-1978", year: 1978, host: "Argentina", flag: "🇦🇷", era: "retro",
+    lore: "16 seleções e a 2ª fase de grupos que levava direto à final. (Modo Fiel em breve.)",
     stadiums: [
       { name: "Monumental", city: "Buenos Aires", capacity: 74624 },
       { name: "José Amalfitani", city: "Buenos Aires", capacity: 49540 },
@@ -100,6 +108,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "espanha-1982", year: 1982, host: "Espanha", flag: "🇪🇸", era: "classic",
+    lore: "24 seleções: grupos, depois grupos de 3, e então o mata-mata. (Modo Fiel em breve.)",
     stadiums: [
       { name: "Santiago Bernabéu", city: "Madri", capacity: 90800 },
       { name: "Camp Nou", city: "Barcelona", capacity: 121401 },
@@ -119,6 +128,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "mexico-1986", year: 1986, host: "México", flag: "🇲🇽", era: "classic",
+    lore: "24 seleções, 6 grupos e os melhores terceiros indo às oitavas. A Copa da mão de Maradona.",
     stadiums: [
       { name: "Estádio Azteca", city: "Cidade do México", capacity: 114600 },
       { name: "Olímpico Universitario", city: "Cidade do México", capacity: 72000 },
@@ -136,6 +146,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "italia-1990", year: 1990, host: "Itália", flag: "🇮🇹", era: "classic",
+    lore: "24 seleções no formato de 6 grupos com melhores terceiros. Noites mágicas italianas.",
     stadiums: [
       { name: "San Siro", city: "Milão", capacity: 85700 },
       { name: "Olimpico", city: "Roma", capacity: 73603 },
@@ -153,6 +164,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "eua-1994", year: 1994, host: "Estados Unidos", flag: "🇺🇸", era: "classic",
+    lore: "24 seleções, 6 grupos e melhores terceiros. A Copa decidida nos pênaltis pela primeira vez.",
     stadiums: [
       { name: "Rose Bowl", city: "Pasadena", capacity: 91794 },
       { name: "Giants Stadium", city: "Nova Jersey", capacity: 75338 },
@@ -167,6 +179,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "franca-1998", year: 1998, host: "França", flag: "🇫🇷", era: "modern",
+    lore: "32 seleções pela primeira vez: 8 grupos e oitavas de final. O formato que virou padrão.",
     stadiums: [
       { name: "Stade de France", city: "Saint-Denis", capacity: 80000 },
       { name: "Parc des Princes", city: "Paris", capacity: 48875 },
@@ -182,6 +195,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "coreia-japao-2002", year: 2002, host: "Coreia do Sul & Japão", flag: "🇰🇷", era: "modern",
+    lore: "32 seleções em 8 grupos. A primeira Copa em dois países e em solo asiático.",
     stadiums: [
       { name: "International Stadium", city: "Yokohama", capacity: 72327 },
       { name: "Saitama Stadium", city: "Saitama", capacity: 63700 },
@@ -199,6 +213,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "alemanha-2006", year: 2006, host: "Alemanha", flag: "🇩🇪", era: "modern",
+    lore: "32 seleções, 8 grupos e oitavas. Festa alemã e a despedida de Zidane.",
     stadiums: [
       { name: "Olympiastadion", city: "Berlim", capacity: 72000 },
       { name: "Allianz Arena", city: "Munique", capacity: 66000 },
@@ -216,6 +231,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "africa-do-sul-2010", year: 2010, host: "África do Sul", flag: "🇿🇦", era: "modern",
+    lore: "32 seleções, 8 grupos e oitavas, ao som das vuvuzelas.",
     stadiums: [
       { name: "Soccer City", city: "Joanesburgo", capacity: 84490 },
       { name: "Ellis Park", city: "Joanesburgo", capacity: 55686 },
@@ -231,6 +247,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "brasil-2014", year: 2014, host: "Brasil", flag: "🇧🇷", era: "modern",
+    lore: "32 seleções, 8 grupos e oitavas. O Maracanã de volta ao centro do mundo.",
     stadiums: [
       { name: "Maracanã", city: "Rio de Janeiro", capacity: 74738 },
       { name: "Mané Garrincha", city: "Brasília", capacity: 69349 },
@@ -248,6 +265,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "russia-2018", year: 2018, host: "Rússia", flag: "🇷🇺", era: "modern",
+    lore: "32 seleções em 8 grupos. A última Copa antes da expansão para 48.",
     stadiums: [
       { name: "Luzhniki", city: "Moscou", capacity: 78011 },
       { name: "Otkritie Arena", city: "Moscou", capacity: 44190 },
@@ -265,6 +283,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "catar-2022", year: 2022, host: "Catar", flag: "🇶🇦", era: "ultra",
+    lore: "32 seleções, 8 grupos e oitavas. A primeira Copa no fim do ano, no deserto.",
     stadiums: [
       { name: "Lusail", city: "Lusail", capacity: 88966 },
       { name: "Al Bayt", city: "Al Khor", capacity: 68895 },
@@ -278,6 +297,7 @@ export const EDITIONS: WCEdition[] = [
   },
   {
     id: "america-do-norte-2026", year: 2026, host: "EUA, México & Canadá", flag: "🇺🇸", era: "ultra",
+    lore: "48 seleções pela primeira vez: 12 grupos e os 16 avos de final. A maior Copa da história.",
     stadiums: [
       { name: "MetLife Stadium", city: "Nova York/NJ", capacity: 82500 },
       { name: "SoFi Stadium", city: "Los Angeles", capacity: 70240 },
