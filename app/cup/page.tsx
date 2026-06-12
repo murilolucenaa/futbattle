@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "@/components/TopBar";
 import { useCareer } from "@/lib/game/store";
 import {
-  GROUP_NAMES, ROUND_LABEL, groupTable, nextUserFixture, thirdPlaceTable, leaders, podium,
+  roundLabel, groupTable, nextUserFixture, thirdPlaceTable, leaders, podium,
 } from "@/lib/game/cup";
+import { engineFor } from "@/lib/game/formats/registry";
 import { SQUAD_BY_ID, squadCode } from "@/lib/data/squads";
 import { EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
 import { IconAssist, IconBall, IconStadium, IconStar, IconTrophy } from "@/components/icons";
@@ -83,6 +84,8 @@ export default function CupPage() {
   const isOver = cup.phase === "champion" || cup.phase === "eliminated";
   const pod = podium(cup);
   const ed = EDITION_BY_ID[cup.editionId];
+  const engine = engineFor(cup.mode, cup.editionId);
+  const modeLabel = cup.mode === "fiel" ? `formato ${ed?.year ?? ""} (Fiel)` : "formato 2026 · 48 seleções";
 
   return (
     <>
@@ -91,8 +94,16 @@ export default function CupPage() {
         <div className="mx-auto max-w-6xl w-full px-4 py-6">
         <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] text-white/85 mb-3 flex items-center gap-2">
           <IconTrophy size={14} className="text-[var(--amarelo)]" />
-          Copa do Mundo FUTBATTLE {ed ? `· ${editionLabel(ed)}` : ""} · formato 2026 · 48 seleções
+          Copa do Mundo FUTBATTLE {ed ? `· ${editionLabel(ed)}` : ""} · {modeLabel}
         </div>
+
+        {/* "?" mini-história imersiva da edição */}
+        {ed?.lore && (
+          <div className="arc-mini p-2.5 mb-4 flex gap-2 items-start">
+            <span className="font-display text-base text-[var(--gold)] shrink-0">?</span>
+            <p className="font-arc text-[11px] font-semibold leading-snug opacity-80">{ed.lore}</p>
+          </div>
+        )}
 
         {/* Status hero */}
         {cup.phase === "champion" ? (
@@ -103,7 +114,7 @@ export default function CupPage() {
             animate={{ opacity: 1, y: 0 }}
             className="arc-panel p-6 mb-6 relative overflow-hidden"
           >
-            <span className="arc-tag mb-2">★ {ROUND_LABEL[next.round]}{next.group ? ` · Grupo ${next.group}` : ""}</span>
+            <span className="arc-tag mb-2">★ {roundLabel(cup, next.round)}{next.group ? ` · Grupo ${next.group}` : ""}</span>
             {next.stadium && (
               <div className="text-xs text-[var(--muted)] mb-2 flex items-center gap-1.5">
                 <IconStadium size={13} /> {next.stadium}
@@ -175,7 +186,7 @@ export default function CupPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.25em] text-[var(--gold)] mb-1 text-center">
-                  {ROUND_LABEL[detail.round]} {detail.group ? `· Grupo ${detail.group}` : ""}
+                  {roundLabel(cup, detail.round)} {detail.group ? `· Grupo ${detail.group}` : ""}
                 </div>
                 {detail.stadium && (
                   <div className="text-xs text-[var(--muted)] text-center mb-3 flex items-center justify-center gap-1.5">
@@ -218,16 +229,22 @@ export default function CupPage() {
 
 // ── Groups ───────────────────────────────────────────────────
 function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) => void }) {
+  const groupNames = Object.keys(cup.groups).filter((g) => g !== "FINAL").sort();
+  const engine = engineFor(cup.mode, cup.editionId);
+  const usesThirds = engine.id === "g24" || engine.id === "g48";
+  const isFinalGroup = engine.id === "finalGroup1950";
+  const thirdsCount = engine.id === "g48" ? 8 : 4;
   const [sel, setSel] = useState(cup.userGroup);
   const groupsDone = cup.fixtures.filter((f) => f.round <= 3).every((f) => f.scoreH !== null);
-  const thirds = groupsDone ? thirdPlaceTable(cup).slice(0, 8).map((r) => r.teamId) : [];
+  const thirds = groupsDone && usesThirds ? thirdPlaceTable(cup).slice(0, thirdsCount).map((r) => r.teamId) : [];
   const table = groupTable(cup, sel);
+  const groupRounds = [...new Set(cup.fixtures.filter((f) => f.group === sel).map((f) => f.round))].sort((a, b) => a - b);
 
   return (
     <div>
-      {/* group selector A–L */}
+      {/* group selector */}
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {GROUP_NAMES.map((g) => (
+        {groupNames.map((g) => (
           <button
             key={g}
             data-sound="confirm"
@@ -287,16 +304,18 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
             </tbody>
           </table>
           <p className="text-[10px] text-[var(--muted)] mt-2">
-            1º e 2º avançam · 3º disputa as 8 melhores campanhas entre os 12 grupos.
+            {usesThirds ? `1º e 2º avançam · os ${thirdsCount} melhores 3ºs completam o mata-mata.`
+             : isFinalGroup ? "O 1º de cada grupo vai ao quadrangular final."
+             : "1º e 2º de cada grupo avançam ao mata-mata."}
           </p>
         </motion.div>
 
         {/* group fixtures by round */}
         <div className="arc-panel p-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Jogos do Grupo {sel}</h4>
-          {[1, 2, 3].map((r) => (
+          {groupRounds.map((r) => (
             <div key={r} className="mb-2">
-              <div className="text-[10px] font-bold text-[var(--gold)] uppercase tracking-wider mb-0.5">{ROUND_LABEL[r]}</div>
+              <div className="text-[10px] font-bold text-[var(--gold)] uppercase tracking-wider mb-0.5">{roundLabel(cup, r)}</div>
               {cup.fixtures.filter((f) => f.group === sel && f.round === r).map((f) => (
                 <div key={f.id}>
                   <FixtureRow cup={cup} f={f} onClick={() => onFixture(f)} />
@@ -308,14 +327,14 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
         </div>
       </div>
 
-      {/* thirds ranking once groups end */}
-      {groupsDone && (
+      {/* thirds ranking once groups end (só formatos que usam melhores 3ºs) */}
+      {groupsDone && usesThirds && (
         <div className="arc-panel p-4 mt-4">
           <h4 className="font-display text-lg mb-2">Ranking dos terceiros colocados</h4>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
             {thirdPlaceTable(cup).map((row, i) => (
-              <div key={row.teamId} className={`flex items-center gap-2 text-sm py-1 ${i < 8 ? "" : "opacity-45"}`}>
-                <span className={`w-6 text-xs font-bold ${i < 8 ? "text-[var(--gold)]" : "text-[var(--muted)]"}`}>{i + 1}º</span>
+              <div key={row.teamId} className={`flex items-center gap-2 text-sm py-1 ${i < thirdsCount ? "" : "opacity-45"}`}>
+                <span className={`w-6 text-xs font-bold ${i < thirdsCount ? "text-[var(--gold)]" : "text-[var(--muted)]"}`}>{i + 1}º</span>
                 <TeamLabel cup={cup} id={row.teamId} />
                 <span className="ml-auto text-xs text-[var(--muted)]">{row.pts} pts · SG {row.gf - row.ga > 0 ? "+" : ""}{row.gf - row.ga}</span>
               </div>
@@ -362,9 +381,17 @@ function LeadersTab({ cup }: { cup: CupState }) {
   );
 }
 
-// ── Bracket (two-sided, with 3rd place) ──────────────────────
+// ── Bracket ──────────────────────────────────────────────────
 function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) => void }) {
-  const anyKo = cup.fixtures.some((f) => f.round >= 4);
+  const engine = engineFor(cup.mode, cup.editionId);
+
+  // 1950: o "mata-mata" é um quadrangular final
+  if (engine.id === "finalGroup1950") return <FinalGroupTab cup={cup} onFixture={onFixture} />;
+
+  // formatos não-2026: chaveamento genérico por colunas de rounds knockout
+  if (engine.id !== "g48") return <GenericBracket cup={cup} onFixture={onFixture} />;
+
+  const anyKo = cup.fixtures.some((f) => f.knockout);
   if (!anyKo) {
     return (
       <div className="arc-panel p-10 text-center font-arc font-bold text-[rgba(20,21,18,0.6)]">
@@ -449,6 +476,115 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
       <p className="font-arc text-[10px] font-bold text-white/75 text-center mt-3">
         Toque num confronto para ver os detalhes — 8 chaves de cada lado, como na Copa de verdade.
       </p>
+    </div>
+  );
+}
+
+// Confronto de mata-mata reutilizável (genérico + 1950 não usa)
+function KoTie({ cup, f, onFixture }: { cup: CupState; f: Fixture | null; onFixture: (f: Fixture) => void }) {
+  if (!f) return <div className="arc-mini px-2 py-2 text-center font-arc text-[10px] font-bold opacity-60">a definir</div>;
+  const played = f.scoreH !== null;
+  const isUser = f.homeId === "USER" || f.awayId === "USER";
+  const win = played
+    ? (f.scoreH! > f.scoreA! || (f.scoreH === f.scoreA && (f.pensH ?? 0) > (f.pensA ?? 0)) ? "h" : "a")
+    : null;
+  const row = (id: string, side: "h" | "a") => (
+    <div className={`flex items-center justify-between gap-1.5 text-[11px] leading-tight ${win && win !== side ? "opacity-45" : "font-bold"}`}>
+      <span className={`truncate ${id === "USER" ? "text-[var(--accent)]" : ""}`}>{cup.teams[id].flag} {shortTeam(cup, id)}</span>
+      <span className="font-display shrink-0">
+        {played ? (side === "h" ? f.scoreH : f.scoreA) : ""}
+        {played && f.pensH != null && <span className="text-[8px] text-[var(--muted)]"> ({side === "h" ? f.pensH : f.pensA})</span>}
+      </span>
+    </div>
+  );
+  return (
+    <button
+      onClick={() => played && onFixture(f)}
+      className={`arc-mini w-full px-2 py-1.5 space-y-1 text-left transition-all ${played ? "hover:-translate-y-px" : ""} ${isUser ? "ring-[2.5px] ring-[var(--amarelo)]" : ""}`}
+    >
+      {row(f.homeId, "h")}
+      {row(f.awayId, "a")}
+    </button>
+  );
+}
+
+// Chaveamento genérico (16/24/32): colunas por round de mata-mata
+function GenericBracket({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) => void }) {
+  const koRounds = [...new Set(cup.fixtures.filter((f) => f.knockout).map((f) => f.round))].sort((a, b) => a - b);
+  if (koRounds.length === 0) {
+    return (
+      <div className="arc-panel p-10 text-center font-arc font-bold text-[rgba(20,21,18,0.6)]">
+        O chaveamento aparece quando a fase de grupos terminar.
+      </div>
+    );
+  }
+  const fs = (round: number) => cup.fixtures.filter((f) => f.round === round).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  return (
+    <div className="arc-panel p-4 overflow-x-auto">
+      <div className="flex gap-3 min-w-max items-stretch">
+        {koRounds.map((r) => (
+          <div key={r} className="flex flex-col justify-around gap-2 min-w-[160px]">
+            <div className="font-arc text-[9px] uppercase tracking-wider text-white/80 font-extrabold text-center">{roundLabel(cup, r)}</div>
+            {fs(r).map((f) => <KoTie key={f.id} cup={cup} f={f} onFixture={onFixture} />)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Quadrangular final (1950): tabela do grupo "FINAL"
+function FinalGroupTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) => void }) {
+  const fg = cup.groups["FINAL"];
+  if (!fg) {
+    return (
+      <div className="arc-panel p-10 text-center font-arc font-bold text-[rgba(20,21,18,0.6)]">
+        O quadrangular final aparece quando a 1ª fase terminar.
+      </div>
+    );
+  }
+  const table = groupTable(cup, "FINAL");
+  const games = cup.fixtures.filter((f) => f.group === "FINAL");
+  return (
+    <div className="grid lg:grid-cols-[1fr_380px] gap-4 items-start">
+      <div className="arc-panel p-4 ring-[3px] ring-[var(--amarelo)]">
+        <h3 className="font-display text-xl mb-3 flex items-center gap-2"><IconTrophy size={18} className="text-[var(--amarelo)]" /> Grupo Final</h3>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              <th className="text-left font-semibold pb-1.5 w-8">Pos</th>
+              <th className="text-left font-semibold pb-1.5">Seleção</th>
+              <th className="w-8 font-semibold">J</th><th className="w-8 font-semibold">V</th>
+              <th className="w-8 font-semibold">E</th><th className="w-8 font-semibold">D</th>
+              <th className="w-14 font-semibold">GP-GC</th><th className="w-9 font-semibold">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {table.map((row, i) => (
+              <tr key={row.teamId} className={`border-t border-[var(--border)] tabular-nums ${i === 0 ? "bg-[rgba(255,200,27,0.3)]" : ""}`}>
+                <td className={`py-2 pl-1.5 text-xs font-bold border-l-[4px] ${i === 0 ? "border-[var(--amarelo)] text-[var(--gold)]" : "border-transparent text-[var(--muted)]"}`}>{i + 1}º</td>
+                <td className="py-2 pr-2"><TeamLabel cup={cup} id={row.teamId} /></td>
+                <td className="text-center text-[var(--muted)]">{row.p}</td>
+                <td className="text-center text-[var(--muted)]">{row.w}</td>
+                <td className="text-center text-[var(--muted)]">{row.d}</td>
+                <td className="text-center text-[var(--muted)]">{row.l}</td>
+                <td className="text-center text-[var(--muted)]">{row.gf}-{row.ga}</td>
+                <td className="text-center font-bold">{row.pts}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="text-[10px] text-[var(--muted)] mt-2">Campeão = líder do quadrangular. Sem final única — é o Maracanazo.</p>
+      </div>
+      <div className="arc-panel p-4">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Jogos do quadrangular</h4>
+        {games.map((f) => (
+          <div key={f.id}>
+            <FixtureRow cup={cup} f={f} onClick={() => onFixture(f)} />
+            {f.stadium && <div className="text-[9px] text-[var(--muted)] text-center -mt-0.5 mb-1">{f.stadium}</div>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
