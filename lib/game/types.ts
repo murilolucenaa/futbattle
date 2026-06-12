@@ -62,6 +62,7 @@ export interface WCEdition {
   host: string;      // "Brasil" | "Coreia do Sul & Japão" …
   flag: string;
   era: PitchEra;     // drives pitch/stadium visual theme
+  lore?: string;     // mini-história imersiva (pt-BR) exibida no "?" e na copa
   stadiums: Stadium[];
 }
 
@@ -159,11 +160,12 @@ export interface CupTeamRef {
 
 export interface Fixture {
   id: string;
-  round: number;       // 1–3 groups · 4=R32 5=R16 6=QF 7=SF 8=3º lugar 9=Final
+  round: number;       // significado depende do motor de formato (ver formats/)
   group?: string;      // "A".."L" for group stage
   homeId: string;
   awayId: string;
   stadium?: string;    // from the chosen edition
+  knockout: boolean;   // true = mata-mata (pênaltis no empate); false = pontos corridos
   scoreH: number | null;
   scoreA: number | null;
   pensH?: number;
@@ -187,17 +189,21 @@ export interface PlayerTotals {
   matches: number;
 }
 
+export type CupMode = "fiel" | "tradicional";
+
 export type CupPhase =
   | "groups" | "r32" | "r16" | "qf" | "sf" | "third" | "final"
+  | "finalGroup" | "secondGroup"
   | "champion" | "eliminated";
 
 export interface CupState {
   teams: Record<string, CupTeamRef>;
-  groups: Record<string, string[]>; // "A".."L" → 4 teamIds
+  groups: Record<string, string[]>; // "A".."L" → teamIds
   fixtures: Fixture[];
   phase: CupPhase;
   userGroup: string;
   seed: number;
   editionId: string;
+  mode: CupMode;
   playerTotals: Record<string, PlayerTotals>;
 }
