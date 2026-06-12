@@ -96,14 +96,68 @@ function ArcPos({ pos, dim }: { pos: Position; dim?: boolean }) {
   );
 }
 
-function DiceIcon({ size = 64, className = "" }: { size?: number; className?: string }) {
+/** Pentagon points (svg polygon string) centred at (cx,cy), `r` circumradius, a vertex at `rot`°. */
+function penta(cx: number, cy: number, r: number, rot: number): string {
+  return Array.from({ length: 5 }, (_, i) => {
+    const a = ((rot + i * 72) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`;
+  }).join(" ");
+}
+
+/** Classic stitched soccer ball — flat "fliperama" look (paper + ink patches). */
+function BallIcon({ size = 64, className = "" }: { size?: number; className?: string }) {
+  const verts = [-90, -18, 54, 126, 198].map((d) => {
+    const a = (d * Math.PI) / 180;
+    return { x: 32 + 10 * Math.cos(a), y: 32 + 10 * Math.sin(a) };
+  });
+  const rim = [-54, 18, 90, 162, 234].map((d) => {
+    const a = (d * Math.PI) / 180;
+    return { x: 32 + 21 * Math.cos(a), y: 32 + 21 * Math.sin(a), rot: d + 36 };
+  });
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect x="4" y="4" width="56" height="56" rx="13" fill="var(--paper)" stroke="var(--ink)" strokeWidth="4.5" />
-      {[[19, 19], [45, 19], [32, 32], [19, 45], [45, 45]].map(([cx, cy], i) => (
-        <circle key={i} cx={cx} cy={cy} r="5.2" fill="var(--ink)" />
-      ))}
+    <svg width={size} height={size} viewBox="0 0 64 64" className={`draw-ball ${className}`} aria-hidden>
+      <defs><clipPath id="ball-clip"><circle cx="32" cy="32" r="26" /></clipPath></defs>
+      <circle cx="32" cy="32" r="28" fill="var(--paper)" stroke="var(--ink)" strokeWidth="4" />
+      <g clipPath="url(#ball-clip)">
+        <g stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round">
+          {verts.map((v, i) => {
+            const a = Math.atan2(v.y - 32, v.x - 32);
+            return <line key={i} x1={v.x} y1={v.y} x2={32 + 27 * Math.cos(a)} y2={32 + 27 * Math.sin(a)} />;
+          })}
+        </g>
+        <polygon points={penta(32, 32, 10, -90)} fill="var(--ink)" />
+        {rim.map((p, i) => <polygon key={i} points={penta(p.x, p.y, 8, p.rot)} fill="var(--ink)" />)}
+      </g>
     </svg>
+  );
+}
+
+/** Coloured raffle balls orbiting the soccer ball during the draw. */
+const LOTTO_BALLS = [
+  { color: "var(--amarelo)", r: 78, dur: 3.0, delay: 0 },
+  { color: "var(--lima)",    r: 94, dur: 4.2, delay: -1.1 },
+  { color: "var(--ciano)",   r: 68, dur: 3.6, delay: -0.6 },
+  { color: "var(--rosa)",    r: 98, dur: 5.0, delay: -2.0 },
+  { color: "var(--laranja)", r: 84, dur: 3.3, delay: -1.6 },
+];
+
+/** The lottery-draw scene: a spinning ball on a sunburst stage with orbiting raffle balls. */
+function DrawStage({ spinning }: { spinning: boolean }) {
+  return (
+    <div className={`draw-stage ${spinning ? "is-spinning" : ""}`} aria-hidden>
+      <div className={`draw-rays ${spinning ? "is-spinning" : ""}`} />
+      {LOTTO_BALLS.map((b, i) => (
+        <div
+          key={i}
+          className="draw-orbit"
+          style={{ animationDuration: `${spinning ? b.dur : b.dur * 2.8}s`, animationDelay: `${b.delay}s` }}
+        >
+          <span className="draw-lotto" style={{ ["--lc" as string]: b.color, transform: `translateX(${b.r}px)` }} />
+        </div>
+      ))}
+      <BallIcon size={104} />
+      <div className="draw-base" />
+    </div>
   );
 }
 
@@ -317,7 +371,7 @@ function DraftView() {
         </div>
       ) : phase === "rolling" ? (
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-          <div className="dice-tumble mb-5 inline-block"><DiceIcon size={84} /></div>
+          <DrawStage spinning />
           <div className="h-8 w-full truncate px-2 font-display text-2xl text-[var(--ink)]">
             {flicker ? `${flicker.flag} ${squadLabel(flicker)}` : "…"}
           </div>
@@ -325,9 +379,12 @@ function DraftView() {
         </div>
       ) : phase === "idle" || squadUsed ? (
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-          <DiceIcon size={84} className="mb-4 drop-shadow-[3px_4px_0_rgba(20,21,18,0.85)]" />
+          <DrawStage spinning={false} />
+          <div className="-mt-1 mb-3 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-50">
+            urna do sorteio
+          </div>
           <button data-sound="dice" disabled={!canRoll} onClick={roll} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
-            <span className="block text-2xl leading-tight">RODA O DADO</span>
+            <span className="block text-2xl leading-tight">GIRA A URNA</span>
             <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-75">
               {squadUsed ? "tá escalado! próxima vaga — de graça" : "sai uma seleção histórica inteira"}
             </span>
