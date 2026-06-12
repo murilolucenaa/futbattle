@@ -389,37 +389,44 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="arc-panel p-5 sm:p-6 max-w-2xl mx-auto text-left"
+              className="arc-panel p-5 sm:p-6 max-w-2xl mx-auto text-left relative"
             >
+              {/* Dica do mister — na margem esquerda em telas largas */}
+              <div className="hidden xl:block absolute top-6 right-full mr-6 w-52 arc-mini p-3 text-left">
+                <div className="font-arc text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] mb-1">Dica do mister</div>
+                <p className="font-arc text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-80">
+                  Cada Copa tem regras próprias. Ao escolher, decida: <b>Fiel</b> (o formato real
+                  daquele ano) ou <b>Tradicional</b> (o formato de hoje, 48 seleções, com o estádio
+                  e o clima da época).
+                </p>
+              </div>
+
               <span className="arc-tag">★ Passo 3 de 3</span>
               <h2 className="font-display text-3xl mt-3 mb-3 text-[var(--ink)]">EM QUAL COPA DO MUNDO?</h2>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="sm:w-44 shrink-0 arc-mini p-3 self-start">
-                  <div className="font-arc text-[10px] font-extrabold uppercase tracking-widest text-[var(--gold)] mb-1">Dica do mister</div>
-                  <p className="font-arc text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-80">
-                    Cada Copa tem regras próprias. Ao escolher, decida: <b>Fiel</b> (o formato real
-                    daquele ano) ou <b>Tradicional</b> (o formato de hoje, 48 seleções, com o estádio
-                    e o clima da época).
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[44vh] overflow-y-auto pr-1 flex-1">
-                  {EDITIONS.map((e) => (
-                    <button
-                      key={e.id}
-                      data-sound="confirm"
-                      onClick={() => openEdition(e.id)}
-                      className="rounded-2xl border-[3px] border-[var(--ink)] bg-white p-3 text-left shadow-[3px_4px_0_var(--ink)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_var(--ink)] active:translate-y-1 active:shadow-[1px_2px_0_var(--ink)] transition-all"
-                    >
-                      <div className="text-2xl mb-1">{e.flag}</div>
-                      <div className="font-display text-base leading-tight text-[var(--ink)]">
-                        {editionLabel(e)}
-                      </div>
-                      <div className="font-arc text-[10px] font-bold opacity-55 text-[var(--ink)] flex items-center gap-1 mt-1">
-                        <IconStadium size={12} /> {e.stadiums.length} estádios
-                      </div>
-                    </button>
-                  ))}
-                </div>
+
+              {/* Versão compacta inline (telas sem espaço na margem) */}
+              <p className="xl:hidden font-arc text-[11px] font-semibold leading-snug text-[var(--ink)] opacity-70 mb-3">
+                <b className="text-[var(--gold)]">Dica:</b> cada Copa tem regras próprias — ao escolher, decida entre
+                {" "}<b>Fiel</b> (formato real do ano) ou <b>Tradicional</b> (formato de hoje com o tema da época).
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[44vh] overflow-y-auto pr-1">
+                {EDITIONS.map((e) => (
+                  <button
+                    key={e.id}
+                    data-sound="confirm"
+                    onClick={() => openEdition(e.id)}
+                    className="rounded-2xl border-[3px] border-[var(--ink)] bg-white p-3 text-left shadow-[3px_4px_0_var(--ink)] hover:-translate-y-0.5 hover:shadow-[4px_5px_0_var(--ink)] active:translate-y-1 active:shadow-[1px_2px_0_var(--ink)] transition-all"
+                  >
+                    <div className="text-2xl mb-1">{e.flag}</div>
+                    <div className="font-display text-base leading-tight text-[var(--ink)]">
+                      {editionLabel(e)}
+                    </div>
+                    <div className="font-arc text-[10px] font-bold opacity-55 text-[var(--ink)] flex items-center gap-1 mt-1">
+                      <IconStadium size={12} /> {e.stadiums.length} estádios
+                    </div>
+                  </button>
+                ))}
               </div>
               <button data-sound="cancel" onClick={() => setStep("kit")} className="arc-btn arc-btn--paper w-full py-2.5 mt-4 text-sm">
                 Voltar
@@ -437,12 +444,13 @@ export default function Home() {
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70"
+              className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
               onClick={() => setPickedEd(null)}
             >
               <motion.div
-                initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
-                className="arc-panel p-5 sm:p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 24 }}
+                className="arc-panel p-5 sm:p-6 w-full max-w-md shadow-[6px_8px_0_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}
               >
                 <div className="text-3xl mb-1">{ed.flag}</div>
                 <h3 className="font-display text-2xl text-[var(--ink)]">{editionLabel(ed)}</h3>
