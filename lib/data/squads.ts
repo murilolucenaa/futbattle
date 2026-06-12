@@ -106,6 +106,34 @@ export const SQUADS: SquadDef[] = [
     ["Zoltán Czibor", "LW/AM", 90],
   ]),
 
+  squad("eng-1958", "Inglaterra", 1958, "🏴󠁧󠁢󠁥󠁮󠁧󠁿", ["#F5F5F5", "#002868"], 3, [
+    ["Colin McDonald", "GK", 83],
+    ["Don Howe", "RB", 79],
+    ["Billy Wright", "CB", 87],
+    ["Tommy Banks", "LB", 80],
+    ["Bill Slater", "CM/DM", 81],
+    ["Eddie Clamp", "DM/CM", 78],
+    ["Johnny Haynes", "AM/CM", 88],
+    ["Tom Finney", "RW/LW", 91],
+    ["Bryan Douglas", "RW/AM", 83],
+    ["Derek Kevan", "ST", 82],
+    ["Peter Broadbent", "AM/CM", 82],
+  ]),
+
+  squad("ger-1958", "Alemanha Ocidental", 1958, "🇩🇪", ["#FFFFFF", "#1A1A1A"], 4, [
+    ["Fritz Herkenrath", "GK", 84],
+    ["Karl-Heinz Schnellinger", "RB/CB", 86],
+    ["Werner Liebrich", "CB", 85],
+    ["Erich Juskowiak", "LB", 82],
+    ["Jupp Posipal", "CB/DM", 83],
+    ["Horst Eckel", "CM/DM", 84],
+    ["Horst Szymaniak", "DM/CM", 84],
+    ["Hans Schäfer", "LW", 87],
+    ["Helmut Rahn", "RW/ST", 90],
+    ["Fritz Walter", "AM/CM", 92],
+    ["Uwe Seeler", "ST/AM", 93],
+  ]),
+
   squad("bra-1958", "Brasil", 1958, "🇧🇷", ["#FFDC00", "#009739"], 5, [
     ["Gilmar", "GK", 89],
     ["Djalma Santos", "RB/CB", 92],
