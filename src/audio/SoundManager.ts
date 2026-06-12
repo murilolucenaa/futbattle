@@ -49,7 +49,7 @@ interface Settings {
 }
 const DEFAULTS: Settings = { muted: false, master: 0.9, ui: 1, music: 0.7, ambience: 0.8, match: 1 };
 
-type PlayOpts = { fade?: number; volume?: number };
+type PlayOpts = { fade?: number; volume?: number; rate?: number };
 
 class SoundManager {
   private settings: Settings = { ...DEFAULTS };
@@ -156,6 +156,7 @@ class SoundManager {
     if (!howl) return null;
     const entry = MANIFEST.events[event];
     const id = howl.play();
+    if (opts.rate != null) howl.rate(Math.max(0.5, Math.min(4, opts.rate)), id);
     if (opts.volume != null) howl.volume(Math.max(0, Math.min(1, opts.volume)), id);
     if (opts.fade) howl.fade(0, this.volFor(entry), opts.fade, id);
     if (entry.duck) this.duck(entry.duck.channel, entry.duck.to, entry.duck.ms ?? 1500);
