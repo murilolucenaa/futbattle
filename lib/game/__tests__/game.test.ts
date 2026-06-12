@@ -4,7 +4,7 @@ import { FORMATIONS, FORMATION_IDS, assignLineup } from "../formations";
 import { runFullMatch } from "../engine";
 import {
   buildAiTeam, drawCup, groupTable, simulateRound, advanceCup, currentRound,
-  GROUP_NAMES, LAST_ROUND, thirdPlaceTable, r32Qualifiers, leaders, podium,
+  GROUP_NAMES, lastRound, thirdPlaceTable, r32Qualifiers, leaders, podium,
 } from "../cup";
 import { REROLL_BUDGET, BENCH_REROLL_BONUS, drawSquad, squadWeight, squadPower } from "../rules";
 import type { Position } from "../types";
@@ -140,7 +140,7 @@ describe("cup (2026 format)", () => {
 
     const userSquad = SQUADS[0];
     const builder = () => buildAiTeam(userSquad, 99);
-    for (let round = 1; round <= LAST_ROUND; round++) {
+    for (let round = 1; round <= lastRound(cup); round++) {
       simulateRound(cup, round, builder);
       advanceCup(cup);
     }
@@ -151,7 +151,7 @@ describe("cup (2026 format)", () => {
     expect(cup.fixtures.filter((f) => f.round === 8).length).toBe(1);  // 3rd place
     expect(cup.fixtures.filter((f) => f.round === 9).length).toBe(1);  // Final
     expect(["champion", "eliminated"]).toContain(cup.phase);
-    expect(currentRound(cup)).toBe(LAST_ROUND + 1);
+    expect(currentRound(cup)).toBe(lastRound(cup) + 1);
 
     const pod = podium(cup);
     expect(pod).not.toBeNull();

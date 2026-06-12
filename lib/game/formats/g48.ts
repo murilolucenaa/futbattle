@@ -7,7 +7,7 @@
 import { SQUADS, squadLabel } from "@/lib/data/squads";
 import type { CupState, CupTeamRef, Fixture } from "@/lib/game/types";
 import { winnerOf } from "@/lib/game/engine";
-import { groupTable, thirdPlaceTable } from "@/lib/game/cup";
+import { groupTable, thirdPlaceTable } from "@/lib/game/standings";
 import { bigStadium, pickOpponents, stadiumByKey } from "./shared";
 import type { CupEngine, DrawContext, DrawResult } from "./types";
 
