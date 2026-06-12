@@ -39,7 +39,7 @@ app/match/page.tsx                 # roundLabel + f.knockout
 **Files:**
 - Modify: `lib/game/types.ts`
 
-- [ ] **Step 1: Adicionar os tipos**
+- [x] **Step 1: Adicionar os tipos**
 
 Em `lib/game/types.ts`, após a definição de `CupPhase` (linha ~190), adicionar `CupMode` e estender `CupPhase`:
 
@@ -101,7 +101,7 @@ export interface WCEdition {
 }
 ```
 
-- [ ] **Step 2: Type-check (vai falhar — esperado)**
+- [x] **Step 2: Type-check (vai falhar — esperado)**
 
 Run: `npx tsc --noEmit`
 Expected: erros em `cup.ts`/`store.ts` por falta de `knockout`/`mode`. Serão corrigidos nas próximas tasks. NÃO commitar ainda.
@@ -113,7 +113,7 @@ Expected: erros em `cup.ts`/`store.ts` por falta de `knockout`/`mode`. Serão co
 **Files:**
 - Create: `lib/game/formats/types.ts`
 
-- [ ] **Step 1: Criar a interface**
+- [x] **Step 1: Criar a interface**
 
 ```ts
 // lib/game/formats/types.ts
@@ -145,7 +145,7 @@ export interface CupEngine {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add lib/game/types.ts lib/game/formats/types.ts
@@ -160,7 +160,7 @@ git commit -m "feat(formats): cup engine interface + CupMode/knockout types"
 - Create: `lib/game/formats/shared.ts`
 - Test: `lib/game/formats/__tests__/shared.test.ts`
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/shared.test.ts
@@ -200,12 +200,12 @@ describe("pickOpponents", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha (módulo não existe)**
+- [x] **Step 2: Rodar — falha (módulo não existe)**
 
 Run: `npx jest formats/__tests__/shared.test.ts`
 Expected: FAIL "Cannot find module '../shared'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/shared.ts
@@ -279,12 +279,12 @@ export function buildKnockout(
 }
 ```
 
-- [ ] **Step 4: Rodar — passa**
+- [x] **Step 4: Rodar — passa**
 
 Run: `npx jest formats/__tests__/shared.test.ts`
 Expected: PASS (3 + 1)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/shared.ts lib/game/formats/__tests__/shared.test.ts
@@ -301,7 +301,7 @@ git commit -m "feat(formats): shared helpers (roundRobin, pickOpponents, stadium
 
 O g48 reproduz EXATAMENTE o `drawCup`/`advanceCup` atuais de `cup.ts` (linhas 86–133 e 285–394), apenas reembrulhado na interface `CupEngine`, com `knockout: true` nos fixtures de mata-mata e `knockout: false` nos de grupo. Mantém `groupTable`/`thirdPlaceTable`/`r32Qualifiers` (que ficam em `cup.ts` e são importados aqui).
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/g48.test.ts
@@ -338,12 +338,12 @@ describe("g48", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha**
+- [x] **Step 2: Rodar — falha**
 
 Run: `npx jest formats/__tests__/g48.test.ts`
 Expected: FAIL "Cannot find module '../g48'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/g48.ts
@@ -510,12 +510,12 @@ export const g48: CupEngine = {
 export { buildGroups, groupFixtures, winnersOf };
 ```
 
-- [ ] **Step 4: Rodar — passa**
+- [x] **Step 4: Rodar — passa**
 
 Run: `npx jest formats/__tests__/g48.test.ts`
 Expected: PASS (3)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/g48.ts lib/game/formats/__tests__/g48.test.ts
@@ -532,7 +532,7 @@ git commit -m "feat(formats): g48 engine (paridade com o formato 2026 atual)"
 
 Objetivo: `cup.ts` para de hardcodar o formato. `drawCup` ganha `mode`, `advanceCup` delega, `roundLabel(cup,r)`/`lastRound(cup)`/`podium(cup)` delegam. **Comportamento do 2026 não muda.** `groupTable`/`thirdPlaceTable` continuam em `cup.ts` (g48 os importa).
 
-- [ ] **Step 1: Criar o registry (só g48 por enquanto)**
+- [x] **Step 1: Criar o registry (só g48 por enquanto)**
 
 ```ts
 // lib/game/formats/registry.ts
@@ -569,7 +569,7 @@ export function engineFor(mode: CupMode, editionId: string): CupEngine {
 export { FIEL_BY_YEAR };
 ```
 
-- [ ] **Step 2: Editar `cup.ts` — drawCup, advanceCup, labels, podium**
+- [x] **Step 2: Editar `cup.ts` — drawCup, advanceCup, labels, podium**
 
 Em `lib/game/cup.ts`:
 
@@ -659,12 +659,12 @@ export function userAlive(cup: CupState): boolean {
 }
 ```
 
-- [ ] **Step 3: Type-check + testes existentes**
+- [x] **Step 3: Type-check + testes existentes**
 
 Run: `npx tsc --noEmit` (ainda haverá erros em store/UI — ok) então `npx jest lib/game/__tests__ formats/__tests__`
 Expected: testes de `formats/` e do motor de partida PASS. Se `lib/game/__tests__/game.test.ts` referenciar `ROUND_LABEL`/`LAST_ROUND`, ajustar o teste para `roundLabel(cup,r)`/`lastRound(cup)`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/game/cup.ts lib/game/formats/registry.ts lib/game/__tests__
@@ -681,7 +681,7 @@ git commit -m "refactor(cup): delega build/advance/labels ao motor; drawCup ganh
 
 32 times, 8 grupos de 4 → top 2 (16) → Oitavas(4) → Quartas(5) → Semi(6) → 3º(7) → Final(8).
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/g32.test.ts
@@ -710,12 +710,12 @@ describe("g32", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha**
+- [x] **Step 2: Rodar — falha**
 
 Run: `npx jest formats/__tests__/g32.test.ts`
 Expected: FAIL "Cannot find module '../g32'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/g32.ts
@@ -801,14 +801,14 @@ export const g32: CupEngine = {
 };
 ```
 
-- [ ] **Step 4: Registrar e testar**
+- [x] **Step 4: Registrar e testar**
 
 Em `registry.ts`, adicionar `import { g32 } from "./g32";` e no `FIEL_BY_YEAR`: `1998: g32, 2002: g32, 2006: g32, 2010: g32, 2014: g32, 2018: g32, 2022: g32,`.
 
 Run: `npx jest formats/__tests__/g32.test.ts`
 Expected: PASS (2)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/g32.ts lib/game/formats/__tests__/g32.test.ts lib/game/formats/registry.ts
@@ -825,7 +825,7 @@ git commit -m "feat(formats): g32 engine (1998–2022)"
 
 24 times, 6 grupos de 4 → 12 (top2) + 4 melhores 3ºs = 16 → Oitavas(4) → Quartas(5) → Semi(6) → 3º(7) → Final(8).
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/g24.test.ts
@@ -848,12 +848,12 @@ describe("g24", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha**
+- [x] **Step 2: Rodar — falha**
 
 Run: `npx jest formats/__tests__/g24.test.ts`
 Expected: FAIL "Cannot find module '../g24'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/g24.ts
@@ -940,14 +940,14 @@ export const g24: CupEngine = {
 };
 ```
 
-- [ ] **Step 4: Registrar e testar**
+- [x] **Step 4: Registrar e testar**
 
 Em `registry.ts`: `import { g24 } from "./g24";` e `1986: g24, 1990: g24, 1994: g24,` no `FIEL_BY_YEAR`.
 
 Run: `npx jest formats/__tests__/g24.test.ts`
 Expected: PASS (2)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/g24.ts lib/game/formats/__tests__/g24.test.ts lib/game/formats/registry.ts
@@ -964,7 +964,7 @@ git commit -m "feat(formats): g24 engine (1986–94, melhores 3ºs)"
 
 16 times, 4 grupos de 4 → top2 (8) → Quartas(4) → Semi(5) → 3º(6) → Final(7).
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/g16.test.ts
@@ -988,12 +988,12 @@ describe("g16", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha**
+- [x] **Step 2: Rodar — falha**
 
 Run: `npx jest formats/__tests__/g16.test.ts`
 Expected: FAIL "Cannot find module '../g16'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/g16.ts
@@ -1073,14 +1073,14 @@ export const g16: CupEngine = {
 };
 ```
 
-- [ ] **Step 4: Registrar e testar**
+- [x] **Step 4: Registrar e testar**
 
 Em `registry.ts`: `import { g16 } from "./g16";` e `1954: g16, 1958: g16, 1962: g16, 1966: g16, 1970: g16,`.
 
 Run: `npx jest formats/__tests__/g16.test.ts`
 Expected: PASS (2)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/g16.ts lib/game/formats/__tests__/g16.test.ts lib/game/formats/registry.ts
@@ -1097,7 +1097,7 @@ git commit -m "feat(formats): g16 engine (1954–70, quartas direto)"
 
 13 times em 4 grupos de tamanhos [4,4,3,2]. Cada grupo round-robin. Os 4 1ºs vão ao **grupo final** (round-robin, rounds 4–6). Campeão = 1º do grupo final. Sem semi/3º/final. Todos `knockout: false`.
 
-- [ ] **Step 1: Teste falhando**
+- [x] **Step 1: Teste falhando**
 
 ```ts
 // lib/game/formats/__tests__/finalGroup1950.test.ts
@@ -1134,12 +1134,12 @@ describe("finalGroup1950", () => {
 });
 ```
 
-- [ ] **Step 2: Rodar — falha**
+- [x] **Step 2: Rodar — falha**
 
 Run: `npx jest formats/__tests__/finalGroup1950.test.ts`
 Expected: FAIL "Cannot find module '../finalGroup1950'"
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```ts
 // lib/game/formats/finalGroup1950.ts
@@ -1225,14 +1225,14 @@ export const finalGroup1950: CupEngine = {
 
 Nota: `groupTable(cup, FINAL_GROUP)` lê `cup.groups[FINAL_GROUP]` e os fixtures com `group === "F"` — funciona porque `groupTable` é genérico por `group`.
 
-- [ ] **Step 4: Registrar e testar**
+- [x] **Step 4: Registrar e testar**
 
 Em `registry.ts`: `import { finalGroup1950 } from "./finalGroup1950";` e `1950: finalGroup1950,`.
 
 Run: `npx jest formats/__tests__/finalGroup1950.test.ts`
 Expected: PASS (2)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/game/formats/finalGroup1950.ts lib/game/formats/__tests__/finalGroup1950.test.ts lib/game/formats/registry.ts
@@ -1246,7 +1246,7 @@ git commit -m "feat(formats): finalGroup1950 engine (grupo final / Maracanazo)"
 **Files:**
 - Modify: `lib/data/editions.ts`
 
-- [ ] **Step 1: Adicionar `lore` em cada edição**
+- [x] **Step 1: Adicionar `lore` em cada edição**
 
 Adicionar a propriedade `lore` em cada objeto de `EDITIONS`. Textos pt-BR curtos e imersivos. Exemplos completos (escrever para TODAS as 21):
 
@@ -1293,12 +1293,12 @@ lore: "32 seleções, 8 grupos e oitavas. A primeira Copa no fim do ano, no dese
 lore: "48 seleções pela primeira vez: 12 grupos e os 16 avos de final. A maior Copa da história.",
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit 2>&1 | grep editions`
 Expected: sem erros referentes a `editions.ts` (`lore` é opcional no tipo).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/data/editions.ts
@@ -1312,7 +1312,7 @@ git commit -m "feat(editions): mini-história (lore) por edição"
 **Files:**
 - Modify: `lib/game/store.ts`
 
-- [ ] **Step 1: Adicionar `cupMode` ao estado e ao freshCareer**
+- [x] **Step 1: Adicionar `cupMode` ao estado e ao freshCareer**
 
 Em `interface CareerState` (após `editionId`):
 ```ts
@@ -1324,7 +1324,7 @@ Em `freshCareer` (objeto inicial, ~linha 128), adicionar:
   cupMode: "tradicional" as CupMode,
 ```
 
-- [ ] **Step 2: `newCareer` recebe `mode`**
+- [x] **Step 2: `newCareer` recebe `mode`**
 
 Atualizar a assinatura na interface de actions (linha ~65):
 ```ts
@@ -1351,7 +1351,7 @@ E a implementação (linha ~160):
 ```
 Em `newCareer2026`, adicionar `cupMode: "tradicional"` no `set({...})`.
 
-- [ ] **Step 3: `startCup` passa o modo**
+- [x] **Step 3: `startCup` passa o modo**
 
 Atualizar `startCup` (linha ~293):
 ```ts
@@ -1367,14 +1367,14 @@ Atualizar `startCup` (linha ~293):
       },
 ```
 
-- [ ] **Step 4: `recordResult` usa `lastRound(cup)`**
+- [x] **Step 4: `recordResult` usa `lastRound(cup)`**
 
 No import de `./cup` (linha 9), trocar `LAST_ROUND` por `lastRound`. No loop de `recordResult` (linha ~346), trocar:
 ```ts
             if (r > lastRound(cup)) { advanceCup(cup); break; }
 ```
 
-- [ ] **Step 5: Persist v5 + migração**
+- [x] **Step 5: Persist v5 + migração**
 
 Atualizar (linha ~370):
 ```ts
@@ -1397,12 +1397,12 @@ Atualizar (linha ~370):
       },
 ```
 
-- [ ] **Step 6: Type-check + testes**
+- [x] **Step 6: Type-check + testes**
 
 Run: `npx tsc --noEmit` (UI ainda com erros de ROUND_LABEL — ok) e `npx jest`
 Expected: testes de motor/formats PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/game/store.ts
@@ -1416,7 +1416,7 @@ git commit -m "feat(store): persist v5, cupMode na carreira, newCareer(mode), st
 **Files:**
 - Modify: `app/page.tsx`
 
-- [ ] **Step 1: Importar helpers e ajustar `pickEdition`**
+- [x] **Step 1: Importar helpers e ajustar `pickEdition`**
 
 No topo de `app/page.tsx`, adicionar imports:
 ```ts
@@ -1439,7 +1439,7 @@ function startWithMode(editionId: string, mode: CupMode) {
 }
 ```
 
-- [ ] **Step 2: Retângulo de aviso fixo na etapa de edição**
+- [x] **Step 2: Retângulo de aviso fixo na etapa de edição**
 
 No bloco `step === "edition"`, trocar o parágrafo explicativo atual por um layout com o aviso ao lado da grade. Substituir o `<p>` (linhas ~391–394) e envolver a grade:
 ```tsx
@@ -1466,7 +1466,7 @@ No bloco `step === "edition"`, trocar o parágrafo explicativo atual por um layo
 </div>
 ```
 
-- [ ] **Step 3: Popup de modo (com "?" lore)**
+- [x] **Step 3: Popup de modo (com "?" lore)**
 
 Antes do fechamento do `<main>`, adicionar o modal. Usa `EDITION_BY_ID` (importar de `@/lib/data/editions`) para ler `lore` e `editionLabel`:
 ```tsx
@@ -1508,12 +1508,12 @@ Antes do fechamento do `<main>`, adicionar o modal. Usa `EDITION_BY_ID` (importa
 ```
 Garantir imports: `EDITION_BY_ID` de `@/lib/data/editions`, `AnimatePresence`/`motion` de `framer-motion` (já usados na página).
 
-- [ ] **Step 4: Type-check + smoke**
+- [x] **Step 4: Type-check + smoke**
 
 Run: `npx tsc --noEmit 2>&1 | grep "app/page"`
 Expected: sem erros em `app/page.tsx`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/page.tsx
@@ -1527,7 +1527,7 @@ git commit -m "feat(home): popup Fiel/Tradicional + aviso de formato + lore por 
 **Files:**
 - Modify: `app/cup/page.tsx`
 
-- [ ] **Step 1: Imports e derivação**
+- [x] **Step 1: Imports e derivação**
 
 Trocar import `ROUND_LABEL` por `roundLabel`; manter `podium`, `groupTable`, `thirdPlaceTable`, `nextUserFixture`, `leaders`. Adicionar `engineFor` de `@/lib/game/formats/registry`.
 No componente que tem `cup`, derivar:
@@ -1538,15 +1538,15 @@ const usesThirds = engine.id === "g24" || engine.id === "g48";
 const isFinalGroup = engine.id === "finalGroup1950";
 ```
 
-- [ ] **Step 2: Substituir usos de `ROUND_LABEL[...]` por `roundLabel(cup, ...)`**
+- [x] **Step 2: Substituir usos de `ROUND_LABEL[...]` por `roundLabel(cup, ...)`**
 
 Linhas com `ROUND_LABEL[next.round]`, `ROUND_LABEL[detail.round]`, `ROUND_LABEL[r]` → `roundLabel(cup, next.round)` etc.
 
-- [ ] **Step 3: Grupos derivados de `groupNames`**
+- [x] **Step 3: Grupos derivados de `groupNames`**
 
 Trocar `GROUP_NAMES.map((g) => ...)` (linha ~230) por `groupNames.map((g) => ...)`. Remover import de `GROUP_NAMES` se não usado em outro ponto.
 
-- [ ] **Step 4: Ranking de 3ºs condicional + nota do grupo**
+- [x] **Step 4: Ranking de 3ºs condicional + nota do grupo**
 
 Envolver o bloco "Ranking dos terceiros colocados" (a partir de `{groupsDone && (`) com `{groupsDone && usesThirds && (`. A nota fixa "1º e 2º avançam · 3º disputa…" (linha ~289) trocar por texto dependente do motor:
 ```tsx
@@ -1557,7 +1557,7 @@ Envolver o bloco "Ranking dos terceiros colocados" (a partir de `{groupsDone && 
 </p>
 ```
 
-- [ ] **Step 5: Bracket genérico**
+- [x] **Step 5: Bracket genérico**
 
 No `BracketTab` (linha ~365), trocar a lógica fixa por derivação dos rounds de mata-mata presentes. Para `finalGroup1950`, mostrar a tabela do grupo final em vez de chaveamento:
 ```tsx
@@ -1595,7 +1595,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
 ```
 Extrair `Tie` e `GroupTable` como componentes reutilizáveis (mover a função `Tie` interna existente para o escopo do módulo, recebendo `cup`/`onFixture` por props; reusar a tabela de grupo já renderizada na aba de grupos como componente `GroupTable`). Se a refatoração de `GroupTable` for grande, criar um componente mínimo que renderiza `groupTable(cup, group)` no mesmo estilo da aba de grupos.
 
-- [ ] **Step 6: "?" lore no topo da copa**
+- [x] **Step 6: "?" lore no topo da copa**
 
 Logo abaixo do cabeçalho da página de copa, adicionar (lendo `EDITION_BY_ID[cup.editionId].lore`):
 ```tsx
@@ -1608,12 +1608,12 @@ Logo abaixo do cabeçalho da página de copa, adicionar (lendo `EDITION_BY_ID[cu
 ```
 Importar `EDITION_BY_ID` de `@/lib/data/editions`.
 
-- [ ] **Step 7: Type-check + build**
+- [x] **Step 7: Type-check + build**
 
 Run: `npx tsc --noEmit && npm run build 2>&1 | tail -5`
 Expected: sem erros; `/cup` compila.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/cup/page.tsx
@@ -1627,19 +1627,19 @@ git commit -m "feat(cup): grupos/rounds derivados do formato, bracket genérico,
 **Files:**
 - Modify: `app/match/page.tsx`
 
-- [ ] **Step 1: Trocar ROUND_LABEL e round>=4**
+- [x] **Step 1: Trocar ROUND_LABEL e round>=4**
 
 No import (linha 16), trocar `ROUND_LABEL` por `roundLabel`.
 Linha 156: `createMatch(home, away, pre.seed, pre.f.knockout, coolingBreaks)`.
 Linhas com `ROUND_LABEL[f.round]` / `ROUND_LABEL[meta.round]` → `roundLabel(c.cup!, f.round)` / `roundLabel(c.cup!, meta.round)`. (O componente tem acesso a `c.cup`; onde só houver `meta`, passar `cup` via prop ou usar `useCareer().cup`.)
 Linha 935 (`others` clustering): `const k = f.group ? ... : roundLabel(c.cup!, f.round);`.
 
-- [ ] **Step 2: Type-check + build**
+- [x] **Step 2: Type-check + build**
 
 Run: `npx tsc --noEmit && npm run build 2>&1 | tail -5`
 Expected: sem erros.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/match/page.tsx
@@ -1652,17 +1652,17 @@ git commit -m "feat(match): roundLabel por formato + flag knockout no fixture"
 
 **Files:** nenhum (verificação)
 
-- [ ] **Step 1: Suite completa**
+- [x] **Step 1: Suite completa**
 
 Run: `npm test`
 Expected: tudo verde (motor/calibração intactos + novos testes de formats).
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 Run: `npm run build`
 Expected: compila sem erros.
 
-- [ ] **Step 3: Smoke manual (dev + browser)**
+- [x] **Step 3: Smoke manual (dev + browser)**
 
 Run: `npm run dev` e, com o helper `scripts/gen-verify-state.ts` (ou jogando do início):
 - Home → escolher **1950** → popup aparece, "?" mostra Maracanazo, **JOGAR FIEL** → conferir 4 grupos [4,4,3,2], depois o **Grupo Final** na aba chaveamento, campeão pelo quadrangular.
@@ -1670,11 +1670,11 @@ Run: `npm run dev` e, com o helper `scripts/gen-verify-state.ts` (ou jogando do 
 - Home → escolher **1974** → no popup, **JOGAR FIEL** desabilitado ("em breve"); Tradicional funciona.
 - Conferir retângulo "Dica do mister" ao lado da grade de edições.
 
-- [ ] **Step 4: Atualizar CLAUDE.md**
+- [x] **Step 4: Atualizar CLAUDE.md**
 
 Acrescentar em `## Arquitetura` a pasta `lib/game/formats/` e, em `### Copa`, nota: "Formato por edição: `mode` (fiel/tradicional) + `editionId` → motor em `formats/registry.ts`. Tradicional = g48 sempre; Fiel = formato do ano (1974/78/1982 travados até a Fase 2). `Fixture.knockout` define mata-mata; `roundLabel(cup,r)`/`lastRound(cup)` delegam ao motor."
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CLAUDE.md

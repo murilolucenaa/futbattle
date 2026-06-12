@@ -182,10 +182,10 @@ escolher 2026 Tradicional (idêntico ao atual), conferir popup + retângulo + "?
 
 ## Critérios de aceite
 
-- [ ] Escolher edição abre popup Fiel/Tradicional; retângulo fixo explica o conceito.
-- [ ] Tradicional = formato 2026 atual com tema do ano, em qualquer edição.
-- [ ] Fiel usa o formato real do ano (Fase 1: 16/24/32/48 + 1950); 74/78/1982 travados com "em breve".
-- [ ] 1950 Fiel termina em campeão pelo grupo final, sem final clássica.
-- [ ] "?" mostra mini-história por edição.
-- [ ] Saves antigos (v4) carregam como Tradicional sem quebrar.
-- [ ] `npm test` verde; sem mudança no motor de partida.
+- [x] Escolher edição abre popup Fiel/Tradicional; retângulo fixo explica o conceito.
+- [x] Tradicional = formato 2026 atual com tema do ano, em qualquer edição.
+- [x] Fiel usa o formato real do ano (Fase 1: 16/24/32/48 + 1950); 74/78/1982 travados com "em breve".
+- [x] 1950 Fiel termina em campeão pelo grupo final, sem final clássica.
+- [x] "?" mostra mini-história por edição.
+- [x] Saves antigos (v4) carregam como Tradicional sem quebrar.
+- [x] `npm test` verde; sem mudança no motor de partida.

@@ -21,8 +21,10 @@ lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + ass
 lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tacticMods)
 lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio ponderado por força (squadWeight)
 lib/game/engine.ts      # Motor da partida: tick = 1 minuto, mutável, determinístico por seed, cooling break
-lib/game/cup.ts         # Sorteio 48 times, grupos A–L, melhores 3ºs, R32→final+3º lugar, líderes (playerTotals)
-lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 3) — carreira + moral + draftDraw
+lib/game/cup.ts         # Sorteio/avanço delegados ao motor de formato; helpers genéricos (currentRound, nextUserFixture, simulateRound, recordUserResult, leaders); roundLabel(cup,r)/lastRound(cup)
+lib/game/standings.ts   # groupTable/thirdPlaceTable (extraído de cup.ts p/ quebrar ciclo cup→registry→motores→standings)
+lib/game/formats/       # Formato por edição: registry (mode+editionId→motor), motores g16/g24/g32/g48/finalGroup1950, shared (roundRobin/pickOpponents/estádios), types (CupEngine)
+lib/game/store.ts       # Zustand + persist (chave "futbattle-career", version 5) — carreira + moral + draftDraw + cupMode
 src/audio/SoundManager.ts # Motor de áudio único (howler.js): canais ui/music/ambience/match,
                         #   volumes+mute persistidos, autoplay-unlock com fila, duck, silent-fail
 src/audio/manifest.json # Contrato de sons (path extensionless → /public/audio/<path>.webm), canal, volume, desc
@@ -85,10 +87,11 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 - Determinismo: mesmo seed ⇒ mesmo jogo (`fixtureSeed`). Ações ao vivo alteram o fluxo do RNG — esperado.
 - Narração do engine **sem emojis** — a UI põe ícones SVG por tipo de evento.
 
-### Copa (formato 2026)
-- 48 times (usuário + 47), **12 grupos A–L** de 4, round-robin de 3 rodadas. Estádio em todo fixture.
-- Classificação: pontos → saldo → gols pró (→ hash estável). **Top 2 + 8 melhores 3ºs** avançam (`thirdPlaceTable`, `r32Qualifiers`).
-- Rounds: 1–3 grupos · 4 = 16 avos (R32) · 5 = oitavas · 6 = quartas · 7 = semi · **8 = 3º lugar** · 9 = FINAL (`LAST_ROUND = 9`).
+### Copa (formato por edição: Fiel vs Tradicional)
+- **Modo** (`cup.mode`, escolhido no popup da home): **Tradicional** = motor g48 (formato 2026) em qualquer edição; **Fiel** = formato real do ano. `engineFor(mode, editionId)` resolve o motor (`formats/registry.ts`). 1974/78/1982 no Fiel ficam **travados** (`fielAvailable=false`, "em breve" — Fase 2).
+- Motores: `finalGroup1950` (13 times, 4 grupos [4,4,3,2] → quadrangular final, campeão = 1º do grupo "FINAL", **sem final clássica**), `g16` (1954–70, 4 grupos→quartas), `g24` (1986–94, 6 grupos + 4 melhores 3ºs), `g32` (1998–2022, 8 grupos), `g48` (2026 + Tradicional).
+- **`Fixture.knockout`** define mata-mata (pênaltis no empate) — substitui o antigo `round >= 4`. Grupo-final de 1950 é `knockout:false`. `roundLabel(cup,r)`/`lastRound(cup)` delegam ao motor (não há mais `ROUND_LABEL`/`LAST_ROUND` estáticos). `cup/page.tsx` deriva nº de grupos de `cup.groups` e rounds de mata-mata dos fixtures `knockout`.
+- 2026: 48 times, **12 grupos A–L**; classificação pontos → saldo → gols pró (→ hash). **Top 2 + 8 melhores 3ºs** avançam. Rounds: 1–3 grupos · 4 = 16 avos · 5 = oitavas · 6 = quartas · 7 = semi · **8 = 3º lugar** · 9 = FINAL.
 - R32: vencedores × terceiros/vices de grupos diferentes (fix-up evita confronto do mesmo grupo); chaveamento em 2 lados de 8.
 - Semis completas criam **3º lugar e final juntos**; se o usuário está na final, a disputa de 3º é simulada antes (loop em `recordResult` usa `nextUserFixture`, não assuma round único).
 - `leaders(cup, "goals"|"assists"|"rating")` lê `cup.playerTotals`, alimentado por `recordUserResult`/`simulateRound`. Notas exigem ≥2 jogos.
