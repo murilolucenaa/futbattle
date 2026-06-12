@@ -8,9 +8,11 @@ import Pitch from "@/components/Pitch";
 import PressConference from "@/components/PressConference";
 import GameShell from "@/components/game/GameShell";
 import PlayerChip from "@/components/game/PlayerChip";
+import ShareCard, { type ShareCardData } from "@/components/game/ShareCard";
+import { toPng } from "html-to-image";
 import SoundProvider from "@/src/audio/SoundProvider";
-import { useCareer, allCards, cardById } from "@/lib/game/store";
-import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
+import { useCareer, allCards, cardById, userTeamName } from "@/lib/game/store";
+import { FORMATIONS, FORMATION_IDS, effectiveOvr, formationLayout } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL, STYLE_DESC } from "@/lib/game/tactics";
 import { SQUADS, SQUAD_BY_ID, squadLabel } from "@/lib/data/squads";
 import { drawSquad, squadPower } from "@/lib/game/rules";
@@ -592,13 +594,19 @@ function ManageChip({ card, pos, selected, morale, dragging }: {
 function ManageView() {
   const router = useRouter();
   const c = useCareer();
-  const slots = FORMATIONS[c.tactics.formation];
+  // mentality reshapes the block (presentation-only) — chips animate to it
+  const slots = formationLayout(c.tactics.formation, c.tactics.mentality);
   const lineup = c.lineupIds.map((id) => cardById(c, id));
   const bench = c.benchIds.map((id) => cardById(c, id)).filter((x): x is Card => !!x);
   const [selIdx, setSelIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [confirmSwap, setConfirmSwap] = useState<{ a: number; b: number } | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
+
+  // share card capture
+  const shareRef = useRef<HTMLDivElement>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const teamOvr = Math.round(
     lineup.reduce((s, card, i) => s + (card ? effectiveOvr(card, slots[i].pos) : 0), 0) / 11
@@ -655,6 +663,49 @@ function ManageView() {
     ["DEF", sectorOvr(meterEntries, "DEF")],
   ];
 
+  const shareData: ShareCardData = {
+    squadName: userTeamName(c),
+    coachName: c.coachName,
+    formation: c.tactics.formation,
+    mentality: c.tactics.mentality,
+    slots,
+    lineup,
+    teamOvr,
+    meters,
+  };
+
+  async function generateShare() {
+    const node = shareRef.current;
+    if (!node || sharing) return;
+    setSharing(true);
+    sound.play("ui.stamp");
+    try {
+      const url = await toPng(node, { pixelRatio: 2, width: 1080, height: 1920, cacheBust: true });
+      setShareUrl(url);
+    } catch {
+      sound.play("ui.error");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function nativeShare() {
+    if (!shareUrl) return;
+    try {
+      const blob = await (await fetch(shareUrl)).blob();
+      const file = new File([blob], "futbattle-escalacao.png", { type: "image/png" });
+      const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: userTeamName(c) });
+        return;
+      }
+    } catch { /* cancelled or unsupported — fall through to download */ }
+    const a = document.createElement("a");
+    a.href = shareUrl;
+    a.download = "futbattle-escalacao.png";
+    a.click();
+  }
+
   return (
     <main className="arc-bg flex-1 w-full">
       <div className="mx-auto max-w-6xl w-full px-3 sm:px-4 py-5">
@@ -675,6 +726,15 @@ function ManageView() {
               ))}
             </div>
           </div>
+          <button
+            data-sound="confirm"
+            onClick={generateShare}
+            disabled={sharing}
+            className="arc-btn arc-btn--paper arc-btn--card px-5 py-2"
+          >
+            <span className="block text-base leading-tight">{sharing ? "Gerando…" : "Compartilhar"}</span>
+            <span className="block font-arc text-[10px] font-bold opacity-70 mt-0.5">escalação pros stories</span>
+          </button>
           <button
             data-sound="confirm"
             onClick={() => { if (!c.cup) c.startCup(); router.push("/cup"); }}
@@ -711,8 +771,8 @@ function ManageView() {
                   return (
                     <div
                       key={`${c.tactics.formation}-${i}`}
-                      className={`absolute -translate-x-1/2 translate-y-1/2 ${dragIdx === i ? "z-40" : "z-10"}`}
-                      style={{ left: `${slot.y}%`, bottom: `${slot.x}%` }}
+                      className={`absolute -translate-x-1/2 translate-y-1/2 transition-[left,bottom] duration-500 ease-out ${dragIdx === i ? "z-40" : "z-10"}`}
+                      style={{ left: `${slot.y}%`, bottom: `${slot.x}%`, transitionDelay: `${i * 25}ms` }}
                     >
                       {card ? (
                         <motion.div
@@ -799,7 +859,7 @@ function ManageView() {
                   {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
                     <button
                       key={m}
-                      data-sound="confirm"
+                      data-sound="tab"
                       onClick={() => c.setTactics({ mentality: m })}
                       className={`arc-btn arc-btn--card py-1.5 text-[11px] ${
                         c.tactics.mentality === m
@@ -857,6 +917,40 @@ function ManageView() {
                     className="arc-btn arc-btn--rosa flex-1 py-2.5 text-sm"
                   >
                     Eu que mando
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* off-screen card the rasterizer captures (kept rendered, not display:none) */}
+        <div style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", zIndex: -1 }} aria-hidden>
+          <ShareCard ref={shareRef} data={shareData} />
+        </div>
+
+        {/* share preview modal */}
+        <AnimatePresence>
+          {shareUrl && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+              onClick={() => setShareUrl(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }}
+                className="arc-panel flex w-full max-w-xs flex-col items-center p-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="arc-tag mb-3">★ Escalação pronta</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={shareUrl} alt="Card da escalação" className="w-full rounded-xl border-[3px] border-[var(--ink)] shadow-[3px_4px_0_var(--ink)]" />
+                <div className="mt-4 flex w-full gap-2">
+                  <button data-sound="confirm" onClick={nativeShare} className="arc-btn arc-btn--lima flex-1 py-2.5 text-sm">
+                    Compartilhar
+                  </button>
+                  <button data-sound="cancel" onClick={() => setShareUrl(null)} className="arc-btn arc-btn--paper px-4 py-2.5 text-sm">
+                    Fechar
                   </button>
                 </div>
               </motion.div>

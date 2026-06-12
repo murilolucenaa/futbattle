@@ -29,6 +29,20 @@ function TeamLabel({ cup, id, bold, compact }: { cup: CupState; id: string; bold
   );
 }
 
+/** Hero matchup side: big flag + Anton name, overflow-safe (min-w-0 + truncate). */
+function HeroSide({ cup, id, align }: { cup: CupState; id: string; align: "left" | "right" }) {
+  const t = cup.teams[id];
+  const isUser = id === "USER";
+  return (
+    <div className={`flex min-w-0 flex-1 items-center gap-2.5 ${align === "right" ? "flex-row-reverse text-right" : "text-left"}`}>
+      <span className="shrink-0 text-3xl leading-none sm:text-4xl">{t.flag}</span>
+      <span className={`min-w-0 truncate font-display text-2xl leading-none sm:text-3xl ${isUser ? "text-[var(--accent)]" : ""}`}>
+        {t.name}
+      </span>
+    </div>
+  );
+}
+
 function FixtureRow({ cup, f, onClick }: { cup: CupState; f: Fixture; onClick?: () => void }) {
   const played = f.scoreH !== null;
   return (
@@ -96,12 +110,12 @@ export default function CupPage() {
               </div>
             )}
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="font-display text-2xl sm:text-3xl flex items-center gap-3 min-w-0">
-                <TeamLabel cup={cup} id={next.homeId} bold />
-                <span className="text-[var(--muted)]">x</span>
-                <TeamLabel cup={cup} id={next.awayId} bold />
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <HeroSide cup={cup} id={next.homeId} align="right" />
+                <span className="shrink-0 font-arc text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--muted)]">vs</span>
+                <HeroSide cup={cup} id={next.awayId} align="left" />
               </div>
-              <button data-sound="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3">
+              <button data-sound="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3 shrink-0">
                 <span className="block text-xl leading-tight">Bora pro jogo</span>
                 <span className="block font-arc text-[10px] font-bold opacity-80 mt-0.5">aquece que é sua vez, mister</span>
               </button>
@@ -254,11 +268,11 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
                 return (
                   <tr
                     key={row.teamId}
-                    className={`border-t border-[var(--border)] ${
+                    className={`border-t border-[var(--border)] tabular-nums ${
                       i < 2 ? "bg-[rgba(154,205,30,0.28)]" : qualThird ? "bg-[rgba(255,200,27,0.3)]" : ""
                     }`}
                   >
-                    <td className={`py-2 text-xs font-bold ${i < 2 ? "text-[var(--accent)]" : qualThird ? "text-[var(--gold)]" : "text-[var(--muted)]"}`}>{i + 1}º</td>
+                    <td className={`py-2 pl-1.5 text-xs font-bold border-l-[4px] ${i < 2 ? "border-[var(--lima)] text-[var(--accent)]" : qualThird ? "border-[var(--amarelo)] text-[var(--gold)]" : "border-transparent text-[var(--muted)]"}`}>{i + 1}º</td>
                     <td className="py-2 pr-2"><TeamLabel cup={cup} id={row.teamId} /></td>
                     <td className="text-center text-[var(--muted)]">{row.p}</td>
                     <td className="text-center text-[var(--muted)]">{row.w}</td>

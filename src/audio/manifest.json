@@ -11,6 +11,9 @@
     "ui.stamp": { "path": "ui/stamp", "channel": "ui", "volume": 0.7, "desc": "Rubber-stamp slam for 'CONVOCADO'/official decisions: low thud + paper snap." },
     "transition.whoosh": { "path": "ui/whoosh", "channel": "ui", "volume": 0.5, "desc": "Console-style screen wipe whoosh (~280ms noise sweep)." },
 
+    "camera.flash": { "path": "ambience/camera-flash", "channel": "ambience", "volume": 0.15, "desc": "Press-room camera shutter/flash: very short bright pop (~80ms); pitch randomized ±10% per shot." },
+    "crowd.murmur": { "path": "ambience/crowd-murmur", "channel": "ambience", "volume": 0.35, "loop": true, "desc": "Low press-conference room murmur loop (quieter, drier than stadium crowd)." },
+
     "dado.roll": { "path": "draft/dado-roll", "channel": "match", "volume": 0.7, "desc": "Dice rolling: shake (rattling) then a drop/settle (~0.8s)." },
     "card.reveal": { "path": "draft/card-reveal", "channel": "match", "volume": 0.65, "desc": "Common player revealed: short positive flick (~0.3s)." },
     "card.reveal.rare": { "path": "draft/card-reveal-rare", "channel": "match", "volume": 0.75, "desc": "88+ rated reveal: brighter sting with shimmer (~0.6s)." },

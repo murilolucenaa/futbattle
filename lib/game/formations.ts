@@ -1,4 +1,4 @@
-import type { Card, FormationId, FormationSlot, Position } from "./types";
+import type { Card, FormationId, FormationSlot, Mentality, Position } from "./types";
 
 // x: 0 = own goal line → 100 = opponent goal line
 // y: 0 = left touchline → 100 = right touchline
@@ -175,6 +175,40 @@ export const FORMATIONS: Record<FormationId, FormationSlot[]> = {
 };
 
 export const FORMATION_IDS = Object.keys(FORMATIONS) as FormationId[];
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/**
+ * Formation coordinates shifted by mentality — the whole team visibly drops
+ * (defensivo) or pushes up (ofensivo) as a block, full-backs moving the most
+ * and midfield/attack tucking toward the center when defending. This is
+ * **presentation-only**: the match engine keeps reading the base FORMATIONS
+ * coords and applies real tactics through `tacticMods`. Used by the prancheta
+ * (and pre-game mini-pitch) so changing mentality animates the shape.
+ */
+export function formationLayout(formation: FormationId, mentality: Mentality): FormationSlot[] {
+  const base = FORMATIONS[formation];
+  if (mentality === "equilibrado") return base;
+  const dir = mentality === "ofensivo" ? 1 : -1;
+  return base.map((s) => {
+    if (s.pos === "GK") return s;
+    const fullback = s.pos === "RB" || s.pos === "LB";
+    const sector =
+      s.pos === "RB" || s.pos === "CB" || s.pos === "LB" ? "DEF"
+      : s.pos === "DM" || s.pos === "CM" || s.pos === "AM" ? "MID"
+      : "ATT";
+    let dx = 0;
+    let pullToCenter = 0; // only when defending
+    if (sector === "DEF") dx = (fullback ? 9 : 3) * dir;
+    else if (sector === "MID") { dx = 6 * dir; if (dir < 0) pullToCenter = 0.22; }
+    else { dx = 5 * dir; if (dir < 0) pullToCenter = 0.15; }
+    return {
+      ...s,
+      x: clamp(s.x + dx, 8, 92),
+      y: clamp(s.y + (50 - s.y) * pullToCenter, 6, 94),
+    };
+  });
+}
 
 /**
  * Effective OVR of a card playing in `slotPos`.

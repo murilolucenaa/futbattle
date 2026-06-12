@@ -42,6 +42,7 @@ function synth(event: string, entry: Entry): Float32Array {
   else if (event.startsWith("card.reveal.leg")) dur = 1.8;
   else if (event.startsWith("card.reveal")) dur = 0.45;
   else if (event === "dado.roll") dur = 0.8;
+  else if (event === "camera.flash") dur = 0.08;
   else if (entry.channel === "ambience") dur = 1.6;
   else if (entry.channel === "music") dur = 2.0;
   else if (event.startsWith("crowd")) dur = 1.0;
