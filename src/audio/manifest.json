@@ -1,0 +1,33 @@
+{
+  "_comment": "FutBattle sound contract. `path` is extension-less under /public/audio — SoundManager loads <path>.webm then falls back to <path>.wav (placeholders). Drop a real CC0 .webm at the same path to swap a sound with zero code change. `desc` guides the CC0 search.",
+  "channels": ["ui", "music", "ambience", "match"],
+  "events": {
+    "ui.move": { "path": "ui/move", "channel": "ui", "volume": 0.5, "desc": "PES PS2 cursor move: very short, dry, high-pitched blip on hover/arrow navigation (~40ms)." },
+    "ui.confirm": { "path": "ui/confirm", "channel": "ui", "volume": 0.6, "desc": "Confirm selection: lower/heavier than move, slight body/thunk (~90ms)." },
+    "ui.cancel": { "path": "ui/cancel", "channel": "ui", "volume": 0.55, "desc": "Back/cancel: short descending blip." },
+    "ui.tab": { "path": "ui/tab", "channel": "ui", "volume": 0.55, "desc": "Switch tab/formation: dry mechanical 'clack'." },
+    "ui.error": { "path": "ui/error", "channel": "ui", "volume": 0.6, "desc": "Invalid action: short low buzz." },
+    "ui.tick": { "path": "ui/tick", "channel": "ui", "volume": 0.4, "desc": "Counter/roulette tick: tiny high triangle, safe to spam." },
+    "ui.stamp": { "path": "ui/stamp", "channel": "ui", "volume": 0.7, "desc": "Rubber-stamp slam for 'CONVOCADO'/official decisions: low thud + paper snap." },
+    "transition.whoosh": { "path": "ui/whoosh", "channel": "ui", "volume": 0.5, "desc": "Console-style screen wipe whoosh (~280ms noise sweep)." },
+
+    "dado.roll": { "path": "draft/dado-roll", "channel": "match", "volume": 0.7, "desc": "Dice rolling: shake (rattling) then a drop/settle (~0.8s)." },
+    "card.reveal": { "path": "draft/card-reveal", "channel": "match", "volume": 0.65, "desc": "Common player revealed: short positive flick (~0.3s)." },
+    "card.reveal.rare": { "path": "draft/card-reveal-rare", "channel": "match", "volume": 0.75, "desc": "88+ rated reveal: brighter sting with shimmer (~0.6s)." },
+    "card.reveal.legendary": { "path": "draft/card-reveal-legendary", "channel": "match", "volume": 0.85, "duck": { "channel": "music", "to": 0.3, "ms": 2000 }, "desc": "Legendary reveal: epic ~2s sting (brass swell + sparkle); ducks music while it plays." },
+
+    "whistle.kickoff": { "path": "match/whistle-kickoff", "channel": "match", "volume": 0.7, "desc": "Referee single whistle for kickoff." },
+    "whistle.half": { "path": "match/whistle-half", "channel": "match", "volume": 0.7, "desc": "Referee double whistle for half-time." },
+    "whistle.end": { "path": "match/whistle-end", "channel": "match", "volume": 0.75, "desc": "Referee long triple whistle for full-time." },
+    "goal.horn": { "path": "match/goal-horn", "channel": "match", "volume": 0.9, "desc": "GOAL: air-horn blast + crowd explosion (~1.5s)." },
+    "crowd.loop": { "path": "match/crowd-loop", "channel": "ambience", "volume": 0.5, "loop": true, "desc": "Stadium ambience: seamless looping crowd murmur." },
+    "crowd.ooh": { "path": "match/crowd-ooh", "channel": "match", "volume": 0.6, "desc": "Missed chance: collective disappointed 'ooh'." },
+    "crowd.tension": { "path": "match/crowd-tension", "channel": "match", "volume": 0.6, "desc": "Tense final minutes of a close game: rising murmur/anticipation." },
+    "match.trophy": { "path": "match/trophy", "channel": "match", "volume": 0.85, "desc": "Champion fanfare: rising brass arpeggio + roar." },
+    "match.eliminated": { "path": "match/eliminated", "channel": "match", "volume": 0.7, "desc": "Elimination: crowd deflates, sad descending tones." },
+
+    "menu.theme": { "path": "music/menu-theme", "channel": "music", "volume": 0.45, "loop": true, "desc": "Main menu loop: upbeat arcade football theme." },
+    "copa.theme": { "path": "music/copa-theme", "channel": "music", "volume": 0.45, "loop": true, "desc": "Cup/bracket screen loop: anthemic, tournament feel." },
+    "anthem": { "path": "music/anthem", "channel": "music", "volume": 0.5, "loop": true, "desc": "Pre-match loop: stadium anthem / team walkout vibe." }
+  }
+}
