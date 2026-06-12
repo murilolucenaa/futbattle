@@ -29,6 +29,14 @@ src/audio/manifest.json # Contrato de sons (path extensionless → /public/audio
 src/audio/useUISound.ts # Delegação global [data-sound] + navegação por teclado (setas/Enter/Esc) estilo PS2
 src/audio/SoundProvider.tsx # Monta a delegação + unlock no 1º gesto (substitui o antigo SfxRoot)
 scripts/gen-placeholder-sfx.ts # Gera placeholders WAV-em-.webm p/ cada som do manifesto (npm run gen:sfx)
+scripts/gen-verify-state.ts # Sintetiza save v4 (carreira 2026 + copa sorteada) p/ testar /match sem draft
+src/match/presentation/ # Camada de APRESENTAÇÃO da partida (PixiJS). director.ts é o ÚNICO que
+                        #   conhece a engine: chama tick() sob demanda e coreografa cada minuto em
+                        #   "beats" de bola (passes bezier, conduções, chutes, comemoração ~3s).
+                        #   agents.ts (steering puro, timestep fixo 60Hz), ball.ts, crowd.ts,
+                        #   gkColors.ts (cor de goleiro auto, contraste c/ 2 kits), MatchStage.tsx
+                        #   (Pixi Application; DOM acima é só HUD). Testes em __tests__/ cobrem
+                        #   determinismo (seed ⇒ mesma coreografia) e continuidade da bola.
 
 app/page.tsx            # Home: logo gigante, Novo Campeonato, Online/idiomas "em manutenção", técnico + edição
 app/squad/page.tsx      # DraftView (fluxo 7-0: dado → seleção inteira → carimbo) + ManageView (prancheta FIFA)
@@ -66,12 +74,13 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 - Medidores ATA/MEI/DEF (FIFA-like) atualizam conforme o time entra em campo.
 
 ### Partida
-- `tick()` = 1 minuto; estado mutável vive em `useRef` na página. UI roda em `setInterval` (650ms ÷ velocidade 1/1.5/2x). "Pular para o fim" roda síncrono.
+- `tick()` = 1 minuto; estado mutável vive em `useRef` na página. O loop é do **director** (`src/match/presentation/director.ts`): ele chama `tick()`/`aiMaybeAct()` quando a fila de beats esvazia (~650ms por minuto sem evento × velocidade 1/1.5/2x) — a página NÃO roda `setInterval`. "Pular para o fim" destrói o director e roda síncrono.
 - **Pré-jogo** obrigatório (face-off estilo PES): estádio do fixture, clima/público determinísticos pelo seed, dois times espelhados com mini-campo (setas ‹ › trocam a formação ao vivo só no seu lado), faixa central com VS + forças + uniforme (kit 1/2). Hino (`anthem`) toca e corta no apito. Adversário troca pro `kit2` se as cores baterem (`colorDist < 160`). **Sem odds/apostas** — removido.
-- Máx. **3 substituições**; sugestão automática (GK → GK). Painel tático mostra o adversário **somente leitura**, com cansaço e moral.
+- Máx. **3 substituições**; sugestão automática (GK → GK). A tática ao vivo abre em **overlay full-screen "VESTIÁRIO"** (botão TÁTICA pausa o director; fechar dá apito + `syncLineups()`); o rodapé tem só Narração | Estatísticas. Adversário **somente leitura**, com cansaço e moral.
 - **Cooling break** aos 25'/70' quando a edição é ≥2022 ou clima "heat" (`createMatch(..., coolingBreaks)`).
-- No 2º tempo o render do campo é **espelhado** (troca de lado); a bola anda "colada" no jogador mais próximo (carrier). O movimento visual é interpolado por **rAF** (easing exponencial, alvo por tick; jogadores k≈4.6, bola k≈8.5) com mutação direta de style — nunca voltar a transicionar posição via CSS `transition: all`.
-- Mata-mata empatado → pênaltis, nunca termina empatado. Gol = tremor de tela + rede + sfxGoal.
+- Campo renderizado em **PixiJS** (`MatchStage.tsx`): 22 agentes com steering (âncora tática + perseguição da bola pelos 2 mais próximos + separação), ~600 pontos de torcida nas cores dos kits (atrás de cada gol só a torcida do dono; mudam de lado no espelhamento do 2º tempo), goleiros com cor automática de alto contraste (`pickGkColors`). Nome só no jogador com bola + hover. No 2º tempo o render é **espelhado** (`snapshot().mirrored`). Coordenadas internas seguem a engine (x 0→100 = ataque do mandante); espelhar só no draw.
+- A bola **nunca teleporta**: todo evento de chute tem build-up (passe → condução → finalização); o feed de narração só "libera" o evento quando a bola chega (sem spoiler). Stoppage/reset re-ancoram `from` na posição atual da bola ao iniciar (senão teleporta — testado).
+- Mata-mata empatado → pênaltis, nunca termina empatado. Gol = banner não-bloqueante + comemoração ~3s no canvas (convergência no autor + explosão da torcida) + `goal.horn`.
 - Calibração: ~2,7 gols/jogo (teste trava 1,2–5,5 em 200 sims). Mexeu em `SHOT_BASE`/`goalP` → `npm test`.
 - Determinismo: mesmo seed ⇒ mesmo jogo (`fixtureSeed`). Ações ao vivo alteram o fluxo do RNG — esperado.
 - Narração do engine **sem emojis** — a UI põe ícones SVG por tipo de evento.
