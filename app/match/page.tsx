@@ -389,179 +389,217 @@ export default function MatchPage() {
   );
 }
 
+// ── Pre-match building blocks (PS2 face-off) ─────────────────
+const DOT_BY_SECTOR: Record<string, string> = {
+  GK: "var(--amarelo)", DEF: "#4DA3FF", MID: "var(--lima)", ATT: "#FF4D5E",
+};
+function sectorOf(p: Position): string {
+  if (p === "GK") return "GK";
+  if (p === "RB" || p === "CB" || p === "LB") return "DEF";
+  if (p === "DM" || p === "CM" || p === "AM") return "MID";
+  return "ATT";
+}
+
+/** Compact lineup list: POS · name · rating. */
+function LineupRows({ team }: { team: MatchTeam }) {
+  const slots = FORMATIONS[team.tactics.formation];
+  return (
+    <div className="space-y-0.5">
+      {team.lineup.map((card, i) => card && (
+        <div key={card.player.id} className="flex items-center gap-2 py-0.5 text-xs">
+          <span className="w-8 font-arc text-[9px] font-extrabold opacity-50">{POSITION_SHORT[slots[i].pos]}</span>
+          <span className="min-w-0 flex-1 truncate font-arc font-bold">{card.player.name}</span>
+          <span className="font-display text-[var(--accent)]">{effectiveOvr(card, slots[i].pos)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** PES-style mini-pitch: colored dots over a striped field; header has the
+ * formation and ‹ › arrows (editable side only) that cycle it live, dots
+ * sliding to the new shape via layout animation. */
+function MiniPitch({ formation, editable, onCycle }: {
+  formation: FormationId; editable?: boolean; onCycle?: (dir: number) => void;
+}) {
+  const slots = FORMATIONS[formation];
+  return (
+    <div className="overflow-hidden rounded-xl border-[3px] border-[var(--ink)] shadow-[2px_3px_0_var(--ink)]">
+      <div className="flex items-center justify-between bg-[var(--ink)] px-2 py-1 text-[var(--paper)]">
+        {editable ? (
+          <button data-sound="tab" onClick={() => onCycle?.(-1)} className="px-1.5 font-display text-lg leading-none hover:text-[var(--amarelo)]">‹</button>
+        ) : <span className="w-5" />}
+        <span className="font-arc text-xs font-extrabold tracking-wide">{formation}</span>
+        {editable ? (
+          <button data-sound="tab" onClick={() => onCycle?.(1)} className="px-1.5 font-display text-lg leading-none hover:text-[var(--amarelo)]">›</button>
+        ) : <span className="w-5" />}
+      </div>
+      <div className="relative aspect-[3/4]" style={{ background: "repeating-linear-gradient(0deg, #1E8746 0 11%, #1a7a3e 11% 22%)" }}>
+        {slots.map((s, i) => (
+          <motion.span
+            key={i}
+            layout
+            transition={{ type: "spring", stiffness: 460, damping: 32 }}
+            className="absolute h-3.5 w-3.5 -translate-x-1/2 translate-y-1/2 rounded-full border-2 border-[var(--ink)]"
+            style={{ left: `${s.y}%`, bottom: `${s.x}%`, background: DOT_BY_SECTOR[sectorOf(s.pos)] }}
+            aria-hidden
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One half of the face-off: slides in from its edge. */
+function TeamSide({ team, accent, kitColor, slideFrom, editable, onCycle, onEdit }: {
+  team: MatchTeam; accent: string; kitColor: string; slideFrom: number;
+  editable?: boolean; onCycle?: (dir: number) => void; onEdit?: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: slideFrom * 56 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="arc-panel min-w-0 p-4"
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-arc text-[10px] font-extrabold uppercase tracking-widest opacity-55">
+            {MENTALITY_LABEL[team.tactics.mentality]} · {STYLE_LABEL[team.tactics.style]}
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-2xl leading-none">{team.flag}</span>
+            <span className="min-w-0 truncate font-display text-2xl leading-none" style={{ color: accent }}>{team.name}</span>
+          </div>
+        </div>
+        <IconShirt size={26} fill={kitColor} />
+      </div>
+
+      <MiniPitch formation={team.tactics.formation} editable={editable} onCycle={onCycle} />
+
+      <div className="mt-3 max-h-44 overflow-y-auto pr-1">
+        <LineupRows team={team} />
+      </div>
+
+      {editable && (
+        <button data-sound="confirm" onClick={onEdit} className="arc-btn arc-btn--paper mt-3 w-full py-2 text-xs">
+          Editar escalação →
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+/** Central strip: VS + strengths, match metadata, kit choice, kickoff CTA. */
+function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit, onKickoff }: {
+  uo: number; oo: number; pre: PreInfo; f: Fixture;
+  userKit: 1 | 2; userColors1: [string, string]; userColors2: [string, string];
+  onKit: (k: 1 | 2) => void; onKickoff: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.12 }}
+        className="arc-strip px-4 py-4 text-center"
+      >
+        <div className="mb-1 font-arc text-[10px] font-extrabold uppercase tracking-[0.3em]" style={{ color: "var(--amarelo)" }}>
+          {ROUND_LABEL[f.round]}{f.group ? ` · Grupo ${f.group}` : ""}
+        </div>
+        <div className="font-display text-5xl leading-none" style={{ color: "var(--amarelo)" }}>VS</div>
+        <div className="mt-2 flex items-center justify-center gap-3 font-display text-2xl">
+          <span style={{ color: "var(--lima)" }}>{Math.round(uo)}</span>
+          <span className="text-base text-white/40">×</span>
+          <span style={{ color: "var(--rosa)" }}>{Math.round(oo)}</span>
+        </div>
+      </motion.div>
+
+      <div className="arc-panel p-3">
+        <div className="flex flex-col gap-1 font-arc text-[11px] font-bold text-[rgba(20,21,18,0.8)]">
+          <span className="flex items-center justify-center gap-1.5"><IconStadium size={13} /> {pre.stadiumStr}</span>
+          <span className="flex items-center justify-center gap-1.5"><IconCrowd size={13} /> {pre.attendance.toLocaleString("pt-BR")}</span>
+          <span className="flex items-center justify-center gap-1.5"><IconWeather kind={pre.weather} size={13} /> {pre.weatherLabel}</span>
+        </div>
+      </div>
+
+      <div className="arc-panel p-3">
+        <div className="mb-1.5 text-center font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50">Seu uniforme</div>
+        <div className="flex justify-center gap-2">
+          {([["1º", userColors1, 1], ["2º", userColors2, 2]] as const).map(([lbl, colors, k]) => (
+            <button
+              key={k}
+              data-sound="confirm"
+              onClick={() => onKit(k)}
+              className={`flex flex-col items-center gap-1 rounded-xl border-[3px] px-3 py-2 ${
+                userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
+              }`}
+            >
+              <IconShirt size={30} fill={colors[0]} />
+              <span className="font-arc text-[9px] font-extrabold uppercase">{lbl}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button data-sound="confirm" onClick={onKickoff} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
+        <span className="inline-flex items-center gap-2 text-2xl leading-tight"><IconWhistle size={22} /> Apito inicial</span>
+        <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-75">fim de papo — bola rolando</span>
+      </button>
+    </div>
+  );
+}
+
 // ── Pre-match (PS2 face-off: seu time à esquerda, rival à direita) ─
 function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
+  const router = useRouter();
   const c = useCareer();
-  const cup = c.cup!;
   const f = pre.f;
   const userTeam = buildUserTeam(c);
   const oppTeam = useMemo(() => buildAiTeam(pre.oppSquad, f.round), [pre.oppSquad, f.round]);
 
-  // fake odds from average lineup OVR
+  // team strength (lineup OVR average) — drives the face-off numbers
   const avg = (t: MatchTeam) => {
     const slots = FORMATIONS[t.tactics.formation];
     return t.lineup.reduce((s, card, i) => s + (card ? effectiveOvr(card, slots[i].pos) : 70), 0) / 11;
   };
   const uo = avg(userTeam), oo = avg(oppTeam);
-  const pUser = 1 / (1 + Math.pow(10, (oo - uo) / 9));
-  const oddUser = Math.max(1.1, +(0.92 / pUser).toFixed(2));
-  const oddOpp = Math.max(1.1, +(0.92 / (1 - pUser)).toFixed(2));
-  const oddDraw = +(3.1 + Math.abs(uo - oo) * 0.12).toFixed(2);
-
-  const r = mulberry32(pre.seed ^ 0x9e3779b9);
-  const punters = ["@torcedor_raiz", "@mister_da_quebrada", "@bola_murcha", "@vidente_da_copa", "@zagueiro_artilheiro"];
-  const bets = punters.slice(0, 3).map((p) => ({
-    user: p,
-    amount: 20 + Math.floor(r() * 480),
-    pick: r() < pUser ? cup.teams.USER.name : oppTeam.name,
-  }));
 
   const oppKit: [string, string] =
     colorDist(oppTeam.colors[0], userTeam.colors[0]) < 160 ? pre.oppSquad.kit2 : oppTeam.colors;
 
-  const LineupRows = ({ team }: { team: MatchTeam }) => {
-    const slots = FORMATIONS[team.tactics.formation];
-    return (
-      <div className="space-y-0.5">
-        {team.lineup.map((card, i) => card && (
-          <div key={card.player.id} className="flex items-center gap-2 text-xs py-0.5">
-            <span className="w-8 font-arc text-[9px] font-extrabold opacity-50">{POSITION_SHORT[slots[i].pos]}</span>
-            <span className="flex-1 truncate font-arc font-bold">{card.player.name}</span>
-            <span className="font-display text-[var(--accent)]">{effectiveOvr(card, slots[i].pos)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // anthem plays through the whole pre-match, cut at the whistle
+  useEffect(() => { sound.music("anthem"); }, []);
+  const kickoff = () => { sound.stopMusic(300); onKickoff(); };
+
+  const formIdx = FORMATION_IDS.indexOf(c.tactics.formation as FormationId);
+  const cycleForm = (dir: number) =>
+    c.setFormation(FORMATION_IDS[(formIdx + dir + FORMATION_IDS.length) % FORMATION_IDS.length] as FormationId);
 
   return (
-    <main className="arc-bg flex-1 w-full">
+    <main className="arc-bg w-full flex-1">
       <SoundProvider />
-      <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-4">
-        {/* marquee */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="arc-strip px-5 py-4 text-center relative overflow-hidden">
-          <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] mb-2" style={{ color: "var(--amarelo)" }}>
-            Pré-jogo · {ROUND_LABEL[f.round]} {f.group ? `· Grupo ${f.group}` : ""}
-          </div>
-          <div className="font-display text-3xl sm:text-4xl flex items-center justify-center gap-4 flex-wrap mb-2">
-            <span style={f.homeId === "USER" ? { color: "var(--lima)" } : undefined}>{cup.teams[f.homeId].flag} {cup.teams[f.homeId].name}</span>
-            <span className="font-display text-2xl px-3 py-0.5 rounded-xl border-2 border-[var(--amarelo)]" style={{ color: "var(--amarelo)" }}>VS</span>
-            <span style={f.awayId === "USER" ? { color: "var(--lima)" } : undefined}>{cup.teams[f.awayId].flag} {cup.teams[f.awayId].name}</span>
-          </div>
-          <div className="flex items-center justify-center gap-5 text-[11px] font-arc font-bold text-white/75 flex-wrap">
-            <span className="flex items-center gap-1.5"><IconStadium size={14} /> {pre.stadiumStr}</span>
-            <span className="flex items-center gap-1.5"><IconCrowd size={14} /> {pre.attendance.toLocaleString("pt-BR")} torcedores</span>
-            <span className="flex items-center gap-1.5"><IconWeather kind={pre.weather} size={14} /> {pre.weatherLabel}</span>
-          </div>
-        </motion.div>
-
-        {/* PS2 face-off: user (left, editable) vs rival (right, read-only) */}
-        <div className="grid sm:grid-cols-2 gap-4 items-start">
-          <div className="arc-panel p-4 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <span className="arc-tag" style={{ background: "var(--lima)" }}>★ Seu time</span>
-              <IconShirt size={26} fill={userTeam.colors[0]} />
-            </div>
-            <div className="font-display text-lg truncate mb-0.5">{userTeam.flag} {userTeam.name}</div>
-            <div className="font-arc text-[10px] font-bold opacity-55 mb-2">
-              {c.tactics.formation} · {MENTALITY_LABEL[c.tactics.mentality]} · {STYLE_LABEL[c.tactics.style]}
-            </div>
-            <LineupRows team={userTeam} />
-
-            {/* quick tactics — mexe antes do apito */}
-            <div className="mt-3 pt-3 border-t-2 border-dashed border-[rgba(20,21,18,0.2)]">
-              <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
-              <div className="flex flex-wrap gap-1 mb-2">
-                {FORMATION_IDS.map((fo) => (
-                  <button key={fo} data-sound="confirm" onClick={() => c.setFormation(fo as FormationId)}
-                    className={`arc-btn px-2 py-0.5 text-[10px] ${c.tactics.formation === fo ? "" : "arc-btn--paper"}`}>
-                    {fo}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
-                  <button key={m} data-sound="confirm" onClick={() => c.setTactics({ mentality: m })}
-                    className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
-                    {MENTALITY_LABEL[m]}
-                  </button>
-                ))}
-                {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
-                  <button key={s} data-sound="confirm" onClick={() => c.setTactics({ style: s })}
-                    className={`arc-btn px-2.5 py-0.5 text-[10px] ${c.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
-                    {STYLE_LABEL[s]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="arc-panel p-4 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <span className="arc-tag" style={{ background: "var(--rosa)", color: "#FFF6FB" }}>★ O rival</span>
-              <IconShirt size={26} fill={oppKit[0]} />
-            </div>
-            <div className="font-display text-lg truncate mb-0.5">{oppTeam.flag} {oppTeam.name}</div>
-            <div className="font-arc text-[10px] font-bold opacity-55 mb-2">
-              {oppTeam.tactics.formation} · {MENTALITY_LABEL[oppTeam.tactics.mentality]} · {STYLE_LABEL[oppTeam.tactics.style]}
-            </div>
-            <LineupRows team={oppTeam} />
-          </div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6">
+        <div className="grid items-start gap-4 lg:grid-cols-[1fr_280px_1fr]">
+          <TeamSide
+            team={userTeam}
+            accent="var(--lima)"
+            kitColor={userTeam.colors[0]}
+            slideFrom={-1}
+            editable
+            onCycle={cycleForm}
+            onEdit={() => router.push("/squad")}
+          />
+          <CenterStrip
+            uo={uo} oo={oo} pre={pre} f={f}
+            userKit={c.userKit}
+            userColors1={c.userColors ?? USER_COLORS}
+            userColors2={c.userColors2 ?? USER_KIT2}
+            onKit={(k) => c.setUserKit(k)}
+            onKickoff={kickoff}
+          />
+          <TeamSide team={oppTeam} accent="var(--rosa)" kitColor={oppKit[0]} slideFrom={1} />
         </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          {/* kit choice */}
-          <div className="arc-panel p-4">
-            <span className="arc-tag mb-2">★ Seu uniforme</span>
-            <div className="flex gap-3 mt-2">
-              {([["1º uniforme", USER_COLORS, 1], ["2º uniforme", USER_KIT2, 2]] as const).map(([label, colors, k]) => (
-                <button
-                  key={k}
-                  data-sound="confirm"
-                  onClick={() => c.setUserKit(k)}
-                  className={`flex-1 rounded-2xl border-[3px] p-3 flex flex-col items-center gap-2 transition-all ${
-                    c.userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
-                  }`}
-                >
-                  <IconShirt size={42} fill={colors[0]} />
-                  <span className="font-arc text-xs font-extrabold uppercase">{label}</span>
-                </button>
-              ))}
-            </div>
-            <p className="font-arc text-[10px] font-semibold opacity-55 mt-2">
-              O adversário troca para o 2º uniforme se as cores baterem.
-            </p>
-          </div>
-
-          {/* odds + fake bets */}
-          <div className="arc-panel p-4">
-            <span className="arc-tag mb-2">★ Zebra ou favorito?</span>
-            <div className="grid grid-cols-3 gap-2 text-center mt-2 mb-3">
-              {[
-                [cup.teams.USER.name, oddUser],
-                ["Empate", oddDraw],
-                [oppTeam.name, oddOpp],
-              ].map(([label, odd]) => (
-                <div key={label as string} className="arc-mini p-2">
-                  <div className="font-arc text-[9px] font-bold opacity-55 truncate">{label}</div>
-                  <div className="font-display text-xl" style={{ color: "var(--gold)" }}>{odd}</div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-1">
-              {bets.map((b) => (
-                <div key={b.user} className="font-arc text-[11px] font-semibold opacity-70">
-                  <span className="font-extrabold" style={{ color: "var(--blue)" }}>{b.user}</span> apostou {b.amount} moedas em <span className="font-extrabold">{b.pick}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <button data-sound="confirm" onClick={onKickoff} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
-          <span className="text-2xl leading-tight inline-flex items-center gap-2"><IconWhistle size={22} /> Apito inicial</span>
-          <span className="block font-arc text-[11px] font-bold opacity-75 mt-0.5">fim de papo — bola rolando</span>
-        </button>
       </div>
     </main>
   );

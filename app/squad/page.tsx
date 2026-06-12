@@ -8,9 +8,11 @@ import Pitch from "@/components/Pitch";
 import PressConference from "@/components/PressConference";
 import GameShell from "@/components/game/GameShell";
 import PlayerChip from "@/components/game/PlayerChip";
+import ShareCard, { type ShareCardData } from "@/components/game/ShareCard";
+import { toPng } from "html-to-image";
 import SoundProvider from "@/src/audio/SoundProvider";
-import { useCareer, allCards, cardById } from "@/lib/game/store";
-import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
+import { useCareer, allCards, cardById, userTeamName } from "@/lib/game/store";
+import { FORMATIONS, FORMATION_IDS, effectiveOvr, formationLayout } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL, STYLE_DESC } from "@/lib/game/tactics";
 import { SQUADS, SQUAD_BY_ID, squadLabel } from "@/lib/data/squads";
 import { drawSquad, squadPower } from "@/lib/game/rules";
@@ -316,7 +318,7 @@ function DraftView() {
       ) : phase === "rolling" ? (
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
           <div className="dice-tumble mb-5 inline-block"><DiceIcon size={84} /></div>
-          <div className="h-8 font-display text-2xl text-[var(--ink)]">
+          <div className="h-8 w-full truncate px-2 font-display text-2xl text-[var(--ink)]">
             {flicker ? `${flicker.flag} ${squadLabel(flicker)}` : "…"}
           </div>
           <div className="mt-2 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-55">sorteando…</div>
@@ -352,7 +354,9 @@ function DraftView() {
               </div>
             ) : picked ? (
               <div className="mt-2.5 rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
-                Clica numa vaga verde no campo, ou de novo no nome ({picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})
+                {startersDone
+                  ? "Clica num reserva vazio aqui ao lado (★ Banco), ou de novo no nome"
+                  : `Clica numa vaga verde no campo, ou de novo no nome (${picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})`}
               </div>
             ) : (
               <div className="mt-2.5 px-1 font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55">
@@ -513,23 +517,36 @@ function DraftView() {
       <div className="mt-2 shrink-0">
         <span className="arc-tag mb-1.5">★ Banco</span>
         <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-          {c.benchSlots.map((b, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-1.5 rounded-xl border-[2.5px] px-2 py-1 ${
-                b.card ? "border-[var(--ink)] bg-[var(--paper)]" : "border-dashed border-[rgba(20,21,18,0.3)]"
-              }`}
-            >
-              {b.card ? (
-                <>
-                  <span className="font-display text-base text-[var(--ink)]">{b.card.player.ovr}</span>
-                  <span className="min-w-0 truncate font-arc text-[10px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
-                </>
-              ) : (
-                <span className="font-arc text-[10px] font-extrabold uppercase opacity-35">reserva {i + 1}</span>
-              )}
-            </div>
-          ))}
+          {c.benchSlots.map((b, i) => {
+            const open = !b.card && picked !== null && benchOpen;
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={!!b.card}
+                data-sound={open ? "stamp" : undefined}
+                onClick={() => { if (open) placeBench(i); }}
+                className={`flex items-center gap-1.5 rounded-xl border-[2.5px] px-2 py-1 text-left ${
+                  b.card
+                    ? "border-[var(--ink)] bg-[var(--paper)]"
+                    : open
+                      ? "slot-call cursor-pointer border-[var(--ink)] bg-[var(--lima)]"
+                      : "cursor-default border-dashed border-[rgba(20,21,18,0.3)]"
+                }`}
+              >
+                {b.card ? (
+                  <>
+                    <span className="font-display text-base text-[var(--ink)]">{b.card.player.ovr}</span>
+                    <span className="min-w-0 truncate font-arc text-[10px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
+                  </>
+                ) : (
+                  <span className={`font-arc text-[10px] font-extrabold uppercase ${open ? "text-[var(--ink)]" : "opacity-35"}`}>
+                    {open ? "carimbar aqui" : `reserva ${i + 1}`}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
         {!startersDone && (
           <p className="mt-1.5 font-arc text-[9px] font-extrabold uppercase tracking-wider opacity-45">fecha os 11 pra liberar o banco</p>
@@ -592,13 +609,20 @@ function ManageChip({ card, pos, selected, morale, dragging }: {
 function ManageView() {
   const router = useRouter();
   const c = useCareer();
-  const slots = FORMATIONS[c.tactics.formation];
+  // mentality reshapes the block (presentation-only) — chips animate to it
+  const slots = formationLayout(c.tactics.formation, c.tactics.mentality);
   const lineup = c.lineupIds.map((id) => cardById(c, id));
   const bench = c.benchIds.map((id) => cardById(c, id)).filter((x): x is Card => !!x);
   const [selIdx, setSelIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [confirmSwap, setConfirmSwap] = useState<{ a: number; b: number } | null>(null);
   const pitchRef = useRef<HTMLDivElement>(null);
+  const benchRowRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // share card capture
+  const shareRef = useRef<HTMLDivElement>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const teamOvr = Math.round(
     lineup.reduce((s, card, i) => s + (card ? effectiveOvr(card, slots[i].pos) : 0), 0) / 11
@@ -635,6 +659,18 @@ function ManageView() {
   // drag a chip near another slot to swap — centering transform lives on the
   // wrapper, framer only animates the inner node (no transform fights)
   function onDragEnd(fromIdx: number, point: { x: number; y: number }) {
+    // dropped over a bench row → swap with that reserve
+    for (let i = 0; i < bench.length; i++) {
+      const row = benchRowRefs.current[i];
+      if (!row) continue;
+      const r = row.getBoundingClientRect();
+      if (point.x >= r.left && point.x <= r.right && point.y >= r.top && point.y <= r.bottom) {
+        sound.play("ui.stamp");
+        vibrate(12);
+        c.swapWithBench(fromIdx, bench[i].player.id);
+        return;
+      }
+    }
     const el = pitchRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -654,6 +690,49 @@ function ManageView() {
     ["MEI", sectorOvr(meterEntries, "MID")],
     ["DEF", sectorOvr(meterEntries, "DEF")],
   ];
+
+  const shareData: ShareCardData = {
+    squadName: userTeamName(c),
+    coachName: c.coachName,
+    formation: c.tactics.formation,
+    mentality: c.tactics.mentality,
+    slots,
+    lineup,
+    teamOvr,
+    meters,
+  };
+
+  async function generateShare() {
+    const node = shareRef.current;
+    if (!node || sharing) return;
+    setSharing(true);
+    sound.play("ui.stamp");
+    try {
+      const url = await toPng(node, { pixelRatio: 2, width: 1080, height: 1920, cacheBust: true, backgroundColor: "#0F3D22" });
+      setShareUrl(url);
+    } catch {
+      sound.play("ui.error");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function nativeShare() {
+    if (!shareUrl) return;
+    try {
+      const blob = await (await fetch(shareUrl)).blob();
+      const file = new File([blob], "futbattle-escalacao.png", { type: "image/png" });
+      const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: userTeamName(c) });
+        return;
+      }
+    } catch { /* cancelled or unsupported — fall through to download */ }
+    const a = document.createElement("a");
+    a.href = shareUrl;
+    a.download = "futbattle-escalacao.png";
+    a.click();
+  }
 
   return (
     <main className="arc-bg flex-1 w-full">
@@ -675,6 +754,15 @@ function ManageView() {
               ))}
             </div>
           </div>
+          <button
+            data-sound="confirm"
+            onClick={generateShare}
+            disabled={sharing}
+            className="arc-btn arc-btn--paper arc-btn--card px-5 py-2"
+          >
+            <span className="block text-base leading-tight">{sharing ? "Gerando…" : "Compartilhar"}</span>
+            <span className="block font-arc text-[10px] font-bold opacity-70 mt-0.5">escalação pros stories</span>
+          </button>
           <button
             data-sound="confirm"
             onClick={() => { if (!c.cup) c.startCup(); router.push("/cup"); }}
@@ -711,8 +799,8 @@ function ManageView() {
                   return (
                     <div
                       key={`${c.tactics.formation}-${i}`}
-                      className={`absolute -translate-x-1/2 translate-y-1/2 ${dragIdx === i ? "z-40" : "z-10"}`}
-                      style={{ left: `${slot.y}%`, bottom: `${slot.x}%` }}
+                      className={`absolute -translate-x-1/2 translate-y-1/2 transition-[left,bottom] duration-500 ease-out ${dragIdx === i ? "z-40" : "z-10"}`}
+                      style={{ left: `${slot.y}%`, bottom: `${slot.x}%`, transitionDelay: `${i * 25}ms` }}
                     >
                       {card ? (
                         <motion.div
@@ -752,7 +840,7 @@ function ManageView() {
               </Pitch>
             </div>
             <p className="font-arc text-[10px] font-bold uppercase tracking-wider text-white/70 mt-2 text-center lg:text-left">
-              arrasta um jogador em cima do outro pra trocar — ou toca em dois
+              arrasta um jogador em cima do outro (ou do banco) pra trocar — ou toca em dois
             </p>
           </div>
 
@@ -766,9 +854,10 @@ function ManageView() {
                 </span>
               </div>
               <div className="space-y-1.5">
-                {bench.map((card) => (
+                {bench.map((card, i) => (
                   <button
                     key={card.player.id}
+                    ref={(el) => { benchRowRefs.current[i] = el; }}
                     data-sound={selIdx !== null ? undefined : "error"}
                     onClick={() => clickBench(card)}
                     className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left transition-all ${
@@ -799,7 +888,7 @@ function ManageView() {
                   {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
                     <button
                       key={m}
-                      data-sound="confirm"
+                      data-sound="tab"
                       onClick={() => c.setTactics({ mentality: m })}
                       className={`arc-btn arc-btn--card py-1.5 text-[11px] ${
                         c.tactics.mentality === m
@@ -857,6 +946,40 @@ function ManageView() {
                     className="arc-btn arc-btn--rosa flex-1 py-2.5 text-sm"
                   >
                     Eu que mando
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* off-screen card the rasterizer captures (kept rendered, not display:none) */}
+        <div style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none", zIndex: -1 }} aria-hidden>
+          <ShareCard ref={shareRef} data={shareData} />
+        </div>
+
+        {/* share preview modal */}
+        <AnimatePresence>
+          {shareUrl && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+              onClick={() => setShareUrl(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }}
+                className="arc-panel flex w-full max-w-xs flex-col items-center p-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="arc-tag mb-3">★ Escalação pronta</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={shareUrl} alt="Card da escalação" className="w-full rounded-xl border-[3px] border-[var(--ink)] shadow-[3px_4px_0_var(--ink)]" />
+                <div className="mt-4 flex w-full gap-2">
+                  <button data-sound="confirm" onClick={nativeShare} className="arc-btn arc-btn--lima flex-1 py-2.5 text-sm">
+                    Compartilhar
+                  </button>
+                  <button data-sound="cancel" onClick={() => setShareUrl(null)} className="arc-btn arc-btn--paper px-4 py-2.5 text-sm">
+                    Fechar
                   </button>
                 </div>
               </motion.div>
