@@ -70,17 +70,17 @@ export interface DirectorSnapshot {
 
 ### Task 1: Install PixiJS
 
-- [ ] `npm install pixi.js` (v8.x)
-- [ ] `npx tsc --noEmit` still clean
-- [ ] Commit `chore: add pixi.js for match presentation`
+- [x] `npm install pixi.js` (v8.x)
+- [x] `npx tsc --noEmit` still clean
+- [x] Commit `chore: add pixi.js for match presentation`
 
 ### Task 2: `gkColors.ts` (TDD)
 
 **Files:** Create `src/match/presentation/gkColors.ts`, `src/match/presentation/__tests__/gkColors.test.ts`
 
-- [ ] Test: for kits (BRA `#FFDC00` + ARG `#75AADB`), both returned colors have Manhattan RGB distance ≥ 150 from each team primary AND ≥ 150 from each other; result deterministic.
-- [ ] Implement: fixed palette `["#FFD400","#00E5FF","#FF3DA6","#FF7A00","#B6FF00","#9D4DFF","#FFFFFF","#111111"]`; pick GK1 maximizing min-dist to `[homePrimary, awayPrimary, homeSecondary, awaySecondary]`; pick GK2 the same but also vs GK1. Export `colorDist` (Manhattan RGB).
-- [ ] `npm test -- gkColors` → PASS. Commit.
+- [x] Test: for kits (BRA `#FFDC00` + ARG `#75AADB`), both returned colors have Manhattan RGB distance ≥ 150 from each team primary AND ≥ 150 from each other; result deterministic.
+- [x] Implement: fixed palette `["#FFD400","#00E5FF","#FF3DA6","#FF7A00","#B6FF00","#9D4DFF","#FFFFFF","#111111"]`; pick GK1 maximizing min-dist to `[homePrimary, awayPrimary, homeSecondary, awaySecondary]`; pick GK2 the same but also vs GK1. Export `colorDist` (Manhattan RGB).
+- [x] `npm test -- gkColors` → PASS. Commit.
 
 ### Task 3: `agents.ts` steering (TDD)
 
@@ -102,8 +102,8 @@ export function stepAgents(agents: AgentState[], ball: Vec, carrierId: string | 
   // speed clamped to maxSpeed; GK clamped to x ∈ [0,10] (or mirrored).
 ```
 
-- [ ] Tests: (a) two agents placed at same point separate after 60 steps; (b) speed never exceeds `maxSpeed * 1.05`; (c) identical inputs ⇒ identical positions across two runs (determinism); (d) GK stays within its box depth.
-- [ ] Implement minimal; run; commit.
+- [x] Tests: (a) two agents placed at same point separate after 60 steps; (b) speed never exceeds `maxSpeed * 1.05`; (c) identical inputs ⇒ identical positions across two runs (determinism); (d) GK stays within its box depth.
+- [x] Implement minimal; run; commit.
 
 ### Task 4: `ball.ts` flights (TDD)
 
@@ -119,8 +119,8 @@ export function carryBeat(from: Vec, to: Vec): Beat;                     // 20 u
 export function shotBeat(from: Vec, to: Vec, outcome): Beat;             // 110 u/s, slight curve, low arc
 ```
 
-- [ ] Tests: endpoints exact at t=0/1; max displacement between consecutive t samples (1/60 steps) bounded (continuity); determinism with seeded rng.
-- [ ] Implement; run; commit.
+- [x] Tests: endpoints exact at t=0/1; max displacement between consecutive t samples (1/60 steps) bounded (continuity); determinism with seeded rng.
+- [x] Implement; run; commit.
 
 ### Task 5: `crowd.ts` (TDD)
 
@@ -135,8 +135,8 @@ export function layoutCrowd(rng: () => number, count: number, density: number): 
 export function shimmerAlpha(dot: CrowdDot, tSec: number): number; // 0.45–0.95 sin pulse
 ```
 
-- [ ] Tests: left band 100% "h", right 100% "a", top+bottom within 40–60% "h"; deterministic layout for same rng seed.
-- [ ] Implement; run; commit.
+- [x] Tests: left band 100% "h", right 100% "a", top+bottom within 40–60% "h"; deterministic layout for same rng seed.
+- [x] Implement; run; commit.
 
 ### Task 6: `director.ts` (TDD — the core)
 
@@ -178,42 +178,42 @@ Behavior per fixed step:
 3. `stepAgents` with celebration override (celebrating agents target scorer).
 4. Ambience: every 30 steps `audio.setAmbienceIntensity(0.35 + 0.5 * danger)` where danger = max(0, (|ballX−50| − 25) / 25).
 
-- [ ] Tests (stub AudioPort, real squads via `SQUAD_BY_ID["bra-1970"]` etc. + `assignLineup`):
+- [x] Tests (stub AudioPort, real squads via `SQUAD_BY_ID["bra-1970"]` etc. + `assignLineup`):
   - determinism: two directors, same seed, stepped identically for 120s of sim ⇒ identical position/event hash;
   - pacing: after `update` totalling ~`650 * 95`ms at speed 1, `state.finished === true`;
   - continuity: ball displacement per step ≤ 4.0 field units;
   - speed: at speed 2 the same sim time finishes in half the wall ms.
-- [ ] Implement; run (`npm test -- director`); commit.
+- [x] Implement; run (`npm test -- director`); commit.
 
 ### Task 7: `MatchStage.tsx` (Pixi renderer)
 
 **Files:** Create `src/match/presentation/MatchStage.tsx`
 
-- [ ] Pixi `Application` init async in useEffect (guard double-mount/unmount); `resolution: devicePixelRatio`, `autoDensity`, resize via ResizeObserver.
-- [ ] Layers: pitch Graphics (era-tinted greens + stripes + lines), crowd Container (~600 sprites from generated circle texture, shimmer each frame, burst = jump + white flash on scoring side), agent containers (circle + carrier ring + Text label hidden unless carrier/hover), ball sprite (scale by `h`, shadow).
-- [ ] rAF: `if (!paused) director.update(elapsed, speed)`; draw `snapshot()`; mirror x when `snapshot.mirrored`; away agents already mirrored by anchors.
-- [ ] Hover: pointermove → nearest agent < 24px shows label.
-- [ ] Props: `{ director, era, paused, speed, className }`.
-- [ ] `npx tsc --noEmit`; commit.
+- [x] Pixi `Application` init async in useEffect (guard double-mount/unmount); `resolution: devicePixelRatio`, `autoDensity`, resize via ResizeObserver.
+- [x] Layers: pitch Graphics (era-tinted greens + stripes + lines), crowd Container (~600 sprites from generated circle texture, shimmer each frame, burst = jump + white flash on scoring side), agent containers (circle + carrier ring + Text label hidden unless carrier/hover), ball sprite (scale by `h`, shadow).
+- [x] rAF: `if (!paused) director.update(elapsed, speed)`; draw `snapshot()`; mirror x when `snapshot.mirrored`; away agents already mirrored by anchors.
+- [x] Hover: pointermove → nearest agent < 24px shows label.
+- [x] Props: `{ director, era, paused, speed, className }`.
+- [x] `npx tsc --noEmit`; commit.
 
 ### Task 8: Integrate in `app/match/page.tsx`
 
 **Files:** Modify `app/match/page.tsx`
 
-- [ ] Replace `LivePitch` + `Stands` with `<MatchStage>`; delete both components and the rAF/easing code.
-- [ ] Kickoff: create director with `presSeed = pre.seed ^ 0x9d2c5680`, GK colors via `pickGkColors`, store in ref; remove the `setInterval` game loop (director ticks). Keep `LiveMatchState` in `useRef`.
-- [ ] Goal banner: non-blocking top strip (no full-pitch black overlay) so the Pixi celebration stays visible; keep cooling overlay.
-- [ ] Footer: tabs `Narração | Estatísticas` only; new `TÁTICA` button in controls row → full-screen overlay (`fixed inset-0`, arc-panel) hosting existing `TacticsPanel`; opening sets `paused=true`; closing plays `whistle.kickoff` short, calls `director.syncLineups()`, resumes.
-- [ ] Narration: play `ui.tick` on new event line.
-- [ ] Speeds 1/1.5/2 wire to MatchStage prop; `skipToEnd` unchanged (sync engine loop, director destroyed).
-- [ ] Remove page-level `goal.horn`/whistle/ambience-intensity calls now owned by director (keep `stopAmbience` on result).
-- [ ] `npm test && npx tsc --noEmit && npm run build`; commit.
+- [x] Replace `LivePitch` + `Stands` with `<MatchStage>`; delete both components and the rAF/easing code.
+- [x] Kickoff: create director with `presSeed = pre.seed ^ 0x9d2c5680`, GK colors via `pickGkColors`, store in ref; remove the `setInterval` game loop (director ticks). Keep `LiveMatchState` in `useRef`.
+- [x] Goal banner: non-blocking top strip (no full-pitch black overlay) so the Pixi celebration stays visible; keep cooling overlay.
+- [x] Footer: tabs `Narração | Estatísticas` only; new `TÁTICA` button in controls row → full-screen overlay (`fixed inset-0`, arc-panel) hosting existing `TacticsPanel`; opening sets `paused=true`; closing plays `whistle.kickoff` short, calls `director.syncLineups()`, resumes.
+- [x] Narration: play `ui.tick` on new event line.
+- [x] Speeds 1/1.5/2 wire to MatchStage prop; `skipToEnd` unchanged (sync engine loop, director destroyed).
+- [x] Remove page-level `goal.horn`/whistle/ambience-intensity calls now owned by director (keep `stopAmbience` on result).
+- [x] `npm test && npx tsc --noEmit && npm run build`; commit.
 
 ### Task 9: Verify acceptance criteria
 
-- [ ] `npm test` all green (engine calibration untouched).
-- [ ] `npm run dev` + browser: play a match — build-ups visible, crowd colors, GK distinct, overlay pause/resume, speeds, skip, ~60fps (no long frames in devtools).
-- [ ] Commit any polish; update CLAUDE.md arquitetura section with `src/match/presentation/`.
+- [x] `npm test` all green (engine calibration untouched).
+- [x] `npm run dev` + browser: play a match — build-ups visible, crowd colors, GK distinct, overlay pause/resume, speeds, skip, ~60fps (no long frames in devtools).
+- [x] Commit any polish; update CLAUDE.md arquitetura section with `src/match/presentation/`.
 
 ## Self-review
 

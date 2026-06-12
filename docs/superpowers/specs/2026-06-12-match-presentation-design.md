@@ -110,9 +110,9 @@ src/match/presentation/
 
 ## Acceptance criteria (from mission)
 
-- [ ] Same seed ⇒ same match AND same choreography
-- [ ] 60fps with 22 agents + ball + ~600 crowd dots
-- [ ] Ball never teleports; every event has visible build-up
-- [ ] Crowd in real kit colors; GKs always distinguishable
-- [ ] Tactics opens as overlay with clean pause/resume
-- [ ] Speeds 1x/1.5x/2x and skip-to-end working
+- [x] Same seed ⇒ same match AND same choreography
+- [x] 60fps with 22 agents + ball + ~600 crowd dots
+- [x] Ball never teleports; every event has visible build-up
+- [x] Crowd in real kit colors; GKs always distinguishable
+- [x] Tactics opens as overlay with clean pause/resume
+- [x] Speeds 1x/1.5x/2x and skip-to-end working
