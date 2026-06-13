@@ -6,9 +6,9 @@
 
 import type { BallState, Beat, Vec } from "./types";
 
-const PASS_SPEED_MIN = 45;  // field units / s
-const PASS_SPEED_MAX = 65;
-const CARRY_SPEED = 20;
+const PASS_SPEED_MIN = 38;  // field units / s
+const PASS_SPEED_MAX = 54;
+const CARRY_SPEED = 16;
 const SHOT_SPEED = 110;
 
 function dist(a: Vec, b: Vec): number {
@@ -45,7 +45,7 @@ export function passBeat(from: Vec, to: Vec, rng: () => number): Beat {
     from, to,
     curve: (rng() * 2 - 1) * 6,
     arc: d > 22 ? rng() * 0.5 : 0, // long balls may lob
-    pauseAfterMs: 80 + Math.floor(rng() * 80),
+    pauseAfterMs: 120 + Math.floor(rng() * 100), // ball settles at the feet
   };
 }
 

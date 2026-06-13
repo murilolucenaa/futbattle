@@ -378,7 +378,8 @@ export function createDirector(state: LiveMatchState, opts: DirectorOpts): Direc
       if (gk) { gk.anchorX = diveGk.target.x; gk.anchorY = diveGk.target.y; }
     }
 
-    stepAgents(agents, chaseOverride ?? { x: ball.x, y: ball.y }, carrierId, tSec);
+    // chaseOverride is only set during a celebration → suppress normal chasing
+    stepAgents(agents, chaseOverride ?? { x: ball.x, y: ball.y }, carrierId, tSec, chaseOverride != null);
 
     if (crowdBurst) {
       crowdBurst.t = Math.max(0, crowdBurst.t - PHYS_DT / 2.5);

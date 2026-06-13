@@ -70,19 +70,23 @@ function noise(seed: number, t: number): Vec {
  * via ball position = scorer position during the celebration beat).
  */
 export function stepAgents(
-  agents: AgentState[], ball: Vec, carrierId: string | null, tSec: number
+  agents: AgentState[], ball: Vec, carrierId: string | null, tSec: number,
+  suppressChase = false,
 ): void {
-  // pick chasers: closest field players per side
+  // pick chasers: closest field players per side. Suppressed during a goal
+  // celebration so opponents don't get sucked into the scorer's huddle.
   const bySide: Record<"h" | "a", AgentState[]> = { h: [], a: [] };
   for (const a of agents) {
     a.chasing = false;
     if (!a.isGk && !a.celebrating) bySide[a.side].push(a);
   }
-  for (const side of ["h", "a"] as const) {
-    bySide[side]
-      .sort((p, q) => dist2(p, ball) - dist2(q, ball))
-      .slice(0, CHASERS_PER_SIDE)
-      .forEach((a) => { a.chasing = true; });
+  if (!suppressChase) {
+    for (const side of ["h", "a"] as const) {
+      bySide[side]
+        .sort((p, q) => dist2(p, ball) - dist2(q, ball))
+        .slice(0, CHASERS_PER_SIDE)
+        .forEach((a) => { a.chasing = true; });
+    }
   }
   if (carrierId) {
     const c = agents.find((a) => a.id === carrierId);

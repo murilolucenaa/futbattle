@@ -28,7 +28,7 @@ import type {
 } from "@/lib/game/types";
 import { POSITION_SHORT, POSITION_SECTOR } from "@/lib/game/types";
 
-const BASE_TICK_MS = 650;
+const BASE_TICK_MS = 1100; // 1× is cinematic/readable; 1.5×/2× divide this
 
 const SUFFIXES = new Set(["Júnior", "Junior", "Jr.", "Filho", "Santos", "Cézar"]);
 function shortName(name: string): string {
