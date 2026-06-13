@@ -85,10 +85,12 @@ const SECTOR_ARC_BG: Record<Sector, string> = {
   GK: "var(--amarelo)", DEF: "var(--ciano)", MID: "var(--lima)", ATT: "var(--rosa)",
 };
 
-function ArcPos({ pos, dim }: { pos: Position; dim?: boolean }) {
+function ArcPos({ pos, dim, big }: { pos: Position; dim?: boolean; big?: boolean }) {
   return (
     <span
-      className="font-arc font-extrabold text-[9px] leading-none px-1.5 py-[2.5px] rounded-md border-2 border-[var(--ink)] uppercase"
+      className={`font-arc font-extrabold leading-none rounded-md border-2 border-[var(--ink)] uppercase ${
+        big ? "text-[11px] px-2 py-[3.5px]" : "text-[9px] px-1.5 py-[2.5px]"
+      }`}
       style={{ background: SECTOR_ARC_BG[POSITION_SECTOR[pos]], color: "var(--ink)", opacity: dim ? 0.35 : 1 }}
     >
       {POSITION_SHORT[pos]}
@@ -290,12 +292,11 @@ function DraftView() {
     sound.play(ovr >= 95 ? "card.reveal.legendary" : ovr >= 88 ? "card.reveal.rare" : "card.reveal");
   }
 
-  function afterPlace(name: string, ovr: number) {
+  function afterPlace(_name: string, ovr: number) {
     setPicked(null);
     c.setDraftDraw({ used: true, freeRoll: true });
     revealSound(ovr);
     vibrate(24);
-    showToast(`${name.toUpperCase()} TÁ ESCALADO!`);
   }
 
   function placeStarter(i: number) {
@@ -559,14 +560,14 @@ function DraftView() {
           <span className="opacity-55">/11</span>
         </span>
       </div>
-      <div className="flex-1 min-h-0 space-y-0.5 overflow-y-auto pr-1">
+      <div className="flex-1 min-h-0 space-y-1 overflow-y-auto pr-1">
         {c.slots.map((s, i) => (
-          <div key={i} className="flex items-center gap-2 rounded-lg px-1.5 py-1" style={{ background: s.card ? "rgba(20,21,18,0.05)" : "transparent" }}>
-            <ArcPos pos={s.pos} dim={!s.card} />
-            <span className={`min-w-0 flex-1 truncate font-arc text-[12px] font-extrabold uppercase ${s.card ? "text-[var(--ink)]" : "opacity-35"}`}>
+          <div key={i} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5" style={{ background: s.card ? "rgba(20,21,18,0.05)" : "transparent" }}>
+            <ArcPos pos={s.pos} dim={!s.card} big />
+            <span className={`min-w-0 flex-1 truncate font-arc text-[15px] font-extrabold uppercase ${s.card ? "text-[var(--ink)]" : "opacity-35"}`}>
               {s.card ? shortName(s.card.player.name) : "—"}
             </span>
-            {s.card && <span className="shrink-0 font-display text-base text-[var(--ink)]">{s.card.player.ovr}</span>}
+            {s.card && <span className="shrink-0 font-display text-xl text-[var(--ink)]">{s.card.player.ovr}</span>}
           </div>
         ))}
       </div>
