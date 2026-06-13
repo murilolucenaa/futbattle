@@ -15,7 +15,7 @@ npx tsc --noEmit # type-check isolado
 
 ```
 lib/game/types.ts       # Tipos de domínio: Position (+POSITION_SHORT pt-BR), Card, Tactics, CupState, WCEdition…
-lib/data/squads.ts      # Dataset: ~53 seleções reais (1950–2022), ~560 jogadores, kit2 por seleção, squadCode "BRA 70"
+lib/data/squads.ts      # Dataset: ~167 seleções reais (1930–2026, todo ano de Copa ≥4), kit2 por seleção, squadCode "BRA 70"
 lib/data/editions.ts    # 23 edições de Copa 1930–2026: sede, estádios reais (nome/cidade/capacidade), era visual
 lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + assignLineup + formationLayout (offset por mentalidade, só visual)
 lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tacticMods)
