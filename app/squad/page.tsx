@@ -63,7 +63,7 @@ export default function SquadPage() {
           <ManageView />
         </>
       ) : (
-        <div className="flex min-h-[100dvh] flex-col lg:h-[100dvh] lg:overflow-hidden">
+        <div className="arc-bg flex min-h-[100dvh] flex-col lg:h-[100dvh] lg:overflow-hidden">
           <TopBar />
           <DraftView />
         </div>
@@ -429,20 +429,20 @@ function DraftView() {
             </span>
           </div>
 
-          {/* dica de estado */}
-          <div className="shrink-0">
+          {/* dica de estado — altura reservada p/ não empurrar a lista ao escolher */}
+          <div className="mt-2.5 flex min-h-[3.5rem] shrink-0 flex-col justify-center">
             {deadSquad ? (
-              <div className="mt-2.5 rounded-xl border-[3px] border-[var(--ink)] bg-[var(--laranja)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[#FFF9EE]">
+              <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--laranja)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[#FFF9EE]">
                 Ninguém aqui serve pras vagas que sobraram. Outra seleção — de graça.
               </div>
             ) : picked ? (
-              <div className="mt-2.5 rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
+              <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
                 {startersDone
                   ? "Clica num reserva vazio aqui ao lado (★ Banco), ou de novo no nome"
                   : `Clica numa vaga verde no campo, ou de novo no nome (${picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})`}
               </div>
             ) : (
-              <div className="mt-2.5 px-1 font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55">
+              <div className="px-1 font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55">
                 Sua vez: clica num craque pra ver onde ele joga
               </div>
             )}
