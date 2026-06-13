@@ -63,7 +63,7 @@ export default function SquadPage() {
           <ManageView />
         </>
       ) : (
-        <div className="flex h-[100dvh] flex-col overflow-hidden">
+        <div className="flex min-h-[100dvh] flex-col lg:h-[100dvh] lg:overflow-hidden">
           <TopBar />
           <DraftView />
         </div>
@@ -360,7 +360,7 @@ function DraftView() {
 
   // ── LEFT: sorteio ─────────────────────────────────────────
   const left = (
-    <div className="arc-panel flex h-full min-h-0 flex-col p-4">
+    <div className="arc-panel flex min-h-0 flex-col p-4 lg:h-full">
       <div className="mb-3 flex shrink-0 items-center justify-between">
         <span className="font-display text-xl leading-none tracking-wide">CONVOCAÇÃO</span>
         <div className="flex items-center gap-2.5">
@@ -521,7 +521,7 @@ function DraftView() {
 
   // ── CENTER: campo ─────────────────────────────────────────
   const center = (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex min-h-0 flex-col lg:h-full">
       <div className="mb-2 flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1">
         <span className="arc-tag shrink-0">★ Formação</span>
         {FORMATION_IDS.map((f) => (
@@ -536,7 +536,7 @@ function DraftView() {
         ))}
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="relative h-full max-w-full overflow-hidden rounded-[22px] border-[3px] border-[var(--ink)] shadow-[5px_6px_0_var(--ink)]" style={{ aspectRatio: "3 / 4" }}>
+        <div className="relative mx-auto w-full max-w-[min(82vw,420px)] overflow-hidden rounded-[22px] border-[3px] border-[var(--ink)] shadow-[5px_6px_0_var(--ink)] lg:mx-0 lg:h-full lg:w-auto lg:max-w-full" style={{ aspectRatio: "3 / 4" }}>
           <Pitch className="pitch-arc h-full w-full !rounded-none">
             {slots.map((slot, i) => {
               const card = c.slots[i].card;
@@ -564,7 +564,7 @@ function DraftView() {
 
   // ── RIGHT: box score ──────────────────────────────────────
   const right = (
-    <div className="arc-panel flex h-full min-h-0 flex-col p-4">
+    <div className="arc-panel flex min-h-0 flex-col p-4 lg:h-full">
       <input
         value={c.squadName}
         onChange={(e) => c.setSquadName(e.target.value)}

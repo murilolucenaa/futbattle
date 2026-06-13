@@ -27,7 +27,7 @@ export default function GameShell({
 }: GameShellProps) {
   return (
     <div
-      className={`grid h-full min-h-0 w-full gap-3 overflow-y-auto p-3 lg:grid-cols-[var(--gs-l)_minmax(0,1fr)_var(--gs-r)] lg:gap-4 lg:overflow-hidden lg:p-4 ${className}`}
+      className={`grid min-h-0 w-full gap-3 p-3 lg:h-full lg:grid-cols-[var(--gs-l)_minmax(0,1fr)_var(--gs-r)] lg:gap-4 lg:overflow-hidden lg:p-4 ${className}`}
       style={
         {
           "--gs-l": `${leftWidth}px`,
