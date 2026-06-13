@@ -4,15 +4,89 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "@/components/TopBar";
-import { useCareer } from "@/lib/game/store";
+import { useCareer, cardById, type CareerState } from "@/lib/game/store";
 import {
   roundLabel, groupTable, nextUserFixture, thirdPlaceTable, leaders, podium,
 } from "@/lib/game/cup";
+import { FORMATIONS, effectiveOvr } from "@/lib/game/formations";
 import { engineFor } from "@/lib/game/formats/registry";
 import { SQUAD_BY_ID, squadCode } from "@/lib/data/squads";
 import { EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
 import { IconAssist, IconBall, IconStadium, IconStar, IconTrophy } from "@/components/icons";
+import ChampionCeremony from "@/components/game/ChampionCeremony";
+import type { ChampionData } from "@/components/game/ChampionCard";
 import type { CupState, Fixture } from "@/lib/game/types";
+
+const SUFFIXES = new Set(["Júnior", "Junior", "Jr.", "Filho", "Santos", "Cézar"]);
+function shortName(name: string): string {
+  const parts = name.split(" ");
+  if (parts.length === 1) return name;
+  const last = parts[parts.length - 1];
+  return SUFFIXES.has(last) ? parts[0] : last;
+}
+
+/** Assemble the champion ceremony / story-card payload from career + cup. */
+function buildChampionData(c: CareerState, cup: CupState): ChampionData {
+  const ed = EDITION_BY_ID[cup.editionId];
+  const slots = FORMATIONS[c.tactics.formation];
+
+  const goalsBoard = leaders(cup, "goals").filter((r) => r.teamId === "USER");
+  const ratingBoard = leaders(cup, "rating").filter((r) => r.teamId === "USER");
+  const top = goalsBoard.find((r) => r.goals > 0);
+  const star = ratingBoard[0];
+
+  const xi: ChampionData["xi"] = c.lineupIds.flatMap((id, i) => {
+    const card = cardById(c, id);
+    if (!card) return [];
+    const pos = slots[i]?.pos ?? card.player.positions[0];
+    return [{
+      name: shortName(card.player.name),
+      pos,
+      ovr: effectiveOvr(card, pos),
+      flag: card.flag,
+      badge: top && card.player.id === top.playerId ? "artilheiro" as const
+        : star && card.player.id === star.playerId ? "craque" as const
+        : undefined,
+    }];
+  });
+
+  const totalGoals = Object.values(cup.playerTotals)
+    .filter((t) => t.teamId === "USER")
+    .reduce((s, t) => s + t.goals, 0);
+
+  const path = cup.fixtures
+    .filter((f) => f.knockout && (f.homeId === "USER" || f.awayId === "USER") && f.scoreH != null)
+    .sort((a, b) => a.round - b.round)
+    .map((f) => {
+      const userHome = f.homeId === "USER";
+      const oppId = userHome ? f.awayId : f.homeId;
+      const us = userHome ? f.scoreH : f.scoreA;
+      const them = userHome ? f.scoreA : f.scoreH;
+      const pens = f.pensH != null
+        ? `pen ${userHome ? f.pensH : f.pensA}–${userHome ? f.pensA : f.pensH}`
+        : undefined;
+      return {
+        round: roundLabel(cup, f.round),
+        opp: cup.teams[oppId].name,
+        oppFlag: cup.teams[oppId].flag,
+        score: `${us}–${them}`,
+        pens,
+      };
+    });
+
+  return {
+    coachName: c.coachName,
+    teamName: cup.teams.USER.name,
+    host: ed?.host ?? "",
+    year: ed?.year ?? 0,
+    hostFlag: ed?.flag ?? "",
+    xi,
+    topScorer: top ? { name: shortName(top.name), goals: top.goals } : undefined,
+    topRated: star ? { name: shortName(star.name), rating: star.avgRating } : undefined,
+    totalGoals,
+    path,
+  };
+}
 
 function shortTeam(cup: CupState, id: string): string {
   if (id === "USER") return cup.teams[id].name;
@@ -79,6 +153,7 @@ export default function CupPage() {
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<"groups" | "leaders" | "bracket">("groups");
   const [detail, setDetail] = useState<Fixture | null>(null);
+  const [showCeremony, setShowCeremony] = useState(true);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -98,6 +173,13 @@ export default function CupPage() {
 
   return (
     <>
+      {cup.phase === "champion" && showCeremony && (
+        <ChampionCeremony
+          data={buildChampionData(c, cup)}
+          onDismiss={() => setShowCeremony(false)}
+          onNewCampaign={() => router.push("/")}
+        />
+      )}
       <TopBar />
       <main className="arc-bg flex-1 w-full">
         <div className="mx-auto max-w-6xl w-full px-4 py-6">

@@ -34,7 +34,7 @@ export const USER_COLORS: [string, string] = ["#00FF87", "#0B1120"];
 export const USER_KIT2: [string, string] = ["#F4F7F5", "#0B1120"];
 export const BENCH_SIZE = 4;
 
-interface CareerState {
+export interface CareerState {
   coachName: string;
   squadName: string;         // cosmetic team name (fallback: `Seleção {coachName}`)
   careerMode: CareerMode;    // "legends" = draft de lendas · "wc2026" = seleção atual
