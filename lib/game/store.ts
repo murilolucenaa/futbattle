@@ -116,6 +116,7 @@ export function buildUserTeam(s: CareerState): MatchTeam {
     name: userTeamName(s),
     flag: "⭐",
     colors,
+    kitPattern: (s.userKit === 2 ? s.userPattern2 : s.userPattern) || "solid",
     tactics: s.tactics,
     lineup: s.lineupIds.map((id) => (id ? byId.get(id) ?? null : null)),
     bench: s.benchIds.map((id) => byId.get(id)).filter((c): c is Card => !!c),

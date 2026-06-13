@@ -21,6 +21,7 @@ import {
   IconAssist, IconBall, IconCard, IconChart, IconCrowd, IconGlove, IconSnow,
   IconStadium, IconStar, IconSub, IconWeather, IconWhistle,
 } from "@/components/icons";
+import KitJersey, { type KitPattern } from "@/components/game/KitJersey";
 import type {
   Card, Fixture, FormationId, GameStyle, MatchEvent, MatchResult, MatchTeam, Mentality,
   PitchEra, Position, SquadDef, Stadium, WCEdition,
@@ -146,9 +147,9 @@ export default function MatchPage() {
     if (!pre || stateRef.current) return;
     const userTeam = buildUserTeam(c);
     let aiTeam = buildAiTeam(pre.oppSquad, pre.f.round);
-    // kit clash: opponent switches to its 2nd kit if needed
+    // kit clash: opponent switches to its 2nd kit if needed (2nd kit is plain)
     if (colorDist(aiTeam.colors[0], userTeam.colors[0]) < 160) {
-      aiTeam = { ...aiTeam, colors: pre.oppSquad.kit2 };
+      aiTeam = { ...aiTeam, colors: pre.oppSquad.kit2, kitPattern: "solid" };
     }
     const home: MatchTeam = pre.userIsHome ? userTeam : aiTeam;
     const away: MatchTeam = pre.userIsHome ? aiTeam : userTeam;
@@ -451,30 +452,8 @@ function MiniPitch({ formation, editable, onCycle }: {
 }
 
 /** One half of the face-off: slides in from its edge. */
-/** Detailed two-colour kit: body in primary, sleeves + collar in secondary, ink
- *  outline (fliperama). Faithful to the team's actual kit instead of a flat shirt. */
-function KitJersey({ colors, size = 40 }: { colors: [string, string]; size?: number }) {
-  const [primary, secondary] = colors;
-  const ink = "var(--ink)";
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden style={{ filter: "drop-shadow(2px 3px 0 rgba(20,21,18,0.25))" }}>
-      {/* body */}
-      <path
-        d="M16 10 L7 15 L9 25 L16 22 L16 40 Q16 43 19 43 L29 43 Q32 43 32 40 L32 22 L39 25 L41 15 L32 10 Q24 16 16 10 Z"
-        fill={primary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round"
-      />
-      {/* sleeves in secondary */}
-      <path d="M16 10 L7 15 L9 25 L16 22 Z" fill={secondary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
-      <path d="M32 10 L41 15 L39 25 L32 22 Z" fill={secondary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
-      {/* collar */}
-      <path d="M16.5 10 Q24 16 31.5 10" fill="none" stroke={secondary} strokeWidth={3.6} strokeLinecap="round" />
-      <path d="M16.5 10 Q24 16 31.5 10" fill="none" stroke={ink} strokeWidth={1.1} strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TeamSide({ team, accent, kitColors, slideFrom, editable, onCycle, onEdit }: {
-  team: MatchTeam; accent: string; kitColors: [string, string]; slideFrom: number;
+function TeamSide({ team, accent, kitColors, kitPattern, slideFrom, editable, onCycle, onEdit }: {
+  team: MatchTeam; accent: string; kitColors: [string, string]; kitPattern: KitPattern; slideFrom: number;
   editable?: boolean; onCycle?: (dir: number) => void; onEdit?: () => void;
 }) {
   return (
@@ -494,7 +473,7 @@ function TeamSide({ team, accent, kitColors, slideFrom, editable, onCycle, onEdi
             <span className="min-w-0 truncate font-display text-2xl leading-none" style={{ color: accent }}>{team.name}</span>
           </div>
         </div>
-        <KitJersey colors={kitColors} size={34} />
+        <KitJersey primary={kitColors[0]} secondary={kitColors[1]} pattern={kitPattern} className="w-9 h-auto shrink-0" />
       </div>
 
       <MiniPitch formation={team.tactics.formation} editable={editable} onCycle={onCycle} />
@@ -513,9 +492,10 @@ function TeamSide({ team, accent, kitColors, slideFrom, editable, onCycle, onEdi
 }
 
 /** Central strip: VS + strengths, match metadata, kit choice, kickoff CTA. */
-function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit, onKickoff }: {
+function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, userPattern1, userPattern2, onKit, onKickoff }: {
   uo: number; oo: number; pre: PreInfo; f: Fixture;
   userKit: 1 | 2; userColors1: [string, string]; userColors2: [string, string];
+  userPattern1: KitPattern; userPattern2: KitPattern;
   onKit: (k: 1 | 2) => void; onKickoff: () => void;
 }) {
   const cup = useCareer().cup!;
@@ -549,7 +529,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit,
       <div className="arc-panel p-3">
         <div className="mb-1.5 text-center font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50">Seu uniforme</div>
         <div className="flex justify-center gap-2">
-          {([["1º", userColors1, 1], ["2º", userColors2, 2]] as const).map(([lbl, colors, k]) => (
+          {([["1º", userColors1, userPattern1, 1], ["2º", userColors2, userPattern2, 2]] as const).map(([lbl, colors, pat, k]) => (
             <button
               key={k}
               data-sound="confirm"
@@ -558,7 +538,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit,
                 userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
               }`}
             >
-              <KitJersey colors={colors} size={42} />
+              <KitJersey primary={colors[0]} secondary={colors[1]} pattern={pat} className="w-11 h-auto" />
               <span className="font-arc text-[9px] font-extrabold uppercase">{lbl}</span>
             </button>
           ))}
@@ -588,8 +568,10 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
   };
   const uo = avg(userTeam), oo = avg(oppTeam);
 
-  const oppKit: [string, string] =
-    colorDist(oppTeam.colors[0], userTeam.colors[0]) < 160 ? pre.oppSquad.kit2 : oppTeam.colors;
+  const oppClash = colorDist(oppTeam.colors[0], userTeam.colors[0]) < 160;
+  const oppKit: [string, string] = oppClash ? pre.oppSquad.kit2 : oppTeam.colors;
+  const oppPattern = (oppClash ? "solid" : (oppTeam.kitPattern ?? "solid")) as KitPattern;
+  const userKitPattern = ((c.userKit === 2 ? c.userPattern2 : c.userPattern) ?? "solid") as KitPattern;
 
   // anthem plays through the whole pre-match, cut at the whistle
   useEffect(() => { sound.music("anthem"); }, []);
@@ -608,6 +590,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
             team={userTeam}
             accent="var(--lima)"
             kitColors={userTeam.colors}
+            kitPattern={userKitPattern}
             slideFrom={-1}
             editable
             onCycle={cycleForm}
@@ -618,10 +601,12 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
             userKit={c.userKit}
             userColors1={c.userColors ?? USER_COLORS}
             userColors2={c.userColors2 ?? USER_KIT2}
+            userPattern1={(c.userPattern ?? "solid") as KitPattern}
+            userPattern2={(c.userPattern2 ?? "solid") as KitPattern}
             onKit={(k) => c.setUserKit(k)}
             onKickoff={kickoff}
           />
-          <TeamSide team={oppTeam} accent="var(--rosa)" kitColors={oppKit} slideFrom={1} />
+          <TeamSide team={oppTeam} accent="var(--rosa)" kitColors={oppKit} kitPattern={oppPattern} slideFrom={1} />
         </div>
       </div>
     </main>
@@ -636,7 +621,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 text-right min-w-0 flex items-center justify-end gap-2">
           <span className="font-display text-lg sm:text-2xl truncate">{st.h.team.flag} {st.h.team.name}</span>
-          <KitJersey colors={st.h.team.colors} size={24} />
+          <KitJersey primary={st.h.team.colors[0]} secondary={st.h.team.colors[1]} pattern={(st.h.team.kitPattern ?? "solid") as KitPattern} className="w-6 h-auto shrink-0" />
         </div>
         <div className="text-center shrink-0">
           <div className="font-display text-3xl sm:text-4xl tracking-wider" style={{ color: "var(--amarelo)" }}>
@@ -647,7 +632,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
           </div>
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <KitJersey colors={st.a.team.colors} size={24} />
+          <KitJersey primary={st.a.team.colors[0]} secondary={st.a.team.colors[1]} pattern={(st.a.team.kitPattern ?? "solid") as KitPattern} className="w-6 h-auto shrink-0" />
           <span className="font-display text-lg sm:text-2xl truncate">{st.a.team.name} {st.a.team.flag}</span>
         </div>
       </div>

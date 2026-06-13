@@ -1469,6 +1469,18 @@ export function squadCode(s: SquadDef): string {
   return `${nationCode(s.nation)} ${String(s.year).slice(2)}`;
 }
 
+/** Iconic, historically-unambiguous shirt patterns by nation (KitPattern id).
+ *  Everything else stays "solid" — we don't invent kits we can't verify. */
+const KIT_PATTERN_BY_NATION: Record<string, string> = {
+  "Argentina": "vstripe", // celeste e branco em listras verticais
+  "Croácia": "check",     // xadrez vermelho e branco (1998+)
+  "Peru": "sash",         // faixa diagonal vermelha
+  "Paraguai": "vstripe",  // listras vermelhas e brancas
+};
+export function squadPattern(s: SquadDef): string {
+  return KIT_PATTERN_BY_NATION[s.nation] ?? "solid";
+}
+
 /** Players from a squad eligible for a position (natural or secondary). */
 export function eligiblePlayers(s: SquadDef, pos: Position): PlayerDef[] {
   return s.players.filter((p) => p.positions.includes(pos));

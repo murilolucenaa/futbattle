@@ -4,7 +4,7 @@
 // Rounds: 1–3 groups · 4=R32 · 5=R16 · 6=QF · 7=SF · 8=3º lugar · 9=Final
 // ============================================================
 
-import { SQUAD_BY_ID, squadLabel } from "@/lib/data/squads";
+import { SQUAD_BY_ID, squadLabel, squadPattern } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
 import type {
   Card, CupMode, CupState, Fixture, FormationId, GroupRow, MatchResult, MatchTeam,
@@ -55,6 +55,7 @@ export function buildAiTeam(squad: SquadDef, variant = 0): MatchTeam {
     name: squadLabel(squad),
     flag: squad.flag,
     colors: squad.colors,
+    kitPattern: squadPattern(squad),
     tactics: {
       formation: bestF,
       mentality: mentalities[Math.floor(r() * mentalities.length)],

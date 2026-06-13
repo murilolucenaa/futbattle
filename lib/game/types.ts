@@ -99,6 +99,7 @@ export interface MatchTeam {
   name: string;
   flag: string;
   colors: [string, string];
+  kitPattern?: string; // KitPattern id (cosmetic) — defaults to "solid"
   tactics: Tactics;
   lineup: (Card | null)[]; // index-aligned with formation slots (11)
   bench: Card[];
