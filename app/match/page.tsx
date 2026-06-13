@@ -18,7 +18,7 @@ import { FORMATIONS, FORMATION_IDS, effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL, STYLE_LABEL } from "@/lib/game/tactics";
 import { sound } from "@/src/audio/SoundManager";
 import {
-  IconAssist, IconBall, IconCard, IconChart, IconCrowd, IconGlove, IconShirt, IconSnow,
+  IconAssist, IconBall, IconCard, IconChart, IconCrowd, IconGlove, IconSnow,
   IconStadium, IconStar, IconSub, IconWeather, IconWhistle,
 } from "@/components/icons";
 import type {
@@ -451,8 +451,30 @@ function MiniPitch({ formation, editable, onCycle }: {
 }
 
 /** One half of the face-off: slides in from its edge. */
-function TeamSide({ team, accent, kitColor, slideFrom, editable, onCycle, onEdit }: {
-  team: MatchTeam; accent: string; kitColor: string; slideFrom: number;
+/** Detailed two-colour kit: body in primary, sleeves + collar in secondary, ink
+ *  outline (fliperama). Faithful to the team's actual kit instead of a flat shirt. */
+function KitJersey({ colors, size = 40 }: { colors: [string, string]; size?: number }) {
+  const [primary, secondary] = colors;
+  const ink = "var(--ink)";
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden style={{ filter: "drop-shadow(2px 3px 0 rgba(20,21,18,0.25))" }}>
+      {/* body */}
+      <path
+        d="M16 10 L7 15 L9 25 L16 22 L16 40 Q16 43 19 43 L29 43 Q32 43 32 40 L32 22 L39 25 L41 15 L32 10 Q24 16 16 10 Z"
+        fill={primary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round"
+      />
+      {/* sleeves in secondary */}
+      <path d="M16 10 L7 15 L9 25 L16 22 Z" fill={secondary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
+      <path d="M32 10 L41 15 L39 25 L32 22 Z" fill={secondary} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
+      {/* collar */}
+      <path d="M16.5 10 Q24 16 31.5 10" fill="none" stroke={secondary} strokeWidth={3.6} strokeLinecap="round" />
+      <path d="M16.5 10 Q24 16 31.5 10" fill="none" stroke={ink} strokeWidth={1.1} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TeamSide({ team, accent, kitColors, slideFrom, editable, onCycle, onEdit }: {
+  team: MatchTeam; accent: string; kitColors: [string, string]; slideFrom: number;
   editable?: boolean; onCycle?: (dir: number) => void; onEdit?: () => void;
 }) {
   return (
@@ -472,7 +494,7 @@ function TeamSide({ team, accent, kitColor, slideFrom, editable, onCycle, onEdit
             <span className="min-w-0 truncate font-display text-2xl leading-none" style={{ color: accent }}>{team.name}</span>
           </div>
         </div>
-        <IconShirt size={26} fill={kitColor} />
+        <KitJersey colors={kitColors} size={34} />
       </div>
 
       <MiniPitch formation={team.tactics.formation} editable={editable} onCycle={onCycle} />
@@ -536,7 +558,7 @@ function CenterStrip({ uo, oo, pre, f, userKit, userColors1, userColors2, onKit,
                 userKit === k ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)] shadow-[2px_3px_0_var(--ink)]" : "border-[rgba(20,21,18,0.25)]"
               }`}
             >
-              <IconShirt size={30} fill={colors[0]} />
+              <KitJersey colors={colors} size={42} />
               <span className="font-arc text-[9px] font-extrabold uppercase">{lbl}</span>
             </button>
           ))}
@@ -585,7 +607,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
           <TeamSide
             team={userTeam}
             accent="var(--lima)"
-            kitColor={userTeam.colors[0]}
+            kitColors={userTeam.colors}
             slideFrom={-1}
             editable
             onCycle={cycleForm}
@@ -599,7 +621,7 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
             onKit={(k) => c.setUserKit(k)}
             onKickoff={kickoff}
           />
-          <TeamSide team={oppTeam} accent="var(--rosa)" kitColor={oppKit[0]} slideFrom={1} />
+          <TeamSide team={oppTeam} accent="var(--rosa)" kitColors={oppKit} slideFrom={1} />
         </div>
       </div>
     </main>
@@ -614,7 +636,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 text-right min-w-0 flex items-center justify-end gap-2">
           <span className="font-display text-lg sm:text-2xl truncate">{st.h.team.flag} {st.h.team.name}</span>
-          <IconShirt size={20} fill={st.h.team.colors[0]} />
+          <KitJersey colors={st.h.team.colors} size={24} />
         </div>
         <div className="text-center shrink-0">
           <div className="font-display text-3xl sm:text-4xl tracking-wider" style={{ color: "var(--amarelo)" }}>
@@ -625,7 +647,7 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
           </div>
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <IconShirt size={20} fill={st.a.team.colors[0]} />
+          <KitJersey colors={st.a.team.colors} size={24} />
           <span className="font-display text-lg sm:text-2xl truncate">{st.a.team.name} {st.a.team.flag}</span>
         </div>
       </div>
