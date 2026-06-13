@@ -598,28 +598,84 @@ button, a { cursor: pointer; }
 }
 @keyframes draw-rays { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
-/* bolinhas de sorteio coloridas orbitando */
-.draw-orbit {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  animation: draw-orbit linear infinite;
-}
-@keyframes draw-orbit { to { transform: rotate(360deg); } }
-.draw-lotto {
-  width: 17px; height: 17px;
+/* urna de vidro da Copa (glass draw drum) */
+.draw-bowl {
+  position: relative;
+  z-index: 1;
+  width: 192px; height: 192px;
   border-radius: 999px;
-  border: 2.5px solid var(--ink);
-  background: var(--lc, var(--amarelo));
-  box-shadow: inset -3px -3px 0 rgba(20, 21, 18, 0.16), 2px 2px 0 rgba(20, 21, 18, 0.28);
+  border: 4px solid var(--ink);
+  background:
+    radial-gradient(circle at 36% 30%,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.34) 36%,
+      rgba(20, 21, 18, 0.05) 72%);
+  box-shadow:
+    inset 7px 9px 16px rgba(255, 255, 255, 0.65),
+    inset -9px -11px 20px rgba(20, 21, 18, 0.16),
+    5px 7px 0 rgba(20, 21, 18, 0.4);
+  overflow: hidden;
+}
+/* a haste/pedestal que segura o globo */
+.draw-stand {
+  position: absolute;
+  left: 50%; bottom: 26px;
+  width: 18px; height: 30px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  border-radius: 0 0 4px 4px;
+  z-index: 0;
 }
 
-/* sombra/pedestal sob a bola */
+/* reflexo de vidro por cima dos potes */
+.draw-glass {
+  position: absolute;
+  left: 16%; top: 11%;
+  width: 38%; height: 24%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  filter: blur(2px);
+  transform: rotate(-18deg);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* potes/bolas chacoalhando dentro do globo */
+.draw-ballz {
+  position: absolute;
+  width: 36px; height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 2.5px solid var(--ink);
+  background: var(--bc, var(--paper));
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: inset -3px -3px 0 rgba(20, 21, 18, 0.14), 1px 2px 0 rgba(20, 21, 18, 0.3);
+  animation: draw-jiggle var(--jd, 2.4s) ease-in-out infinite;
+  animation-delay: var(--jdl, 0s);
+  z-index: 2;
+}
+.draw-ballz--soccer { background: var(--paper); }
+@keyframes draw-jiggle {
+  0%, 100% { transform: translateY(0)     rotate(-6deg); }
+  50%      { transform: translateY(-11px) rotate(8deg); }
+}
+.draw-stage.is-spinning .draw-ballz {
+  animation-name: draw-jiggle-spin;
+  animation-duration: 0.5s;
+}
+@keyframes draw-jiggle-spin {
+  0%, 100% { transform: translateY(4px)   rotate(-16deg) scale(1); }
+  35%      { transform: translateY(-24px) rotate(22deg)  scale(1.06); }
+  70%      { transform: translateY(8px)   rotate(-9deg)  scale(0.96); }
+}
+
+/* sombra/pedestal sob a urna */
 .draw-base {
   position: absolute;
-  left: 50%; bottom: 18px;
-  width: 116px; height: 15px;
+  left: 50%; bottom: 14px;
+  width: 132px; height: 16px;
   transform: translateX(-50%);
   border-radius: 999px;
   background: rgba(20, 21, 18, 0.16);

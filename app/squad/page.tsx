@@ -134,30 +134,48 @@ function BallIcon({ size = 64, className = "" }: { size?: number; className?: st
   );
 }
 
-/** Coloured raffle balls orbiting the soccer ball during the draw. */
-const LOTTO_BALLS = [
-  { color: "var(--amarelo)", r: 88,  dur: 3.0, delay: 0 },
-  { color: "var(--lima)",    r: 108, dur: 4.2, delay: -1.1 },
-  { color: "var(--ciano)",   r: 74,  dur: 3.6, delay: -0.6 },
-  { color: "var(--rosa)",    r: 116, dur: 5.0, delay: -2.0 },
-  { color: "var(--laranja)", r: 96,  dur: 3.3, delay: -1.6 },
+/** Pots tumbling inside the glass draw drum — real nations, World-Cup-draw feel. */
+const DRAW_POTS = [
+  { flag: "🇧🇷", bc: "var(--amarelo)", left: "30%", top: "46%", dur: 2.2, delay: 0 },
+  { flag: "🇦🇷", bc: "var(--ciano)",   left: "53%", top: "54%", dur: 2.6, delay: -0.4 },
+  { flag: "🇩🇪", bc: "var(--paper)",   left: "41%", top: "62%", dur: 2.0, delay: -0.9 },
+  { flag: "🇫🇷", bc: "var(--rosa)",    left: "63%", top: "44%", dur: 2.8, delay: -1.3 },
+  { flag: "🇮🇹", bc: "var(--lima)",    left: "21%", top: "57%", dur: 2.3, delay: -0.6 },
+  { flag: "🇳🇱", bc: "var(--laranja)", left: "70%", top: "60%", dur: 2.5, delay: -1.6 },
+  { flag: "🇪🇸", bc: "var(--paper)",   left: "50%", top: "37%", dur: 2.1, delay: -2.0 },
+  { flag: "🇵🇹", bc: "var(--amarelo)", left: "35%", top: "35%", dur: 2.7, delay: -1.1 },
+  { flag: "🇺🇾", bc: "var(--ciano)",   left: "61%", top: "67%", dur: 2.4, delay: -0.2 },
 ];
 
-/** The lottery-draw scene: a spinning ball on a sunburst stage with orbiting raffle balls. */
+/** The lottery-draw scene: a glass drum of national pots on a sunburst stage. */
 function DrawStage({ spinning }: { spinning: boolean }) {
   return (
     <div className={`draw-stage ${spinning ? "is-spinning" : ""}`} aria-hidden>
       <div className={`draw-rays ${spinning ? "is-spinning" : ""}`} />
-      {LOTTO_BALLS.map((b, i) => (
-        <div
-          key={i}
-          className="draw-orbit"
-          style={{ animationDuration: `${spinning ? b.dur : b.dur * 2.8}s`, animationDelay: `${b.delay}s` }}
+      <div className="draw-stand" />
+      <div className="draw-bowl">
+        <span
+          className="draw-ballz draw-ballz--soccer"
+          style={{ left: "45%", top: "49%", ["--jd" as string]: "2.5s", ["--jdl" as string]: "-0.8s" }}
         >
-          <span className="draw-lotto" style={{ ["--lc" as string]: b.color, transform: `translateX(${b.r}px)` }} />
-        </div>
-      ))}
-      <BallIcon size={124} />
+          <BallIcon size={30} />
+        </span>
+        {DRAW_POTS.map((p, i) => (
+          <span
+            key={i}
+            className="draw-ballz"
+            style={{
+              left: p.left, top: p.top,
+              ["--bc" as string]: p.bc,
+              ["--jd" as string]: `${p.dur}s`,
+              ["--jdl" as string]: `${p.delay}s`,
+            }}
+          >
+            {p.flag}
+          </span>
+        ))}
+        <span className="draw-glass" />
+      </div>
       <div className="draw-base" />
     </div>
   );
