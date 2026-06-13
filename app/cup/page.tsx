@@ -20,12 +20,17 @@ function shortTeam(cup: CupState, id: string): string {
   return s ? squadCode(s) : cup.teams[id].name;
 }
 
-function TeamLabel({ cup, id, bold, compact }: { cup: CupState; id: string; bold?: boolean; compact?: boolean }) {
+function TeamLabel({ cup, id, compact, className }: { cup: CupState; id: string; compact?: boolean; className?: string }) {
   const t = cup.teams[id];
+  const label = compact ? shortTeam(cup, id) : t.name;
   return (
-    <span className={`inline-flex items-center gap-1.5 min-w-0 ${id === "USER" ? "text-[var(--accent)] font-bold" : bold ? "font-semibold" : ""}`}>
-      <span className="shrink-0">{t.flag}</span>
-      <span className="truncate">{compact ? shortTeam(cup, id) : t.name}</span>
+    <span
+      className={`flex min-w-0 items-center gap-1.5 font-arc font-extrabold uppercase tracking-tight ${
+        id === "USER" ? "text-[var(--accent)]" : "text-[var(--ink)]"
+      } ${className ?? ""}`}
+    >
+      <span className="shrink-0 normal-case leading-none">{t.flag}</span>
+      <span className="min-w-0 truncate">{label}</span>
     </span>
   );
 }
@@ -50,16 +55,20 @@ function FixtureRow({ cup, f, onClick }: { cup: CupState; f: Fixture; onClick?: 
     <button
       onClick={onClick}
       disabled={!onClick || !played}
-      className={`w-full flex items-center gap-2 text-sm py-1.5 rounded-lg px-1 text-left ${onClick && played ? "hover:bg-[var(--surface)] transition-colors" : "cursor-default"}`}
+      className={`w-full flex items-center gap-2 py-1.5 px-1.5 rounded-xl text-left ${onClick && played ? "hover:bg-[rgba(20,21,18,0.06)] transition-colors" : "cursor-default"}`}
     >
-      <div className="flex-1 text-right min-w-0 flex justify-end"><TeamLabel cup={cup} id={f.homeId} /></div>
-      <div className={`shrink-0 px-2.5 py-0.5 rounded-lg font-display text-base min-w-[3.5rem] text-center ${
-        played ? "bg-[var(--surface-2)]" : "bg-[var(--surface)] text-[var(--muted)]"
+      <div className="flex flex-1 min-w-0 justify-end text-[12.5px]"><TeamLabel cup={cup} id={f.homeId} /></div>
+      <div className={`shrink-0 min-w-[3.4rem] text-center rounded-lg border-[2.5px] border-[var(--ink)] px-2 py-0.5 leading-none ${
+        played ? "bg-[var(--ink)] text-[var(--paper)]" : "bg-transparent text-[rgba(20,21,18,0.55)]"
       }`}>
-        {played ? `${f.scoreH} – ${f.scoreA}` : "vs"}
-        {f.pensH != null && <span className="text-[10px] block leading-none text-[var(--muted)]">pen {f.pensH}–{f.pensA}</span>}
+        {played ? (
+          <span className="font-display text-[15px]">{f.scoreH}<span className="opacity-50 mx-0.5">–</span>{f.scoreA}</span>
+        ) : (
+          <span className="font-arc text-[11px] font-extrabold tracking-[0.15em]">VS</span>
+        )}
+        {f.pensH != null && <span className="block font-arc text-[9px] font-bold leading-none opacity-70 mt-0.5">pen {f.pensH}–{f.pensA}</span>}
       </div>
-      <div className="flex-1 min-w-0"><TeamLabel cup={cup} id={f.awayId} /></div>
+      <div className="flex flex-1 min-w-0 text-[12.5px]"><TeamLabel cup={cup} id={f.awayId} /></div>
     </button>
   );
 }
@@ -193,10 +202,10 @@ export default function CupPage() {
                     <IconStadium size={13} /> {detail.stadium}
                   </div>
                 )}
-                <div className="font-display text-2xl flex items-center justify-center gap-3 mb-1">
-                  <TeamLabel cup={cup} id={detail.homeId} bold />
-                  <span className="text-3xl text-[var(--accent)]">{detail.scoreH}–{detail.scoreA}</span>
-                  <TeamLabel cup={cup} id={detail.awayId} bold />
+                <div className="flex items-center justify-center gap-3 mb-1 text-lg">
+                  <TeamLabel cup={cup} id={detail.homeId} />
+                  <span className="font-display text-3xl text-[var(--accent)] shrink-0">{detail.scoreH}–{detail.scoreA}</span>
+                  <TeamLabel cup={cup} id={detail.awayId} />
                 </div>
                 {detail.pensH != null && (
                   <div className="text-sm text-[var(--gold)] font-bold text-center mb-2">
@@ -267,16 +276,16 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
           </h3>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                <th className="text-left font-semibold pb-1.5 w-8">Pos</th>
-                <th className="text-left font-semibold pb-1.5">Seleção</th>
-                <th className="w-8 font-semibold">J</th>
-                <th className="w-8 font-semibold">V</th>
-                <th className="w-8 font-semibold">E</th>
-                <th className="w-8 font-semibold">D</th>
-                <th className="w-14 font-semibold">GP-GC</th>
-                <th className="w-8 font-semibold">SG</th>
-                <th className="w-9 font-semibold">Pts</th>
+              <tr className="font-arc text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+                <th className="text-left pb-1.5 w-8">Pos</th>
+                <th className="text-left pb-1.5">Seleção</th>
+                <th className="w-8">J</th>
+                <th className="w-8">V</th>
+                <th className="w-8">E</th>
+                <th className="w-8">D</th>
+                <th className="w-14">GP-GC</th>
+                <th className="w-8">SG</th>
+                <th className="w-9">Pts</th>
               </tr>
             </thead>
             <tbody>
@@ -312,14 +321,14 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
 
         {/* group fixtures by round */}
         <div className="arc-panel p-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Jogos do Grupo {sel}</h4>
+          <span className="arc-tag mb-3">★ Jogos do Grupo {sel}</span>
           {groupRounds.map((r) => (
-            <div key={r} className="mb-2">
-              <div className="text-[10px] font-bold text-[var(--gold)] uppercase tracking-wider mb-0.5">{roundLabel(cup, r)}</div>
+            <div key={r} className="mb-2.5">
+              <div className="font-arc text-[10px] font-extrabold text-[var(--gold)] uppercase tracking-[0.2em] mb-1">{roundLabel(cup, r)}</div>
               {cup.fixtures.filter((f) => f.group === sel && f.round === r).map((f) => (
                 <div key={f.id}>
                   <FixtureRow cup={cup} f={f} onClick={() => onFixture(f)} />
-                  {f.stadium && <div className="text-[9px] text-[var(--muted)] text-center -mt-0.5 mb-1">{f.stadium}</div>}
+                  {f.stadium && <div className="font-arc text-[9px] font-bold uppercase tracking-wide text-[rgba(20,21,18,0.45)] text-center -mt-0.5 mb-1.5">{f.stadium}</div>}
                 </div>
               ))}
             </div>
@@ -416,7 +425,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
       : null;
     const row = (id: string, side: "h" | "a") => (
       <div className={`flex items-center justify-between gap-1.5 text-[11px] leading-tight ${win && win !== side ? "opacity-45" : "font-bold"}`}>
-        <span className={`truncate ${id === "USER" ? "text-[var(--accent)]" : ""}`}>
+        <span className={`truncate font-arc font-extrabold uppercase tracking-tight ${id === "USER" ? "text-[var(--accent)]" : ""}`}>
           {cup.teams[id].flag} {shortTeam(cup, id)}
         </span>
         <span className="font-display shrink-0">
@@ -490,7 +499,7 @@ function KoTie({ cup, f, onFixture }: { cup: CupState; f: Fixture | null; onFixt
     : null;
   const row = (id: string, side: "h" | "a") => (
     <div className={`flex items-center justify-between gap-1.5 text-[11px] leading-tight ${win && win !== side ? "opacity-45" : "font-bold"}`}>
-      <span className={`truncate ${id === "USER" ? "text-[var(--accent)]" : ""}`}>{cup.teams[id].flag} {shortTeam(cup, id)}</span>
+      <span className={`truncate font-arc font-extrabold uppercase tracking-tight ${id === "USER" ? "text-[var(--accent)]" : ""}`}>{cup.teams[id].flag} {shortTeam(cup, id)}</span>
       <span className="font-display shrink-0">
         {played ? (side === "h" ? f.scoreH : f.scoreA) : ""}
         {played && f.pensH != null && <span className="text-[8px] text-[var(--muted)]"> ({side === "h" ? f.pensH : f.pensA})</span>}
@@ -551,12 +560,12 @@ function FinalGroupTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixtu
         <h3 className="font-display text-xl mb-3 flex items-center gap-2"><IconTrophy size={18} className="text-[var(--amarelo)]" /> Grupo Final</h3>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              <th className="text-left font-semibold pb-1.5 w-8">Pos</th>
-              <th className="text-left font-semibold pb-1.5">Seleção</th>
-              <th className="w-8 font-semibold">J</th><th className="w-8 font-semibold">V</th>
-              <th className="w-8 font-semibold">E</th><th className="w-8 font-semibold">D</th>
-              <th className="w-14 font-semibold">GP-GC</th><th className="w-9 font-semibold">Pts</th>
+            <tr className="font-arc text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
+              <th className="text-left pb-1.5 w-8">Pos</th>
+              <th className="text-left pb-1.5">Seleção</th>
+              <th className="w-8">J</th><th className="w-8">V</th>
+              <th className="w-8">E</th><th className="w-8">D</th>
+              <th className="w-14">GP-GC</th><th className="w-9">Pts</th>
             </tr>
           </thead>
           <tbody>
@@ -577,7 +586,7 @@ function FinalGroupTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixtu
         <p className="text-[10px] text-[var(--muted)] mt-2">Campeão = líder do quadrangular. Sem final única — é o Maracanazo.</p>
       </div>
       <div className="arc-panel p-4">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Jogos do quadrangular</h4>
+        <span className="arc-tag mb-3">★ Jogos do quadrangular</span>
         {games.map((f) => (
           <div key={f.id}>
             <FixtureRow cup={cup} f={f} onClick={() => onFixture(f)} />
