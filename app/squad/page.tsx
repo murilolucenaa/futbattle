@@ -488,7 +488,7 @@ function DraftView() {
           {/* rodapé fixo: 2 ações de re-sorteio */}
           <div className="mt-3 shrink-0">
             {showSpend ? (
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   data-sound="dice"
                   onClick={roll}
