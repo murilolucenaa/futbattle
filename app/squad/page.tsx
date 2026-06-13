@@ -136,11 +136,11 @@ function BallIcon({ size = 64, className = "" }: { size?: number; className?: st
 
 /** Coloured raffle balls orbiting the soccer ball during the draw. */
 const LOTTO_BALLS = [
-  { color: "var(--amarelo)", r: 78, dur: 3.0, delay: 0 },
-  { color: "var(--lima)",    r: 94, dur: 4.2, delay: -1.1 },
-  { color: "var(--ciano)",   r: 68, dur: 3.6, delay: -0.6 },
-  { color: "var(--rosa)",    r: 98, dur: 5.0, delay: -2.0 },
-  { color: "var(--laranja)", r: 84, dur: 3.3, delay: -1.6 },
+  { color: "var(--amarelo)", r: 88,  dur: 3.0, delay: 0 },
+  { color: "var(--lima)",    r: 108, dur: 4.2, delay: -1.1 },
+  { color: "var(--ciano)",   r: 74,  dur: 3.6, delay: -0.6 },
+  { color: "var(--rosa)",    r: 116, dur: 5.0, delay: -2.0 },
+  { color: "var(--laranja)", r: 96,  dur: 3.3, delay: -1.6 },
 ];
 
 /** The lottery-draw scene: a spinning ball on a sunburst stage with orbiting raffle balls. */
@@ -157,7 +157,7 @@ function DrawStage({ spinning }: { spinning: boolean }) {
           <span className="draw-lotto" style={{ ["--lc" as string]: b.color, transform: `translateX(${b.r}px)` }} />
         </div>
       ))}
-      <BallIcon size={104} />
+      <BallIcon size={124} />
       <div className="draw-base" />
     </div>
   );
@@ -379,12 +379,19 @@ function DraftView() {
           <div className="mt-2 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-55">sorteando…</div>
         </div>
       ) : phase === "idle" || squadUsed ? (
-        <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
-          <DrawStage spinning={false} />
-          <div className="-mt-1 mb-3 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-50">
-            urna do sorteio
+        <div className="flex flex-1 min-h-0 flex-col text-center">
+          <div className="flex flex-1 min-h-0 flex-col items-center justify-center">
+            <DrawStage spinning={false} />
+            <div className="-mt-2 font-arc text-[11px] font-extrabold uppercase tracking-[0.3em] opacity-50">
+              urna do sorteio
+            </div>
+            <p className="mt-3 max-w-[17rem] font-arc text-[12px] font-bold leading-snug opacity-40">
+              {squadUsed
+                ? "Carimbado! Gira de novo pra chamar o próximo nome — essa é de graça."
+                : "Aperta o botão: a urna gira e cospe uma seleção histórica inteira pra você garimpar."}
+            </p>
           </div>
-          <button data-sound="dice" disabled={!canRoll} onClick={roll} className="arc-btn arc-btn--lima arc-btn--card w-full py-4">
+          <button data-sound="dice" disabled={!canRoll} onClick={roll} className="arc-btn arc-btn--lima arc-btn--card w-full shrink-0 py-4">
             <span className="block text-2xl leading-tight">GIRA A URNA</span>
             <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-75">
               {squadUsed ? "tá escalado! próxima vaga — de graça" : "sai uma seleção histórica inteira"}
@@ -574,7 +581,7 @@ function DraftView() {
 
       <div className="mt-2 shrink-0">
         <span className="arc-tag mb-1.5">★ Banco</span>
-        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
           {c.benchSlots.map((b, i) => {
             const open = !b.card && picked !== null && benchOpen;
             return (
@@ -584,7 +591,7 @@ function DraftView() {
                 disabled={!!b.card}
                 data-sound={open ? "stamp" : undefined}
                 onClick={() => { if (open) placeBench(i); }}
-                className={`flex items-center gap-1.5 rounded-xl border-[2.5px] px-2 py-1 text-left ${
+                className={`flex items-center gap-2 rounded-xl border-[2.5px] px-2.5 py-2 text-left ${
                   b.card
                     ? "border-[var(--ink)] bg-[var(--paper)]"
                     : open
@@ -594,11 +601,11 @@ function DraftView() {
               >
                 {b.card ? (
                   <>
-                    <span className="font-display text-base text-[var(--ink)]">{b.card.player.ovr}</span>
-                    <span className="min-w-0 truncate font-arc text-[10px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
+                    <span className="shrink-0 font-display text-xl text-[var(--ink)]">{b.card.player.ovr}</span>
+                    <span className="min-w-0 truncate font-arc text-[12px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
                   </>
                 ) : (
-                  <span className={`font-arc text-[10px] font-extrabold uppercase ${open ? "text-[var(--ink)]" : "opacity-35"}`}>
+                  <span className={`font-arc text-[11px] font-extrabold uppercase ${open ? "text-[var(--ink)]" : "opacity-35"}`}>
                     {open ? "carimbar aqui" : `reserva ${i + 1}`}
                   </span>
                 )}
