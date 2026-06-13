@@ -362,7 +362,7 @@ export default function MatchPage() {
             >
               <motion.div
                 initial={{ scale: 0.95, y: 18 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 10 }}
-                className="arc-panel p-4 sm:p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                className="arc-panel p-4 sm:p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -788,13 +788,39 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
   );
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-1">
-      {/* YOUR side — left, like the PS2 team menu */}
-      <div className="space-y-3">
-        <span className="arc-tag" style={{ background: "var(--lima)" }}>★ Seu time</span>
-        <div>
+    <div className="space-y-4">
+      {/* ── controls bar (seu time) ── */}
+      <div className="arc-mini p-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Mentalidade</div>
+            <div className="flex gap-1.5">
+              {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
+                <button key={m} data-sound="confirm" onClick={() => setTactic({ mentality: m })}
+                  className={`arc-btn arc-btn--card flex-1 py-1 text-[11px] ${
+                    ts.team.tactics.mentality === m
+                      ? m === "ofensivo" ? "arc-btn--rosa" : m === "defensivo" ? "arc-btn--ciano" : "arc-btn--lima"
+                      : "arc-btn--paper"}`}>
+                  {MENTALITY_LABEL[m]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Estilo de jogo</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
+                <button key={s} data-sound="confirm" onClick={() => setTactic({ style: s })}
+                  className={`arc-btn px-2.5 py-1 text-[11px] ${ts.team.tactics.style === s ? "" : "arc-btn--paper"}`}>
+                  {STYLE_LABEL[s]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3">
           <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">Formação</div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {FORMATION_IDS.map((f) => (
               <button key={f} data-sound="confirm" onClick={() => setTactic({ formation: f })}
                 className={`arc-btn px-2 py-0.5 text-[10px] ${ts.team.tactics.formation === f ? "" : "arc-btn--paper"}`}>
@@ -803,88 +829,98 @@ function TacticsPanel({ st, meta, morale, onChanged }: {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(MENTALITY_LABEL) as Mentality[]).map((m) => (
-            <button key={m} data-sound="confirm" onClick={() => setTactic({ mentality: m })}
-              className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.mentality === m ? "arc-btn--lima" : "arc-btn--paper"}`}>
-              {MENTALITY_LABEL[m]}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(STYLE_LABEL) as GameStyle[]).map((s) => (
-            <button key={s} data-sound="confirm" onClick={() => setTactic({ style: s })}
-              className={`arc-btn px-2.5 py-0.5 text-[10px] ${ts.team.tactics.style === s ? "arc-btn--ciano" : "arc-btn--paper"}`}>
-              {STYLE_LABEL[s]}
-            </button>
-          ))}
+      </div>
+
+      {/* ── seu time (campo + titulares) · reservas · adversário ── */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_232px_1fr] items-start">
+        {/* SEU TIME */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="arc-tag" style={{ background: "var(--lima)" }}>★ Seu time</span>
+            <span className="min-w-0 truncate font-arc text-[10px] font-bold uppercase opacity-55">
+              {MENTALITY_LABEL[ts.team.tactics.mentality]} · {STYLE_LABEL[ts.team.tactics.style]}
+            </span>
+          </div>
+          <MiniPitch formation={ts.team.tactics.formation} />
+          <div className="space-y-1">
+            {ts.team.lineup.map((card, i) => card && (
+              <button key={card.player.id} data-sound={ts.subsLeft === 0 ? undefined : "confirm"}
+                disabled={ts.subsLeft === 0}
+                onClick={() => setSubOut(subOut === card.player.id ? null : card.player.id)}
+                className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2.5 py-1.5 text-left transition-colors ${
+                  subOut === card.player.id ? "border-[var(--ink)] bg-[var(--amarelo)]"
+                  : ts.subsLeft === 0 ? "border-transparent opacity-50 cursor-default"
+                  : "border-[rgba(20,21,18,0.22)] hover:border-[var(--ink)]"}`}>
+                <span className="w-7 shrink-0 font-arc text-[9px] font-extrabold opacity-55">{POSITION_SHORT[slots[i].pos]}</span>
+                <span className="min-w-0 flex-1 truncate font-arc text-[12px] font-extrabold uppercase">{card.player.name}</span>
+                <MoraleDot v={morale[card.player.id] ?? 70} />
+                <StaminaBar v={Math.round(ts.stamina[card.player.id] ?? 100)} />
+                <span className="w-6 text-right font-display text-[var(--ink)]">{effectiveOvr(card, slots[i].pos)}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div>
-          <div className="font-arc text-[9px] font-extrabold uppercase tracking-widest opacity-50 mb-1.5">
-            Substituições restantes: <span style={{ color: "#3D8C40" }}>{ts.subsLeft}</span>
+        {/* RESERVAS (do lado) */}
+        <div className="arc-mini p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="arc-tag">★ Banco</span>
+            <span className="font-arc text-[10px] font-extrabold uppercase">
+              <b className="font-display text-base align-middle" style={{ color: ts.subsLeft > 0 ? "var(--lima)" : "#C0182B" }}>{ts.subsLeft}</b>
+              <span className="opacity-55"> subs</span>
+            </span>
           </div>
           {ts.subsLeft === 0 ? (
-            <p className="font-arc text-sm font-bold opacity-55">Sem substituições restantes.</p>
-          ) : !subOut ? (
-            <div className="space-y-1">
-              <p className="font-arc text-xs font-bold opacity-55 mb-1">Quem sai?</p>
-              {ts.team.lineup.map((card, i) => card && (
-                <button key={card.player.id} data-sound="confirm" onClick={() => setSubOut(card.player.id)}
-                  className="w-full rounded-xl border-[2.5px] border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)] px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center gap-2 transition-colors">
-                  <span className="truncate">{POSITION_SHORT[slots[i].pos]} · {card.player.name}</span>
-                  <span className="flex items-center gap-2 shrink-0">
-                    <MoraleDot v={morale[card.player.id] ?? 70} />
-                    <StaminaBar v={Math.round(ts.stamina[card.player.id] ?? 100)} />
-                  </span>
-                </button>
-              ))}
-            </div>
+            <p className="font-arc text-[11px] font-bold opacity-55 py-2">Sem substituições, mister.</p>
           ) : (
-            <div className="space-y-1">
-              <button data-sound="cancel" onClick={() => setSubOut(null)} className="font-arc text-xs font-extrabold opacity-60 hover:opacity-100 mb-1">← cancelar</button>
-              <p className="font-arc text-xs font-bold opacity-55 mb-1">
-                Quem entra?{outIsGk && " Sugestão óbvia: o goleiro reserva."}
+            <>
+              <p className="font-arc text-[10px] font-extrabold uppercase tracking-wide opacity-55">
+                {subOut ? (outIsGk ? "Quem entra? (goleiro)" : "Quem entra?") : "Toque num titular pra trocar"}
               </p>
-              {benchSorted.length === 0 && <p className="font-arc text-sm font-bold opacity-55">Banco vazio.</p>}
+              {benchSorted.length === 0 && <p className="font-arc text-[11px] font-bold opacity-55">Banco vazio.</p>}
               {benchSorted.map((card, i) => {
-                const suggested = i === 0 && (outIsGk ? card.player.positions.includes("GK") : true);
+                const active = subOut !== null;
+                const suggested = active && i === 0 && (outIsGk ? card.player.positions.includes("GK") : true);
                 return (
-                  <button key={card.player.id} data-sound="confirm" onClick={() => doSub(card.player.id)}
-                    className={`w-full px-3 py-1.5 text-left font-arc text-sm font-bold flex justify-between items-center rounded-xl border-[2.5px] transition-colors ${
-                      suggested ? "border-[var(--ink)] bg-[rgba(154,205,30,0.3)]" : "border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)]"
-                    }`}>
-                    <span className="truncate">
-                      {card.player.name}
-                      {suggested && <span className="text-[9px] font-extrabold ml-2 uppercase" style={{ color: "#3D8C40" }}>sugerido</span>}
+                  <button key={card.player.id} data-sound={active ? "confirm" : "error"}
+                    onClick={() => active && doSub(card.player.id)}
+                    className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2.5 py-1.5 text-left transition-all ${
+                      !active ? "border-[rgba(20,21,18,0.18)] opacity-60 cursor-default"
+                      : suggested ? "border-[var(--ink)] bg-[rgba(154,205,30,0.34)]"
+                      : "border-[rgba(20,21,18,0.25)] hover:border-[var(--ink)] hover:translate-x-0.5"}`}>
+                    <span className="w-6 shrink-0 text-center font-display text-base text-[var(--ink)]">{card.player.ovr}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-arc text-[11px] font-extrabold uppercase text-[var(--ink)]">{card.player.name}</span>
+                      <span className="block font-arc text-[9px] font-bold uppercase opacity-50">{card.player.positions.map((p) => POSITION_SHORT[p]).join(" · ")}</span>
                     </span>
-                    <span className="font-display shrink-0" style={{ color: "#3D8C40" }}>{card.player.ovr}</span>
+                    {suggested && <span className="shrink-0 font-arc text-[8px] font-extrabold uppercase" style={{ color: "#3D8C40" }}>sugerido</span>}
                   </button>
                 );
               })}
-            </div>
+            </>
           )}
         </div>
-      </div>
 
-      {/* OPPONENT side — right, read only */}
-      <div className="space-y-2 lg:border-l-2 lg:border-dashed lg:border-[rgba(20,21,18,0.25)] lg:pl-4">
-        <span className="arc-tag" style={{ background: "var(--rosa)", color: "#FFF6FB" }}>
-          ★ {opp.team.name}
-        </span>
-        <div className="font-arc text-[11px] font-bold opacity-55">
-          {opp.team.tactics.formation} · {MENTALITY_LABEL[opp.team.tactics.mentality]} · {STYLE_LABEL[opp.team.tactics.style]} · subs {opp.subsLeft} <span className="text-[9px]">(só observação, mister)</span>
-        </div>
-        <div className="space-y-0.5">
-          {opp.team.lineup.map((card, i) => card && (
-            <div key={card.player.id} className="px-2 py-1 font-arc text-xs font-bold flex justify-between items-center gap-2 rounded-lg bg-[var(--surface)]">
-              <span className="truncate">{POSITION_SHORT[oppSlots[i].pos]} · {card.player.name}</span>
-              <span className="flex items-center gap-2 shrink-0">
-                <span className="font-display">{effectiveOvr(card, oppSlots[i].pos)}</span>
+        {/* ADVERSÁRIO (só leitura) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate arc-tag" style={{ background: "var(--rosa)", color: "#FFF6FB" }}>★ {opp.team.name}</span>
+            <span className="shrink-0 font-arc text-[9px] font-bold uppercase opacity-45">só leitura</span>
+          </div>
+          <MiniPitch formation={opp.team.tactics.formation} />
+          <div className="font-arc text-[10px] font-bold uppercase opacity-55">
+            {MENTALITY_LABEL[opp.team.tactics.mentality]} · {STYLE_LABEL[opp.team.tactics.style]} · {opp.subsLeft} subs
+          </div>
+          <div className="space-y-0.5">
+            {opp.team.lineup.map((card, i) => card && (
+              <div key={card.player.id} className="flex items-center gap-2 rounded-lg px-2 py-1 font-arc text-[11px] font-bold bg-[rgba(20,21,18,0.05)]">
+                <span className="w-7 shrink-0 text-[9px] font-extrabold opacity-55">{POSITION_SHORT[oppSlots[i].pos]}</span>
+                <span className="min-w-0 flex-1 truncate uppercase">{card.player.name}</span>
                 <StaminaBar v={Math.round(opp.stamina[card.player.id] ?? 100)} />
-              </span>
-            </div>
-          ))}
+                <span className="w-6 text-right font-display">{effectiveOvr(card, oppSlots[i].pos)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
