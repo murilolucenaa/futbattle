@@ -9,6 +9,43 @@ import type { WCEdition } from "@/lib/game/types";
 
 export const EDITIONS: WCEdition[] = [
   {
+    id: "uruguai-1930", year: 1930, host: "Uruguai", flag: "🇺🇾", era: "vintage",
+    lore: "A primeira de todas. 13 seleções só por convite, 4 grupos, vencedor de cada vai à semi — e o Uruguai ergueu a taça em casa, no Centenário recém-inaugurado.",
+    stadiums: [
+      { name: "Estadio Centenario", city: "Montevidéu", capacity: 90000 },
+      { name: "Gran Parque Central", city: "Montevidéu", capacity: 20000 },
+      { name: "Estadio Pocitos", city: "Montevidéu", capacity: 1000 },
+    ],
+  },
+  {
+    id: "italia-1934", year: 1934, host: "Itália", flag: "🇮🇹", era: "vintage",
+    lore: "Mata-mata puro: 16 seleções, eliminação direta desde as oitavas. Empatou? Replay no dia seguinte. A Itália de Pozzo venceu em casa, sob o regime fascista.",
+    stadiums: [
+      { name: "Stadio Nazionale PNF", city: "Roma", capacity: 47300 },
+      { name: "San Siro", city: "Milão", capacity: 35000 },
+      { name: "Stadio Littoriale", city: "Bolonha", capacity: 50100 },
+      { name: "Stadio Giovanni Berta", city: "Florença", capacity: 47290 },
+      { name: "Stadio Giorgio Ascarelli", city: "Nápoles", capacity: 40000 },
+      { name: "Stadio Benito Mussolini", city: "Turim", capacity: 28140 },
+      { name: "Stadio Luigi Ferraris", city: "Gênova", capacity: 30000 },
+      { name: "Stadio Littorio", city: "Trieste", capacity: 8000 },
+    ],
+  },
+  {
+    id: "franca-1938", year: 1938, host: "França", flag: "🇫🇷", era: "vintage",
+    lore: "A última antes da guerra. Mata-mata de 16, com a Itália bicampeã sob pressão política. Leônidas, o Diamante Negro, brilhou pelo Brasil — que levou o 3º lugar.",
+    stadiums: [
+      { name: "Stade Olympique de Colombes", city: "Paris", capacity: 60000 },
+      { name: "Stade Vélodrome", city: "Marselha", capacity: 40000 },
+      { name: "Parc Lescure", city: "Bordéus", capacity: 35000 },
+      { name: "Stade de Gerland", city: "Lyon", capacity: 40000 },
+      { name: "Stade Municipal", city: "Toulouse", capacity: 33000 },
+      { name: "Stade Victor Boucquey", city: "Lille", capacity: 25000 },
+      { name: "Stade Cavée Verte", city: "Le Havre", capacity: 22000 },
+      { name: "Stade du Fort Carré", city: "Antibes", capacity: 7000 },
+    ],
+  },
+  {
     id: "brasil-1950", year: 1950, host: "Brasil", flag: "🇧🇷", era: "vintage",
     lore: "Aqui era assim: 4 grupos e um quadrangular final, sem decisão única. Foi onde nasceu o Maracanazo.",
     stadiums: [

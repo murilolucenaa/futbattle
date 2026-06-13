@@ -16,7 +16,7 @@ npx tsc --noEmit # type-check isolado
 ```
 lib/game/types.ts       # Tipos de domínio: Position (+POSITION_SHORT pt-BR), Card, Tactics, CupState, WCEdition…
 lib/data/squads.ts      # Dataset: ~53 seleções reais (1950–2022), ~560 jogadores, kit2 por seleção, squadCode "BRA 70"
-lib/data/editions.ts    # 20 edições de Copa 1950–2026: sede, estádios reais (nome/cidade/capacidade), era visual
+lib/data/editions.ts    # 23 edições de Copa 1930–2026: sede, estádios reais (nome/cidade/capacidade), era visual
 lib/game/formations.ts  # 13 formações com coordenadas 2D + effectiveOvr + assignLineup + formationLayout (offset por mentalidade, só visual)
 lib/game/tactics.ts     # Mentalidades/estilos → multiplicadores do motor (tacticMods)
 lib/game/rules.ts       # Regras do draft: orçamento de giros + sorteio ponderado por força (squadWeight)
@@ -89,7 +89,7 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 
 ### Copa (formato por edição: Fiel vs Tradicional)
 - **Modo** (`cup.mode`, escolhido no popup da home): **Tradicional** = motor g48 (formato 2026) em qualquer edição; **Fiel** = formato real do ano. `engineFor(mode, editionId)` resolve o motor (`formats/registry.ts`). 1974/78/1982 no Fiel ficam **travados** (`fielAvailable=false`, "em breve" — Fase 2).
-- Motores: `finalGroup1950` (13 times, 4 grupos [4,4,3,2] → quadrangular final, campeão = 1º do grupo "FINAL", **sem final clássica**), `g16` (1954–70, 4 grupos→quartas), `g24` (1986–94, 6 grupos + 4 melhores 3ºs), `g32` (1998–2022, 8 grupos), `g48` (2026 + Tradicional).
+- Motores: `groupsSemi1930` (13 times, 4 grupos [4,3,3,3] → vencedor de cada → 2 semis → final, **sem disputa de 3º** — pódio deriva o 3º do melhor perdedor de semi), `knockout1934`/`knockout1938` (mata-mata puro 16, oitavas→quartas→semi→3º→final, **sem grupos**: `cup.groups={}`, `userGroup=""` — fábrica `knockoutEngine` em `knockout.ts`), `finalGroup1950` (13 times, 4 grupos [4,4,3,2] → quadrangular final, campeão = 1º do grupo "FINAL", **sem final clássica**), `g16` (1954–70, 4 grupos→quartas), `g24` (1986–94, 6 grupos + 4 melhores 3ºs), `g32` (1998–2022, 8 grupos), `g48` (2026 + Tradicional). Edição sem grupos → `cup/page.tsx` esconde a aba "Fase de grupos" e abre direto no chaveamento (`GenericBracket`).
 - **`Fixture.knockout`** define mata-mata (pênaltis no empate) — substitui o antigo `round >= 4`. Grupo-final de 1950 é `knockout:false`. `roundLabel(cup,r)`/`lastRound(cup)` delegam ao motor (não há mais `ROUND_LABEL`/`LAST_ROUND` estáticos). `cup/page.tsx` deriva nº de grupos de `cup.groups` e rounds de mata-mata dos fixtures `knockout`.
 - 2026: 48 times, **12 grupos A–L**; classificação pontos → saldo → gols pró (→ hash). **Top 2 + 8 melhores 3ºs** avançam. Rounds: 1–3 grupos · 4 = 16 avos · 5 = oitavas · 6 = quartas · 7 = semi · **8 = 3º lugar** · 9 = FINAL.
 - R32: vencedores × terceiros/vices de grupos diferentes (fix-up evita confronto do mesmo grupo); chaveamento em 2 lados de 8.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import TopBar from "@/components/TopBar";
@@ -154,6 +154,7 @@ export default function CupPage() {
   const [tab, setTab] = useState<"groups" | "leaders" | "bracket">("groups");
   const [detail, setDetail] = useState<Fixture | null>(null);
   const [showCeremony, setShowCeremony] = useState(true);
+  const didDefaultTab = useRef(false);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -161,6 +162,12 @@ export default function CupPage() {
     if (c.coachName === "") { router.replace("/"); return; }
     if (!c.cup) router.replace("/squad");
   }, [mounted, c.coachName, c.cup, router]);
+  // mata-mata puro (1934/38) não tem grupos → abre direto no chaveamento
+  useEffect(() => {
+    if (didDefaultTab.current || !mounted || !c.cup) return;
+    didDefaultTab.current = true;
+    if (Object.keys(c.cup.groups).length === 0) setTab("bracket");
+  }, [mounted, c.cup]);
 
   if (!mounted || !c.cup) return null;
   const cup = c.cup;
@@ -247,7 +254,10 @@ export default function CupPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-5 flex-wrap">
-          {([["groups", "Fase de grupos"], ["leaders", "Líderes"], ["bracket", "Mata-mata"]] as const).map(([k, label]) => (
+          {(([
+            ...(Object.keys(cup.groups).length > 0 ? [["groups", "Fase de grupos"]] : []),
+            ["leaders", "Líderes"], ["bracket", "Mata-mata"],
+          ] as const) as ["groups" | "leaders" | "bracket", string][]).map(([k, label]) => (
             <button
               key={k}
               data-sound="confirm"
@@ -259,7 +269,7 @@ export default function CupPage() {
           ))}
         </div>
 
-        {tab === "groups" && <GroupsTab cup={cup} onFixture={setDetail} />}
+        {tab === "groups" && Object.keys(cup.groups).length > 0 && <GroupsTab cup={cup} onFixture={setDetail} />}
         {tab === "leaders" && <LeadersTab cup={cup} />}
         {tab === "bracket" && <BracketTab cup={cup} onFixture={setDetail} />}
 

@@ -57,11 +57,13 @@ describe("editions data", () => {
 
   it("every edition has real stadiums with city and capacity", () => {
     for (const e of EDITIONS) {
-      expect(e.stadiums.length).toBeGreaterThanOrEqual(4);
+      // 1930 (Uruguai) teve só 3 sedes, todas em Montevidéu; estádios dos
+      // anos 30 incluem praças pequenas (Pocitos ~1000) — limites reais.
+      expect(e.stadiums.length).toBeGreaterThanOrEqual(3);
       for (const st of e.stadiums) {
         expect(st.name.length).toBeGreaterThan(2);
         expect(st.city.length).toBeGreaterThan(2);
-        expect(st.capacity).toBeGreaterThan(10000);
+        expect(st.capacity).toBeGreaterThanOrEqual(1000);
       }
     }
   });
