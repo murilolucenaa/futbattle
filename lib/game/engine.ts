@@ -5,7 +5,7 @@
 // ============================================================
 
 import type {
-  Card, MatchEvent, MatchResult, MatchTeam, PlayerMatchStats,
+  Card, MatchEvent, MatchResult, MatchTeam, PenaltyKick, PenaltyShootout, PlayerMatchStats,
   Position, Tactics, TeamMatchStats,
 } from "./types";
 import { FORMATIONS, effectiveOvr } from "./formations";
@@ -50,6 +50,7 @@ export interface LiveMatchState {
   coolingBreaks: boolean; // 2026-style pauses at 25' and 70'
   pensH?: number;
   pensA?: number;
+  penShootout?: PenaltyShootout;
 }
 
 const emptyTeamStats = (): TeamMatchStats =>
@@ -393,6 +394,9 @@ export function tick(state: LiveMatchState): MatchEvent[] {
 }
 
 // ── Penalties (knockout draws) ───────────────────────────────
+// Records the kick-by-kick sequence (best-of-5 with early stop + sudden death)
+// so the presentation layer can replay it as an animated shootout. RNG draws
+// happen one per kick, in order, so the result stays deterministic per seed.
 function simulatePenalties(state: LiveMatchState): void {
   const { rand } = state;
   const takers = (ts: TeamState) =>
@@ -402,24 +406,41 @@ function simulatePenalties(state: LiveMatchState): void {
   const aTakers = takers(state.a);
   const hGk = gk(state.a); // keeper facing home shooters
   const aGk = gk(state.h);
+
+  const kicks: PenaltyKick[] = [];
   let ph = 0, pa = 0;
   const shoot = (taker: { card: Card }, keeper: Card | null): boolean => {
     const conv = 0.76 + (taker.card.player.ovr - (keeper?.player.ovr ?? 80)) * 0.004;
     return rand() < Math.min(0.95, Math.max(0.45, conv));
   };
-  for (let i = 0; i < 5; i++) {
-    if (shoot(hTakers[i % hTakers.length], hGk)) ph++;
-    if (shoot(aTakers[i % aTakers.length], aGk)) pa++;
-    // early decision shortcut not modeled — fine for game feel
+  const take = (side: "h" | "a"): void => {
+    const list = side === "h" ? hTakers : aTakers;
+    const taker = list[kicks.filter((k) => k.side === side).length % list.length];
+    const scored = shoot(taker, side === "h" ? hGk : aGk);
+    if (scored) { if (side === "h") ph++; else pa++; }
+    kicks.push({ side, shooterId: taker.card.player.id, shooterName: taker.card.player.name, scored });
+  };
+  // can the trailing side still catch up given kicks left this side?
+  const decided = (remH: number, remA: number): boolean => ph > pa + remA || pa > ph + remH;
+
+  let round = 0;
+  for (; round < 5; round++) {
+    take("h");
+    if (decided(4 - round, 5 - round)) break; // a hasn't kicked this round yet
+    take("a");
+    if (decided(4 - round, 4 - round)) break;
   }
+  // sudden death: one each per round until they differ
   let i = 5;
-  while (ph === pa && i < 20) {
-    if (shoot(hTakers[i % hTakers.length], hGk)) ph++;
-    if (shoot(aTakers[i % aTakers.length], aGk)) pa++;
+  while (ph === pa && i < 30) {
+    take("h");
+    take("a");
     i++;
   }
-  if (ph === pa) { ph++; } // hard guarantee
+  if (ph === pa) { ph++; } // hard guarantee (never reached in practice)
+
   state.pensH = ph; state.pensA = pa;
+  state.penShootout = { kicks, h: ph, a: pa };
   state.events.push({
     min: 90, type: ph > pa ? "penalty-goal" : "penalty-miss", side: ph > pa ? "h" : "a",
     text: `Disputa de pênaltis: ${state.h.team.name} ${ph}–${pa} ${state.a.team.name}`,
@@ -481,6 +502,7 @@ export function resultOf(state: LiveMatchState): MatchResult {
   return {
     scoreH: state.scoreH, scoreA: state.scoreA,
     pensH: state.pensH, pensA: state.pensA,
+    penShootout: state.penShootout,
     events: state.events,
     statsH: state.statsH, statsA: state.statsA,
     playerStats: state.playerStats,

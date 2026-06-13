@@ -139,11 +139,25 @@ export interface TeamMatchStats {
   fouls: number;
 }
 
+/** One kick in a shootout — recorded so the UI can replay it animated. */
+export interface PenaltyKick {
+  side: "h" | "a";
+  shooterId: string;
+  shooterName: string;
+  scored: boolean;
+}
+export interface PenaltyShootout {
+  kicks: PenaltyKick[]; // in order taken, stops at the decisive kick
+  h: number;            // = pensH
+  a: number;            // = pensA
+}
+
 export interface MatchResult {
   scoreH: number;
   scoreA: number;
   pensH?: number;
   pensA?: number;
+  penShootout?: PenaltyShootout;
   events: MatchEvent[];
   statsH: TeamMatchStats;
   statsA: TeamMatchStats;

@@ -22,6 +22,7 @@ import {
   IconStadium, IconStar, IconSub, IconWeather, IconWhistle,
 } from "@/components/icons";
 import KitJersey, { type KitPattern } from "@/components/game/KitJersey";
+import PenaltyShootout from "@/components/game/PenaltyShootout";
 import type {
   Card, Fixture, FormationId, GameStyle, MatchEvent, MatchResult, MatchTeam, Mentality,
   PitchEra, Position, SquadDef, Stadium, WCEdition,
@@ -97,6 +98,7 @@ export default function MatchPage() {
   const [panel, setPanel] = useState<"feed" | "stats">("feed");
   const [tacticsOpen, setTacticsOpen] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [shootoutDone, setShootoutDone] = useState(false);
   const [goalFlash, setGoalFlash] = useState<MatchEvent | null>(null);
   const [cooling, setCooling] = useState(false);
   const recordedRef = useRef(false);
@@ -233,6 +235,20 @@ export default function MatchPage() {
   if (!view || !stateRef.current || !metaRef.current) return null;
   const st = stateRef.current;
   const meta = metaRef.current;
+
+  // knockout draw → animated shootout before the result screen
+  if (result?.penShootout && !shootoutDone) {
+    return (
+      <PenaltyShootout
+        shootout={result.penShootout}
+        home={st.h.team}
+        away={st.a.team}
+        userSide={meta.userSide}
+        seed={pre.seed}
+        onDone={() => setShootoutDone(true)}
+      />
+    );
+  }
 
   if (result) {
     return <ResultScreen result={result} state={st} meta={meta} />;
