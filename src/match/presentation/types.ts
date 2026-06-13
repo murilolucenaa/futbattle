@@ -39,6 +39,7 @@ export interface Beat {
   arc: number;              // max pseudo-height during flight (0 = ground)
   outcome?: "goal" | "save" | "miss" | "post";
   scorerId?: string;
+  owner?: "h" | "a";        // which side controls the ball this beat (carrier lock)
   pauseAfterMs?: number;    // reception micro-pause
 }
 

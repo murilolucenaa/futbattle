@@ -155,6 +155,7 @@ export function createDirector(state: LiveMatchState, opts: DirectorOpts): Direc
     const total = beats.reduce((s, b) => s + b.durMs + (b.pauseAfterMs ?? 0), 0);
     const scale = baseMinuteMs / Math.max(total, 1);
     for (const b of beats) {
+      b.owner = side;
       // never let scaling push the ball past ~110 u/s (eased peak ≈ 2× avg)
       const dist = Math.hypot(b.to.x - b.from.x, b.to.y - b.from.y);
       b.durMs = Math.max(100, (dist / 110) * 1000, b.durMs * scale);
@@ -208,6 +209,12 @@ export function createDirector(state: LiveMatchState, opts: DirectorOpts): Direc
       const target = { x: goalX, y: wideY };
       beats.push(shotBeat(strikePoint, target, "miss"));
       beats.push({ kind: "goalkick", durMs: 900, from: target, to: keeperSpot, curve: 0, arc: 0.5 });
+    }
+    // lock the carrier to the attacking side; restarts (goal kick / kickoff
+    // after a goal) belong to the side that conceded.
+    const defend: "h" | "a" = side === "h" ? "a" : "h";
+    for (const b of beats) {
+      b.owner = b.kind === "goalkick" || b.kind === "reset" ? defend : side;
     }
     return beats;
   }
@@ -273,7 +280,7 @@ export function createDirector(state: LiveMatchState, opts: DirectorOpts): Direc
         pendingRelease = null;
         emitView();
       }
-      const side = b.to.x > 50 ? "h" as const : "a" as const;
+      const side = b.owner ?? (b.to.x > 50 ? "h" as const : "a" as const);
       if (b.outcome === "goal") {
         audio.play("goal.horn");
         celebration = { scorerId: b.scorerId ?? "", side, t: 1 };
@@ -291,9 +298,9 @@ export function createDirector(state: LiveMatchState, opts: DirectorOpts): Direc
       for (const a of agents) a.celebrating = false;
     } else if (b.kind === "goalkick") {
       diveGk = null;
-      carrierId = nearestAgentId({ x: b.to.x, y: b.to.y }, null);
+      carrierId = nearestAgentId({ x: b.to.x, y: b.to.y }, b.owner ?? null);
     } else if (b.kind === "pass" || b.kind === "carry" || b.kind === "reset" || b.kind === "bounce") {
-      carrierId = nearestAgentId({ x: b.to.x, y: b.to.y }, null);
+      carrierId = nearestAgentId({ x: b.to.x, y: b.to.y }, b.owner ?? null);
     }
   }
 

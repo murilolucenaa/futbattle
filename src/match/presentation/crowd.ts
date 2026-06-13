@@ -23,7 +23,7 @@ const BAND_SHARE: [CrowdDot["band"], number][] = [
 export function layoutCrowd(rng: () => number, count: number, density: number): CrowdDot[] {
   const dots: CrowdDot[] = [];
   for (const [band, share] of BAND_SHARE) {
-    const n = Math.round(count * share * Math.max(0.3, Math.min(1, density)));
+    const n = Math.round(count * share * Math.max(0.55, Math.min(1, density)));
     for (let i = 0; i < n; i++) {
       const side: "h" | "a" =
         band === "left" ? "h"

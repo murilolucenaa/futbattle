@@ -23,7 +23,7 @@ const ERA_THEME: Record<PitchEra, { grass: number; grassDark: number; stand: num
   ultra:   { grass: 0x169a50, grassDark: 0x0b6231, stand: 0x101a30, lineAlpha: 0.45 },
 };
 
-const CROWD_COUNT = 600;
+const CROWD_COUNT = 1400;
 
 interface Layout {
   w: number; h: number;

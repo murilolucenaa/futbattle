@@ -1154,6 +1154,7 @@ export const SQUADS: SquadDef[] = [
     ["Estêvão", "RW/AM", 84],
     ["Matheus Cunha", "ST/AM", 84],
     ["Gabriel Martinelli", "LW", 84],
+    ["Neymar", "LW/AM", 83],
     ["Endrick", "ST", 82],
   ]),
 
