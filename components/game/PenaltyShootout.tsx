@@ -210,7 +210,7 @@ export default function PenaltyShootout({
   );
 
   return (
-    <main className="fixed inset-0 z-50 flex flex-col overflow-hidden" style={{ background: "radial-gradient(120% 80% at 50% 0%, #0c2c4d 0%, #07182b 45%, #050b14 100%)" }}>
+    <main className="fixed inset-0 z-50 flex flex-col overflow-hidden safe-y" style={{ background: "radial-gradient(120% 80% at 50% 0%, #0c2c4d 0%, #07182b 45%, #050b14 100%)" }}>
       {/* stadium lights */}
       <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(40% 26% at 20% 4%, rgba(255,255,255,0.16), transparent 70%), radial-gradient(40% 26% at 80% 4%, rgba(255,255,255,0.16), transparent 70%)" }} />
 

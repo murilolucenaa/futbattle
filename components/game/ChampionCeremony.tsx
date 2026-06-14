@@ -132,12 +132,12 @@ export default function ChampionCeremony({
 
       {/* skip hint */}
       {stage !== "final" && (
-        <button data-sound="back" className="absolute top-4 right-4 z-20 font-arc text-[11px] font-bold uppercase tracking-[0.2em] text-white/55 hover:text-white">
+        <button data-sound="back" className="absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-20 font-arc text-[11px] font-bold uppercase tracking-[0.2em] text-white/55 hover:text-white">
           pular ›
         </button>
       )}
 
-      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-y">
         <AnimatePresence mode="wait">
           {/* ── TITLE ─────────────────────────────────────── */}
           {stage === "title" && (
