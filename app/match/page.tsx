@@ -264,15 +264,16 @@ export default function MatchPage() {
   };
 
   return (
-    <main className="arc-bg flex-1 w-full">
+    <main className="arc-bg flex-1 w-full safe-x safe-b">
       <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-3 sm:px-4 py-4 flex flex-col gap-3">
         <Scoreboard st={st} view={view} meta={meta} />
         <PossessionBar st={st} view={view} />
 
-        {/* Pixi stage + DOM overlays (HUD only) */}
+        {/* Pixi stage + DOM overlays (HUD only). Taller on phones (4:3) so the
+            players read big in portrait; landscape 16:10 on larger screens. */}
         <div className={goalFlash ? "shake" : ""}>
-          <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden border-[3px] border-[var(--ink)]">
+          <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full rounded-2xl overflow-hidden border-[3px] border-[var(--ink)]">
             {directorRef.current && (
               <MatchStage
                 director={directorRef.current}
@@ -322,13 +323,13 @@ export default function MatchPage() {
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Controls — wrap into tidy tappable clusters on phones */}
         <div className="arc-strip !rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button
               data-sound="confirm"
               onClick={() => setPaused((p) => !p)}
-              className={`arc-btn px-4 py-1.5 text-xs ${paused ? "arc-btn--lima" : "arc-btn--paper"}`}
+              className={`arc-btn tap-sm px-4 py-1.5 text-xs ${paused ? "arc-btn--lima" : "arc-btn--paper"}`}
             >
               {paused ? "Retomar" : "Pausar"}
             </button>
@@ -337,22 +338,24 @@ export default function MatchPage() {
                 key={sp}
                 data-sound="confirm"
                 onClick={() => setSpeed(sp)}
-                className={`arc-btn px-3 py-1.5 text-xs ${speed === sp ? "" : "arc-btn--paper"}`}
+                className={`arc-btn tap-sm px-3 py-1.5 text-xs ${speed === sp ? "" : "arc-btn--paper"}`}
               >
                 {sp}x
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
             <button
               data-sound="confirm"
               onClick={() => setTacticsOpen(true)}
-              className="arc-btn px-4 py-1.5 text-xs"
+              className="arc-btn tap-sm px-4 py-1.5 text-xs"
             >
               TÁTICA
             </button>
+            <button data-sound="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano tap-sm px-4 py-1.5 text-xs">
+              Pular pro fim
+            </button>
           </div>
-          <button data-sound="confirm" onClick={skipToEnd} className="arc-btn arc-btn--ciano px-4 py-1.5 text-xs">
-            Pular pro fim
-          </button>
         </div>
 
         {/* Panels: narration & stats only — tactics live in the overlay */}
@@ -363,7 +366,7 @@ export default function MatchPage() {
                 key={k}
                 data-sound="confirm"
                 onClick={() => setPanel(k)}
-                className={`arc-btn px-4 py-1 text-[11px] ${panel === k ? "" : "arc-btn--paper"}`}
+                className={`arc-btn tap-sm px-4 py-1 text-[11px] ${panel === k ? "" : "arc-btn--paper"}`}
               >
                 {label}
               </button>
@@ -378,11 +381,11 @@ export default function MatchPage() {
           {tacticsOpen && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75"
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-3 sm:p-6 bg-black/75 safe-y"
             >
               <motion.div
                 initial={{ scale: 0.95, y: 18 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 10 }}
-                className="arc-panel p-4 sm:p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+                className="arc-panel my-auto p-4 sm:p-6 w-full max-w-5xl max-h-[88dvh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -602,31 +605,40 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
     c.setFormation(FORMATION_IDS[(formIdx + dir + FORMATION_IDS.length) % FORMATION_IDS.length] as FormationId);
 
   return (
-    <main className="arc-bg w-full flex-1">
+    <main className="arc-bg w-full flex-1 safe-x safe-b">
       <SoundProvider />
-      <div className="mx-auto w-full max-w-6xl px-4 py-6">
+      <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:py-6">
+        {/* On phones the VS / stadium / kit + kickoff CTA come first (order-1);
+            the two team line-ups follow for inspection. Desktop keeps the
+            classic you · center · rival face-off. */}
         <div className="grid items-start gap-4 lg:grid-cols-[1fr_280px_1fr]">
-          <TeamSide
-            team={userTeam}
-            accent="var(--lima)"
-            kitColors={userTeam.colors}
-            kitPattern={userKitPattern}
-            slideFrom={-1}
-            editable
-            onCycle={cycleForm}
-            onEdit={() => router.push("/squad")}
-          />
-          <CenterStrip
-            uo={uo} oo={oo} pre={pre} f={f}
-            userKit={c.userKit}
-            userColors1={c.userColors ?? USER_COLORS}
-            userColors2={c.userColors2 ?? USER_KIT2}
-            userPattern1={(c.userPattern ?? "solid") as KitPattern}
-            userPattern2={(c.userPattern2 ?? "solid") as KitPattern}
-            onKit={(k) => c.setUserKit(k)}
-            onKickoff={kickoff}
-          />
-          <TeamSide team={oppTeam} accent="var(--rosa)" kitColors={oppKit} kitPattern={oppPattern} slideFrom={1} />
+          <div className="order-2 lg:order-1 min-w-0">
+            <TeamSide
+              team={userTeam}
+              accent="var(--lima)"
+              kitColors={userTeam.colors}
+              kitPattern={userKitPattern}
+              slideFrom={-1}
+              editable
+              onCycle={cycleForm}
+              onEdit={() => router.push("/squad")}
+            />
+          </div>
+          <div className="order-1 lg:order-2 min-w-0">
+            <CenterStrip
+              uo={uo} oo={oo} pre={pre} f={f}
+              userKit={c.userKit}
+              userColors1={c.userColors ?? USER_COLORS}
+              userColors2={c.userColors2 ?? USER_KIT2}
+              userPattern1={(c.userPattern ?? "solid") as KitPattern}
+              userPattern2={(c.userPattern2 ?? "solid") as KitPattern}
+              onKit={(k) => c.setUserKit(k)}
+              onKickoff={kickoff}
+            />
+          </div>
+          <div className="order-3 min-w-0">
+            <TeamSide team={oppTeam} accent="var(--rosa)" kitColors={oppKit} kitPattern={oppPattern} slideFrom={1} />
+          </div>
         </div>
       </div>
     </main>
@@ -1047,7 +1059,7 @@ function ResultScreen({ result, state, meta }: {
   }
 
   return (
-    <main className="arc-bg flex-1 w-full">
+    <main className="arc-bg flex-1 w-full safe-x safe-b">
       <SoundProvider />
       <div className="mx-auto max-w-5xl w-full px-4 py-6 space-y-5">
         {/* Final score */}
@@ -1167,12 +1179,12 @@ function ResultScreen({ result, state, meta }: {
           {statsOpen && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-black/70 safe-y"
               onClick={() => setStatsOpen(false)}
             >
               <motion.div
                 initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
-                className="arc-panel p-6 w-full max-w-lg"
+                className="arc-panel my-auto p-6 w-full max-w-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="font-display text-xl mb-4 text-center">
@@ -1190,12 +1202,12 @@ function ResultScreen({ result, state, meta }: {
           {detail && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-black/70 safe-y"
               onClick={() => setDetail(null)}
             >
               <motion.div
                 initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }}
-                className="arc-panel p-6 w-full max-w-sm"
+                className="arc-panel my-auto p-6 w-full max-w-sm"
                 onClick={(e) => e.stopPropagation()}
               >
                 {(() => {
