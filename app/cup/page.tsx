@@ -188,7 +188,7 @@ export default function CupPage() {
         />
       )}
       <TopBar />
-      <main className="arc-bg flex-1 w-full">
+      <main className="arc-bg flex-1 w-full safe-x safe-b">
         <div className="mx-auto max-w-6xl w-full px-4 py-6">
         <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] text-white/85 mb-3 flex items-center gap-2">
           <IconTrophy size={14} className="text-[var(--amarelo)]" />
@@ -219,12 +219,12 @@ export default function CupPage() {
               </div>
             )}
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex w-full sm:w-auto min-w-0 flex-1 items-center gap-3">
                 <HeroSide cup={cup} id={next.homeId} align="right" />
                 <span className="shrink-0 font-arc text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--muted)]">vs</span>
                 <HeroSide cup={cup} id={next.awayId} align="left" />
               </div>
-              <button data-sound="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card px-8 py-3 shrink-0">
+              <button data-sound="confirm" onClick={() => router.push("/match")} className="arc-btn arc-btn--rosa arc-btn--card w-full sm:w-auto px-8 py-3 shrink-0">
                 <span className="block text-xl leading-tight">Bora pro jogo</span>
                 <span className="block font-arc text-[10px] font-bold opacity-80 mt-0.5">aquece que é sua vez, mister</span>
               </button>
@@ -262,7 +262,7 @@ export default function CupPage() {
               key={k}
               data-sound="confirm"
               onClick={() => setTab(k)}
-              className={`arc-btn px-5 py-1.5 text-xs ${tab === k ? "" : "arc-btn--paper"}`}
+              className={`arc-btn tap-sm px-5 py-1.5 text-xs ${tab === k ? "" : "arc-btn--paper"}`}
             >
               {label}
             </button>
@@ -278,12 +278,12 @@ export default function CupPage() {
           {detail && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-black/70 backdrop-blur-sm safe-y"
               onClick={() => setDetail(null)}
             >
               <motion.div
                 initial={{ scale: 0.93, y: 14 }} animate={{ scale: 1, y: 0 }}
-                className="arc-panel p-6 w-full max-w-md"
+                className="arc-panel my-auto p-6 w-full max-w-md"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.25em] text-[var(--gold)] mb-1 text-center">
@@ -372,10 +372,10 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
                 <th className="text-left pb-1.5 w-8">Pos</th>
                 <th className="text-left pb-1.5">Seleção</th>
                 <th className="w-8">J</th>
-                <th className="w-8">V</th>
-                <th className="w-8">E</th>
-                <th className="w-8">D</th>
-                <th className="w-14">GP-GC</th>
+                <th className="w-8 hidden sm:table-cell">V</th>
+                <th className="w-8 hidden sm:table-cell">E</th>
+                <th className="w-8 hidden sm:table-cell">D</th>
+                <th className="w-14 hidden sm:table-cell">GP-GC</th>
                 <th className="w-8">SG</th>
                 <th className="w-9">Pts</th>
               </tr>
@@ -393,10 +393,10 @@ function GroupsTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture) 
                     <td className={`py-2 pl-1.5 text-xs font-bold border-l-[4px] ${i < 2 ? "border-[var(--lima)] text-[var(--accent)]" : qualThird ? "border-[var(--amarelo)] text-[var(--gold)]" : "border-transparent text-[var(--muted)]"}`}>{i + 1}º</td>
                     <td className="py-2 pr-2"><TeamLabel cup={cup} id={row.teamId} /></td>
                     <td className="text-center text-[var(--muted)]">{row.p}</td>
-                    <td className="text-center text-[var(--muted)]">{row.w}</td>
-                    <td className="text-center text-[var(--muted)]">{row.d}</td>
-                    <td className="text-center text-[var(--muted)]">{row.l}</td>
-                    <td className="text-center text-[var(--muted)]">{row.gf}-{row.ga}</td>
+                    <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.w}</td>
+                    <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.d}</td>
+                    <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.l}</td>
+                    <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.gf}-{row.ga}</td>
                     <td className="text-center text-[var(--muted)]">{row.gf - row.ga > 0 ? `+${row.gf - row.ga}` : row.gf - row.ga}</td>
                     <td className="text-center font-bold">{row.pts}</td>
                   </tr>
@@ -550,7 +550,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
     arr.length >= n ? (arr as (T | null)[]) : [...arr, ...Array<null>(n - arr.length).fill(null)];
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="scroll-x pb-2">
       <div className="grid gap-2 items-stretch min-w-[980px]" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr 1.15fr 1fr 1fr 1fr 1fr" }}>
         <Column title="16 avos" ties={pad(half(r32, 0), 8)} gap="0.4rem" />
         <Column title="Oitavas" ties={pad(half(r16, 0), 4)} gap="2rem" />
@@ -575,7 +575,7 @@ function BracketTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixture)
         <Column title="16 avos" ties={pad(half(r32, 1), 8)} gap="0.4rem" />
       </div>
       <p className="font-arc text-[10px] font-bold text-white/75 text-center mt-3">
-        Toque num confronto para ver os detalhes — 8 chaves de cada lado, como na Copa de verdade.
+        <span className="lg:hidden">Deslize na horizontal · </span>Toque num confronto para ver os detalhes — 8 chaves de cada lado, como na Copa de verdade.
       </p>
     </div>
   );
@@ -621,7 +621,7 @@ function GenericBracket({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixt
   }
   const fs = (round: number) => cup.fixtures.filter((f) => f.round === round).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   return (
-    <div className="arc-panel p-4 overflow-x-auto">
+    <div className="arc-panel p-4 scroll-x">
       <div className="flex gap-3 min-w-max items-stretch">
         {koRounds.map((r) => (
           <div key={r} className="flex flex-col justify-around gap-2 min-w-[160px]">
@@ -655,9 +655,9 @@ function FinalGroupTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixtu
             <tr className="font-arc text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">
               <th className="text-left pb-1.5 w-8">Pos</th>
               <th className="text-left pb-1.5">Seleção</th>
-              <th className="w-8">J</th><th className="w-8">V</th>
-              <th className="w-8">E</th><th className="w-8">D</th>
-              <th className="w-14">GP-GC</th><th className="w-9">Pts</th>
+              <th className="w-8">J</th><th className="w-8 hidden sm:table-cell">V</th>
+              <th className="w-8 hidden sm:table-cell">E</th><th className="w-8 hidden sm:table-cell">D</th>
+              <th className="w-14 hidden sm:table-cell">GP-GC</th><th className="w-9">Pts</th>
             </tr>
           </thead>
           <tbody>
@@ -666,10 +666,10 @@ function FinalGroupTab({ cup, onFixture }: { cup: CupState; onFixture: (f: Fixtu
                 <td className={`py-2 pl-1.5 text-xs font-bold border-l-[4px] ${i === 0 ? "border-[var(--amarelo)] text-[var(--gold)]" : "border-transparent text-[var(--muted)]"}`}>{i + 1}º</td>
                 <td className="py-2 pr-2"><TeamLabel cup={cup} id={row.teamId} /></td>
                 <td className="text-center text-[var(--muted)]">{row.p}</td>
-                <td className="text-center text-[var(--muted)]">{row.w}</td>
-                <td className="text-center text-[var(--muted)]">{row.d}</td>
-                <td className="text-center text-[var(--muted)]">{row.l}</td>
-                <td className="text-center text-[var(--muted)]">{row.gf}-{row.ga}</td>
+                <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.w}</td>
+                <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.d}</td>
+                <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.l}</td>
+                <td className="text-center text-[var(--muted)] hidden sm:table-cell">{row.gf}-{row.ga}</td>
                 <td className="text-center font-bold">{row.pts}</td>
               </tr>
             ))}
