@@ -29,24 +29,24 @@ export default function TopBar() {
   }
 
   const navCls = (active: boolean, locked = false) =>
-    `arc-btn px-4 py-1 text-xs flex items-center gap-1.5 ${
+    `arc-btn tap-sm px-3 sm:px-4 py-1 text-xs flex items-center justify-center gap-1.5 ${
       active ? "" : locked ? "arc-btn--paper opacity-60" : "arc-btn--paper"
     }`;
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--ink)] border-b-[3px] border-black/60">
-      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
-        <Link href="/" data-sound="cancel" className="font-display text-2xl tracking-wide text-[var(--paper)]">
+    <header className="sticky top-0 z-40 bg-[var(--ink)] border-b-[3px] border-black/60 safe-t safe-x">
+      <div className="mx-auto max-w-6xl px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+        <Link href="/" data-sound="cancel" className="font-display text-xl sm:text-2xl tracking-wide text-[var(--paper)] shrink-0">
           <span className="text-[var(--amarelo)]">FUT</span>BATTLE
         </Link>
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1.5 sm:gap-2">
           <Link href="/squad" data-sound="confirm" className={navCls(pathname.startsWith("/squad"))}>
             Seleção
           </Link>
           <button onClick={clickCopa} data-sound={cupReady ? "confirm" : undefined} className={navCls(pathname.startsWith("/cup"), !cupReady)}>
             {!cupReady && <IconLock size={12} />} Copa
           </button>
-          <SoundToggle className="ml-1" />
+          <SoundToggle className="ml-0.5 sm:ml-1" />
         </nav>
       </div>
       <AnimatePresence>
@@ -55,7 +55,7 @@ export default function TopBar() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute left-1/2 -translate-x-1/2 top-16 arc-panel px-5 py-3 font-arc text-sm font-extrabold whitespace-nowrap text-[var(--ink)]"
+            className="absolute left-1/2 -translate-x-1/2 top-16 w-[min(92vw,30rem)] arc-panel px-4 py-3 font-arc text-sm font-extrabold text-center text-[var(--ink)]"
           >
             {toast}
           </motion.div>

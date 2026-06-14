@@ -9,12 +9,12 @@
 
 import sharp from "sharp";
 import { writeFileSync } from "node:fs";
-import { stadiumProfile } from "../lib/data/stadiums.ts";
+import { stadiumProfile } from "../lib/data/stadiums";
 import {
   bowlSpec, ringPoint, bandTheta, outerSilhouette, tierSilhouette,
   innerRadius, outerRadius, type BowlSpec,
-} from "../src/match/presentation/bowl.ts";
-import { layoutCrowd } from "../src/match/presentation/crowd.ts";
+} from "../src/match/presentation/bowl";
+import { layoutCrowd } from "../src/match/presentation/crowd";
 
 // A tiny deterministic RNG (same shape as engine's mulberry32) for the crowd.
 function mulberry32(a: number) {

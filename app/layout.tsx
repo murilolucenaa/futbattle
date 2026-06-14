@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anton, Archivo, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -22,6 +22,18 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "FUTBATTLE",
   description: "Convoque lendas, comande sua seleção e conquiste a Copa.",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "FUTBATTLE" },
+  formatDetection: { telephone: false },
+};
+
+// Mobile-first viewport: fill the notch (viewport-fit cover), no surprise
+// zoom on input focus, but keep pinch-zoom for accessibility.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#141512",
 };
 
 export default function RootLayout({

@@ -756,6 +756,81 @@ button, a { cursor: pointer; }
 }
 .stamp-in { animation: stamp-in 0.34s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
 
+/* ════════════════════════════════════════════════════════════
+   FUTBATTLE — MOBILE FOUNDATION
+   Touch-first tuning: no tap-zoom jank, safe-area insets, real
+   dynamic-viewport screens, comfortable hit targets. Desktop is
+   unaffected (these only add capabilities / kick in by width).
+   ════════════════════════════════════════════════════════════ */
+
+html {
+  -webkit-text-size-adjust: 100%;   /* iOS: don't rescale text on rotate */
+  text-size-adjust: 100%;
+}
+
+body {
+  /* avoid rubber-band white flashes on the dark game shell */
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Kill the 300ms delay + double-tap zoom on anything tappable, so the
+   game feels native. Pinch-zoom still works (accessibility). */
+button, a, summary, label[role="button"], [data-sound],
+input[type="button"], input[type="submit"], select {
+  touch-action: manipulation;
+}
+
+/* Comfortable thumb targets without rewriting every button. */
+.tap { min-height: 44px; min-width: 44px; }
+.tap-sm { min-height: 38px; min-width: 38px; }
+
+/* Safe-area helpers (notch / home indicator). */
+.safe-t { padding-top: env(safe-area-inset-top); }
+.safe-b { padding-bottom: env(safe-area-inset-bottom); }
+.safe-x { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.safe-mt { margin-top: env(safe-area-inset-top); }
+
+/* A full-height "screen" that respects the dynamic viewport + insets —
+   the game is screens, not scrolling pages. */
+.screen {
+  min-height: 100dvh;
+  min-height: 100svh;
+}
+.screen-fixed {
+  height: 100dvh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+/* Momentum scroll region for inner panels (rosters, brackets). */
+.scroll-y { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* On phones the offset ink shadows get heavy and eat space — soften them
+   and tame oversized display type so headers stop blowing out the width. */
+@media (max-width: 640px) {
+  :root {
+    --arc-shadow: 3px 4px 0 var(--ink);
+    --arc-shadow-up: 4px 5px 0 var(--ink);
+    --arc-shadow-pressed: 1px 1px 0 var(--ink);
+  }
+  .arc-panel { border-radius: 16px; }
+  .arc-logo { -webkit-text-stroke-width: 2px; }
+  /* the draw drum is sized for desktop — let it breathe on small screens */
+  .draw-stage { height: 230px; }
+  .draw-bowl { width: 168px; height: 168px; }
+  .draw-rays { width: 250px; height: 250px; }
+}
+
+/* Hover affordances are noise on touch (sticky :hover). Disable transforms
+   that only made sense with a pointer. */
+@media (hover: none) {
+  .arc-btn:hover:not(:disabled) { transform: none; box-shadow: var(--arc-shadow); }
+}
+
 /* ── Reduced motion ───────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
