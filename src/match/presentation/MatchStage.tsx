@@ -13,6 +13,10 @@ import {
 import type { PitchEra } from "@/lib/game/types";
 import { mulberry32 } from "@/lib/game/engine";
 import { layoutCrowd, shimmerAlpha, type CrowdDot } from "./crowd";
+import {
+  bowlSpec, ringPoint, bandTheta, outerSilhouette, tierSilhouette,
+  innerRadius, outerRadius, type BowlSpec,
+} from "./bowl";
 import type { Director } from "./director";
 import type { StadiumProfile } from "@/lib/data/stadiums";
 
@@ -92,14 +96,16 @@ export default function MatchStage({
       a.canvas.style.display = "block";
 
       // ── static layers ──
-      const pitchG = new Graphics();
+      // Stands fill the whole bowl silhouette; the pitch is drawn *over* it so
+      // the grass rectangle masks the centre, leaving the seating as a ring.
       const standsG = new Graphics();   // seating bowl tinted by stadium seats
       const trackG = new Graphics();    // athletics track / moat (fosso) ring
+      const pitchG = new Graphics();
       const crowdLayer = new Container();
       const agentLayer = new Container();
       const ballLayer = new Container();
       const roofG = new Graphics();     // roof shadow over the stands (dome/tent)
-      a.stage.addChild(pitchG, standsG, trackG, crowdLayer, agentLayer, ballLayer, roofG);
+      a.stage.addChild(standsG, trackG, pitchG, crowdLayer, agentLayer, ballLayer, roofG);
 
       // shared textures
       const circleG = new Graphics().circle(8, 8, 8).fill(0xffffff);
@@ -136,48 +142,82 @@ export default function MatchStage({
         g.rect(px(99), py(44), px(100) - px(99) + 1, py(56) - py(44)).fill({ color: 0xffffff, alpha: 0.5 });
       };
 
-      // ── per-stadium stands: seat-tinted bowl + fosso/track + roof ──
+      // ── per-stadium stands: morphed seat-tinted bowl + fosso/track + roof ──
+      // The silhouette (`bowl`) follows the stadium shape (oval/circular/
+      // horseshoe/NFL/dome). Everything below is a *radial ring* between the
+      // pitch rectangle and that silhouette, so seats, track and roof agree.
+      let bowl: BowlSpec = bowlSpec(layout.pitch, layout.bandX, layout.bandY, stadium?.shape ?? "rect");
+
+      // A closed ring polygon between two ring depths (outer traced forward,
+      // inner traced back). Lets us shade an annulus without relying on the
+      // pitch to mask a disc — needed for the roof, which sits on top.
+      const ringPoly = (innerDepth: number, outerDepth: number, steps = 96): number[] => {
+        const pts: number[] = [];
+        for (let i = 0; i <= steps; i++) {
+          const p = ringPoint(bowl, (i / steps) * Math.PI * 2, outerDepth);
+          pts.push(p.x, p.y);
+        }
+        for (let i = steps; i >= 0; i--) {
+          const p = ringPoint(bowl, (i / steps) * Math.PI * 2, innerDepth);
+          pts.push(p.x, p.y);
+        }
+        return pts;
+      };
+
       const drawStands = () => {
-        const { w, h, bandX, bandY, pitch } = layout;
+        const { bandX, bandY, pitch } = layout;
         standsG.clear(); trackG.clear(); roofG.clear();
         if (!stadium) return;
+        bowl = bowlSpec(pitch, bandX, bandY, stadium.shape);
+
         const seat0 = hexToNum(stadium.seats[0]);
         const seat1 = hexToNum(stadium.seats[1] ?? stadium.seats[0]);
         const trackTone = /fosso|moat/i.test(stadium.note) ? 0x6f6f6f : 0xa8562f;
-        const openEnd = stadium.shape === "horseshoe"; // um fundo aberto (Marathon Gate)
 
-        // seating bowl (corners ficam vazios, como na torcida)
-        standsG.rect(pitch.x, 0, pitch.w, bandY).fill({ color: seat0, alpha: 0.5 });
-        standsG.rect(pitch.x, h - bandY, pitch.w, bandY).fill({ color: seat0, alpha: 0.5 });
-        standsG.rect(0, pitch.y, bandX, pitch.h).fill({ color: seat0, alpha: 0.5 });
-        standsG.rect(w - bandX, pitch.y, bandX, pitch.h).fill({ color: seat0, alpha: openEnd ? 0.1 : 0.5 });
-        // lower tier (segunda cor) colada ao gramado
-        const ix = bandX * 0.45, iy = bandY * 0.45;
-        standsG.rect(pitch.x, bandY - iy, pitch.w, iy).fill({ color: seat1, alpha: 0.4 });
-        standsG.rect(pitch.x, h - bandY, pitch.w, iy).fill({ color: seat1, alpha: 0.4 });
-        standsG.rect(bandX - ix, pitch.y, ix, pitch.h).fill({ color: seat1, alpha: 0.4 });
-        if (!openEnd) standsG.rect(w - bandX, pitch.y, ix, pitch.h).fill({ color: seat1, alpha: 0.4 });
+        // Upper bowl (seat0) out to the silhouette; the pitch on top masks the
+        // centre, leaving a ring. Lower tier (seat1) hugs the pitch edge.
+        standsG.poly(outerSilhouette(bowl)).fill({ color: seat0, alpha: 0.5 });
+        standsG.poly(tierSilhouette(bowl, 0.42)).fill({ color: seat1, alpha: 0.45 });
 
-        // fosso/pista ao redor do gramado
+        // fosso/pista: a thin ring riding the pitch edge, all the way around.
+        // Drawn below the pitch, so a solid blob clipped by the grass is fine.
         if (stadium.track) {
           const tw = Math.min(bandX, bandY) * 0.5;
-          const t = { color: trackTone, alpha: 0.65 };
-          trackG.rect(pitch.x, pitch.y - tw, pitch.w, tw).fill(t);
-          trackG.rect(pitch.x, pitch.y + pitch.h, pitch.w, tw).fill(t);
-          trackG.rect(pitch.x - tw, pitch.y - tw, tw, pitch.h + 2 * tw).fill(t);
-          trackG.rect(pitch.x + pitch.w, pitch.y - tw, tw, pitch.h + 2 * tw).fill(t);
+          const ring: number[] = [];
+          const steps = 120;
+          for (let i = 0; i < steps; i++) {
+            const t = (i / steps) * Math.PI * 2;
+            const ri = innerRadius(bowl, t);
+            const ro = Math.min(ri + tw, outerRadius(bowl, t));
+            ring.push(bowl.cx + ro * Math.cos(t), bowl.cy + ro * Math.sin(t));
+          }
+          trackG.poly(ring).fill({ color: trackTone, alpha: 0.65 });
         }
 
-        // sombra de cobertura
+        // sombra de cobertura — full ring for dome/tent, only the long sides
+        // (top/bottom arcs) for a partial roof.
         const roofAlpha = stadium.roof === "full" ? 0.5 : stadium.roof === "tent" ? 0.22
           : stadium.roof === "partial" ? 0.32 : 0;
         if (roofAlpha > 0) {
           const r = { color: 0x0a0e16, alpha: roofAlpha };
-          roofG.rect(pitch.x, 0, pitch.w, bandY).fill(r);            // laterais longas sempre cobertas
-          roofG.rect(pitch.x, h - bandY, pitch.w, bandY).fill(r);
-          if (stadium.roof !== "partial") {
-            roofG.rect(0, pitch.y, bandX, pitch.h).fill(r);          // fundos cobertos (dome/tent)
-            roofG.rect(w - bandX, pitch.y, bandX, pitch.h).fill(r);
+          if (stadium.roof === "partial") {
+            // shade the upper portion of the top and bottom arcs only
+            for (const band of ["top", "bottom"] as const) {
+              const seg: number[] = [];
+              const steps = 40;
+              for (let i = 0; i <= steps; i++) {
+                const p = ringPoint(bowl, bandTheta(bowl, band, i / steps), 1);
+                seg.push(p.x, p.y);
+              }
+              for (let i = steps; i >= 0; i--) {
+                const p = ringPoint(bowl, bandTheta(bowl, band, i / steps), 0.42);
+                seg.push(p.x, p.y);
+              }
+              roofG.poly(seg).fill(r);
+            }
+          } else {
+            // dome/tent: shade the whole outer ring of the bowl
+            roofG.poly(ringPoly(0.32, 1)).fill(r);
           }
         }
       };
@@ -196,26 +236,19 @@ export default function MatchStage({
       }
 
       const placeCrowd = (mirrored: boolean) => {
-        const { w, h, bandX, bandY, pitch } = layout;
         for (const c of crowdSprites) {
           const { dot } = c;
           let band = dot.band;
           // fans stay behind their own team's goal after the break
           if (mirrored && band === "left") band = "right";
           else if (mirrored && band === "right") band = "left";
-          if (band === "top") {
-            c.baseX = pitch.x + dot.u * pitch.w;
-            c.baseY = 3 + dot.v * (bandY - 6);
-          } else if (band === "bottom") {
-            c.baseX = pitch.x + dot.u * pitch.w;
-            c.baseY = h - bandY + 3 + dot.v * (bandY - 6);
-          } else if (band === "left") {
-            c.baseX = 3 + dot.v * (bandX - 6);
-            c.baseY = pitch.y + dot.u * pitch.h;
-          } else {
-            c.baseX = w - bandX + 3 + dot.v * (bandX - 6);
-            c.baseY = pitch.y + dot.u * pitch.h;
-          }
+          // seat each fan on the morphed bowl ring: pick the angle facing its
+          // stand, then a depth from just off the pitch to near the outer edge.
+          const theta = bandTheta(bowl, band, dot.u);
+          const depth = 0.14 + dot.v * 0.78;
+          const p = ringPoint(bowl, theta, depth);
+          c.baseX = p.x;
+          c.baseY = p.y;
         }
       };
 
