@@ -9,6 +9,7 @@ import { createDirector, type Director } from "@/src/match/presentation/director
 import { useCareer, buildUserTeam, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { EDITION_BY_ID, DEFAULT_EDITION_ID } from "@/lib/data/editions";
+import { stadiumProfile, type StadiumProfile } from "@/lib/data/stadiums";
 import {
   createMatch, tick, aiMaybeAct, applySub, applyTactics, resultOf, winnerOf, mulberry32,
   type LiveMatchState,
@@ -71,6 +72,7 @@ interface Meta {
   oppName: string;
   era: PitchEra;
   stadium: string;
+  stadiumProfile: StadiumProfile | null;
   capacity: number;
   attendance: number;
   weather: WeatherKind;
@@ -164,6 +166,7 @@ export default function MatchPage() {
       oppName: aiTeam.name,
       era: pre.ed.era,
       stadium: pre.stadiumStr,
+      stadiumProfile: stadiumProfile(pre.stadiumStr.split(" · ")[0], pre.ed.year),
       capacity: pre.stRec.capacity,
       attendance: pre.attendance,
       weather: pre.weather,
@@ -280,6 +283,7 @@ export default function MatchPage() {
                 awayColor={st.a.team.colors[0]}
                 crowdSeed={pre.seed ^ 0x51ab3c}
                 crowdDensity={meta.attendance / meta.capacity}
+                stadium={meta.stadiumProfile}
               />
             )}
 

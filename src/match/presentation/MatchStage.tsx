@@ -14,6 +14,7 @@ import type { PitchEra } from "@/lib/game/types";
 import { mulberry32 } from "@/lib/game/engine";
 import { layoutCrowd, shimmerAlpha, type CrowdDot } from "./crowd";
 import type { Director } from "./director";
+import type { StadiumProfile } from "@/lib/data/stadiums";
 
 const ERA_THEME: Record<PitchEra, { grass: number; grassDark: number; stand: number; lineAlpha: number }> = {
   vintage: { grass: 0x5c6e2e, grassDark: 0x41501f, stand: 0x1d1a12, lineAlpha: 0.28 },
@@ -46,7 +47,7 @@ function hexToNum(hex: string): number {
 
 export default function MatchStage({
   director, era, paused, speed, homeColor, awayColor, crowdSeed, crowdDensity,
-  className = "",
+  stadium = null, className = "",
 }: {
   director: Director;
   era: PitchEra;
@@ -56,6 +57,7 @@ export default function MatchStage({
   awayColor: string;
   crowdSeed: number;
   crowdDensity: number;
+  stadium?: StadiumProfile | null;
   className?: string;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -91,10 +93,13 @@ export default function MatchStage({
 
       // ── static layers ──
       const pitchG = new Graphics();
+      const standsG = new Graphics();   // seating bowl tinted by stadium seats
+      const trackG = new Graphics();    // athletics track / moat (fosso) ring
       const crowdLayer = new Container();
       const agentLayer = new Container();
       const ballLayer = new Container();
-      a.stage.addChild(pitchG, crowdLayer, agentLayer, ballLayer);
+      const roofG = new Graphics();     // roof shadow over the stands (dome/tent)
+      a.stage.addChild(pitchG, standsG, trackG, crowdLayer, agentLayer, ballLayer, roofG);
 
       // shared textures
       const circleG = new Graphics().circle(8, 8, 8).fill(0xffffff);
@@ -129,6 +134,52 @@ export default function MatchStage({
         // goal mouths
         g.rect(px(0) - 1, py(44), px(1) - px(0) + 1, py(56) - py(44)).fill({ color: 0xffffff, alpha: 0.5 });
         g.rect(px(99), py(44), px(100) - px(99) + 1, py(56) - py(44)).fill({ color: 0xffffff, alpha: 0.5 });
+      };
+
+      // ── per-stadium stands: seat-tinted bowl + fosso/track + roof ──
+      const drawStands = () => {
+        const { w, h, bandX, bandY, pitch } = layout;
+        standsG.clear(); trackG.clear(); roofG.clear();
+        if (!stadium) return;
+        const seat0 = hexToNum(stadium.seats[0]);
+        const seat1 = hexToNum(stadium.seats[1] ?? stadium.seats[0]);
+        const trackTone = /fosso|moat/i.test(stadium.note) ? 0x6f6f6f : 0xa8562f;
+        const openEnd = stadium.shape === "horseshoe"; // um fundo aberto (Marathon Gate)
+
+        // seating bowl (corners ficam vazios, como na torcida)
+        standsG.rect(pitch.x, 0, pitch.w, bandY).fill({ color: seat0, alpha: 0.5 });
+        standsG.rect(pitch.x, h - bandY, pitch.w, bandY).fill({ color: seat0, alpha: 0.5 });
+        standsG.rect(0, pitch.y, bandX, pitch.h).fill({ color: seat0, alpha: 0.5 });
+        standsG.rect(w - bandX, pitch.y, bandX, pitch.h).fill({ color: seat0, alpha: openEnd ? 0.1 : 0.5 });
+        // lower tier (segunda cor) colada ao gramado
+        const ix = bandX * 0.45, iy = bandY * 0.45;
+        standsG.rect(pitch.x, bandY - iy, pitch.w, iy).fill({ color: seat1, alpha: 0.4 });
+        standsG.rect(pitch.x, h - bandY, pitch.w, iy).fill({ color: seat1, alpha: 0.4 });
+        standsG.rect(bandX - ix, pitch.y, ix, pitch.h).fill({ color: seat1, alpha: 0.4 });
+        if (!openEnd) standsG.rect(w - bandX, pitch.y, ix, pitch.h).fill({ color: seat1, alpha: 0.4 });
+
+        // fosso/pista ao redor do gramado
+        if (stadium.track) {
+          const tw = Math.min(bandX, bandY) * 0.5;
+          const t = { color: trackTone, alpha: 0.65 };
+          trackG.rect(pitch.x, pitch.y - tw, pitch.w, tw).fill(t);
+          trackG.rect(pitch.x, pitch.y + pitch.h, pitch.w, tw).fill(t);
+          trackG.rect(pitch.x - tw, pitch.y - tw, tw, pitch.h + 2 * tw).fill(t);
+          trackG.rect(pitch.x + pitch.w, pitch.y - tw, tw, pitch.h + 2 * tw).fill(t);
+        }
+
+        // sombra de cobertura
+        const roofAlpha = stadium.roof === "full" ? 0.5 : stadium.roof === "tent" ? 0.22
+          : stadium.roof === "partial" ? 0.32 : 0;
+        if (roofAlpha > 0) {
+          const r = { color: 0x0a0e16, alpha: roofAlpha };
+          roofG.rect(pitch.x, 0, pitch.w, bandY).fill(r);            // laterais longas sempre cobertas
+          roofG.rect(pitch.x, h - bandY, pitch.w, bandY).fill(r);
+          if (stadium.roof !== "partial") {
+            roofG.rect(0, pitch.y, bandX, pitch.h).fill(r);          // fundos cobertos (dome/tent)
+            roofG.rect(w - bandX, pitch.y, bandX, pitch.h).fill(r);
+          }
+        }
       };
 
       // ── crowd ──
@@ -215,6 +266,7 @@ export default function MatchStage({
       a.canvas.addEventListener("pointerleave", onLeave);
 
       drawPitch();
+      drawStands();
       let lastMirrored = false;
       placeCrowd(false);
 
@@ -298,6 +350,7 @@ export default function MatchStage({
         a.renderer.resize(host.clientWidth, host.clientHeight);
         layout = computeLayout(host.clientWidth, host.clientHeight);
         drawPitch();
+        drawStands();
         placeCrowd(lastMirrored);
       });
       observer.observe(host);
