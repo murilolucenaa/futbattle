@@ -63,7 +63,7 @@ export default function SquadPage() {
           <ManageView />
         </>
       ) : (
-        <div className="arc-bg flex min-h-[100dvh] flex-col lg:h-[100dvh] lg:overflow-hidden">
+        <div className="arc-bg flex min-h-[100dvh] flex-col safe-x safe-b lg:h-[100dvh] lg:overflow-hidden">
           <TopBar />
           <DraftView />
         </div>
@@ -448,8 +448,9 @@ function DraftView() {
             )}
           </div>
 
-          {/* elenco — lista com scroll interno */}
-          <div className="mt-2 flex-1 min-h-0 space-y-1 overflow-y-auto pr-1">
+          {/* elenco — lista com scroll interno (altura própria no mobile p/ não
+              colapsar nem virar uma rolagem gigante de página) */}
+          <div className="mt-2 max-h-[46vh] space-y-1 overflow-y-auto overscroll-contain pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
             {roster.map((p) => {
               const used = usedNames.has(p.name);
               const noFit = !used && !fits(p);
@@ -585,7 +586,7 @@ function DraftView() {
           <span className="opacity-55">/11</span>
         </span>
       </div>
-      <div className="flex-1 min-h-0 space-y-1 overflow-y-auto pr-1">
+      <div className="max-h-[38vh] space-y-1 overflow-y-auto overscroll-contain pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
         {c.slots.map((s, i) => (
           <div key={i} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5" style={{ background: s.card ? "rgba(20,21,18,0.05)" : "transparent" }}>
             <ArcPos pos={s.pos} dim={!s.card} big />
@@ -818,12 +819,12 @@ function ManageView() {
   }
 
   return (
-    <main className="arc-bg flex-1 w-full">
+    <main className="arc-bg flex-1 w-full safe-x safe-b">
       <div className="mx-auto max-w-6xl w-full px-3 sm:px-4 py-5">
 
         {/* faixa de status + CTA */}
         <div className="flex flex-wrap items-stretch gap-3 mb-5">
-          <div className="arc-strip flex-1 min-w-[260px] px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+          <div className="arc-strip w-full lg:flex-1 lg:w-auto min-w-[260px] px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
             <div className="flex items-baseline gap-3 min-w-0">
               <span className="font-display text-2xl tracking-wide leading-none">PRANCHETA</span>
               <span className="hidden md:block font-arc text-[10px] font-bold uppercase tracking-[0.18em] opacity-65 truncate">
@@ -841,7 +842,7 @@ function ManageView() {
             data-sound="confirm"
             onClick={generateShare}
             disabled={sharing}
-            className="arc-btn arc-btn--paper arc-btn--card px-5 py-2"
+            className="arc-btn arc-btn--paper arc-btn--card flex-1 lg:flex-none px-5 py-2"
           >
             <span className="block text-base leading-tight">{sharing ? "Gerando…" : "Compartilhar"}</span>
             <span className="block font-arc text-[10px] font-bold opacity-70 mt-0.5">escalação pros stories</span>
@@ -849,7 +850,7 @@ function ManageView() {
           <button
             data-sound="confirm"
             onClick={() => { if (!c.cup) c.startCup(); router.push("/cup"); }}
-            className="arc-btn arc-btn--rosa arc-btn--card px-6 py-2"
+            className="arc-btn arc-btn--rosa arc-btn--card flex-1 lg:flex-none px-6 py-2"
           >
             <span className="block text-lg leading-tight">{c.cup ? "Bora pro jogo" : "Sortear a copa"}</span>
             <span className="block font-arc text-[10px] font-bold opacity-80 mt-0.5">
@@ -1046,12 +1047,12 @@ function ManageView() {
           {shareUrl && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 safe-y"
               onClick={() => setShareUrl(null)}
             >
               <motion.div
                 initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }}
-                className="arc-panel flex w-full max-w-xs flex-col items-center p-4"
+                className="arc-panel my-auto flex w-full max-w-xs flex-col items-center p-4"
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="arc-tag mb-3">★ Escalação pronta</span>

@@ -789,6 +789,7 @@ input[type="button"], input[type="submit"], select {
 .safe-t { padding-top: env(safe-area-inset-top); }
 .safe-b { padding-bottom: env(safe-area-inset-bottom); }
 .safe-x { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.safe-y { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 .safe-mt { margin-top: env(safe-area-inset-top); }
 
 /* A full-height "screen" that respects the dynamic viewport + insets —
