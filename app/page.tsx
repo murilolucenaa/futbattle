@@ -60,7 +60,7 @@ function ColorRow({
               data-sound="confirm"
               onClick={() => onPick(c)}
               aria-label={c}
-              className={`w-7 h-7 rounded-md border-[3px] border-[var(--ink)] transition-transform ${
+              className={`w-8 h-8 sm:w-7 sm:h-7 rounded-md border-[3px] border-[var(--ink)] transition-transform ${
                 on ? "scale-110 shadow-[2px_2px_0_var(--ink)]" : "hover:-translate-y-0.5"
               }`}
               style={{ background: c, outline: on ? "2px solid var(--ink)" : "none", outlineOffset: "2px" }}
@@ -68,7 +68,7 @@ function ColorRow({
           );
         })}
         <label
-          className="relative w-7 h-7 rounded-md border-[3px] border-dashed border-[var(--ink)] grid place-items-center cursor-pointer overflow-hidden"
+          className="relative w-8 h-8 sm:w-7 sm:h-7 rounded-md border-[3px] border-dashed border-[var(--ink)] grid place-items-center cursor-pointer overflow-hidden"
           title="Cor livre"
         >
           <input
@@ -123,17 +123,17 @@ export default function Home() {
   }
 
   return (
-    <main className="arc-bg flex-1 flex flex-col items-center justify-center px-5 py-10 relative overflow-hidden">
+    <main className="arc-bg screen flex-1 flex flex-col items-center px-4 sm:px-5 py-8 sm:py-10 relative overflow-x-hidden overflow-y-auto safe-x safe-b">
       <SoundProvider />
 
       {/* language selector — inline position beats `.arc-bg > *{position:relative}` (same specificity, source-order trap) */}
       <div
-        style={{ position: "fixed", top: "16px", right: "16px", left: "auto", margin: 0, zIndex: 200 }}
+        style={{ position: "fixed", top: "max(16px, env(safe-area-inset-top))", right: "max(16px, env(safe-area-inset-right))", left: "auto", margin: 0, zIndex: 200 }}
       >
         <button
           data-sound="confirm"
           onClick={() => setLangOpen((o) => !o)}
-          className="arc-btn arc-btn--paper px-3 py-1.5 text-xs flex items-center gap-2"
+          className="arc-btn arc-btn--paper tap-sm px-3 py-1.5 text-xs flex items-center gap-2"
           aria-label="Idioma"
         >
           🇧🇷 <span className="hidden sm:inline">PT-BR</span>
@@ -169,16 +169,16 @@ export default function Home() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="text-center w-full max-w-3xl relative z-10"
+        className="text-center w-full max-w-3xl relative z-10 my-auto"
       >
         <span className="arc-tag mb-5">★ Edição Fliperama ★</span>
 
         {/* giant title */}
-        <h1 className="arc-logo select-none text-[clamp(4.2rem,15vw,10.5rem)] mt-3 mb-5">
+        <h1 className="arc-logo select-none text-[clamp(3.4rem,14vw,10.5rem)] mt-3 mb-5">
           <span className="text-[var(--amarelo)]">FUT</span>
           <span className="text-[var(--paper)]">BATTLE</span>
         </h1>
-        <p className="font-arc text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.4em] text-white/85 mb-9">
+        <p className="font-arc text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.22em] sm:tracking-[0.4em] text-white/85 mb-7 sm:mb-9">
           Convoque · Comande · Conquiste
         </p>
 
@@ -447,13 +447,13 @@ export default function Home() {
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[300] flex items-center justify-end p-4 pr-[5%] sm:pr-[8%] bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 z-[300] flex items-center justify-center sm:justify-end p-4 sm:pr-[8%] bg-black/60 backdrop-blur-md overflow-y-auto safe-x safe-b"
               onClick={() => setPickedEd(null)}
             >
               <motion.div
                 initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 320, damping: 24 }}
-                className="arc-panel p-5 sm:p-6 w-full max-w-md shadow-[6px_8px_0_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}
+                className="arc-panel p-5 sm:p-6 w-full max-w-md my-auto shadow-[6px_8px_0_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}
               >
                 <div className="text-3xl mb-1">{ed.flag}</div>
                 <h3 className="font-display text-2xl text-[var(--ink)]">{editionLabel(ed)}</h3>
