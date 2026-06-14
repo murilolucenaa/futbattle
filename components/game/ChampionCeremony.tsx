@@ -82,7 +82,7 @@ export default function ChampionCeremony({
     sound.play("match.trophy");
     vibrate(60);
     after(2800, () => setStage("final"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [stage]);
 
   function skip() {

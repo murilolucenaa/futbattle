@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import {
-  Application, Container, Graphics, Sprite, Text, Texture,
+  Application, Container, Graphics, Sprite, Text,
 } from "pixi.js";
 import type { PitchEra } from "@/lib/game/types";
 import { mulberry32 } from "@/lib/game/engine";

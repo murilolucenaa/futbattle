@@ -7,11 +7,11 @@
 import { SQUAD_BY_ID, squadLabel, squadPattern } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
 import type {
-  Card, CupMode, CupState, Fixture, FormationId, GroupRow, MatchResult, MatchTeam,
+  Card, CupMode, CupState, Fixture, FormationId, MatchResult, MatchTeam,
   PlayerTotals, SquadDef,
 } from "./types";
 import { FORMATION_IDS, assignLineup, effectiveOvr, FORMATIONS } from "./formations";
-import { mulberry32, runFullMatch, winnerOf } from "./engine";
+import { mulberry32, runFullMatch } from "./engine";
 import { engineFor } from "./formats/registry";
 import { groupTable, thirdPlaceTable } from "./standings";
 

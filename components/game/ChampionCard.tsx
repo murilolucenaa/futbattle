@@ -69,7 +69,6 @@ const ChampionCard = forwardRef<HTMLDivElement, { data: ChampionData }>(function
   const { coachName, teamName, host, year, hostFlag, finalStadium, xi, topScorer, topRated, totalGoals, path } = data;
   const name = (teamName || "").trim() || `Seleção ${coachName}`;
   const nameSize = name.length > 20 ? 70 : name.length > 14 ? 92 : name.length > 9 ? 112 : 128;
-  const flags = xi.map((h) => h.flag).filter(Boolean) as string[];
 
   const stats: [string, string, string, string][] = [
     ["GOLS", String(totalGoals), "no torneio", GOLD],

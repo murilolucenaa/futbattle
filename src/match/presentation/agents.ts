@@ -104,7 +104,7 @@ export function stepAgents(
     }
 
     // seek with arrival easing
-    let dx = tx - a.x, dy = ty - a.y;
+    const dx = tx - a.x, dy = ty - a.y;
     const d = Math.hypot(dx, dy) || 1e-6;
     const desired = a.maxSpeed * Math.min(1, d / ARRIVE_RADIUS);
     let dvx = (dx / d) * desired - a.vx;

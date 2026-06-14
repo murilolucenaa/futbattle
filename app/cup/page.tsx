@@ -175,7 +175,6 @@ export default function CupPage() {
   const isOver = cup.phase === "champion" || cup.phase === "eliminated";
   const pod = podium(cup);
   const ed = EDITION_BY_ID[cup.editionId];
-  const engine = engineFor(cup.mode, cup.editionId);
   const modeLabel = cup.mode === "fiel" ? `formato ${ed?.year ?? ""} (Fiel)` : "formato 2026 · 48 seleções";
 
   return (
