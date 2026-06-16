@@ -28,6 +28,22 @@ export const POSITION_SECTOR: Record<Position, Sector> = {
   RW: "ATT", LW: "ATT", ST: "ATT",
 };
 
+// Draft buckets (finer than Sector): a função que o quadro de convocação usa.
+export type Role = "GOL" | "ZAG" | "LAT" | "VOL" | "MEI" | "ATA";
+
+export const POSITION_ROLE: Record<Position, Role> = {
+  GK: "GOL",
+  CB: "ZAG",
+  RB: "LAT", LB: "LAT",
+  DM: "VOL",
+  CM: "MEI", AM: "MEI",
+  RW: "ATA", LW: "ATA", ST: "ATA",
+};
+
+export const ROLE_SHORT: Record<Role, string> = {
+  GOL: "GOL", ZAG: "ZAG", LAT: "LAT", VOL: "VOL", MEI: "MEI", ATA: "ATA",
+};
+
 // ── Data: historic squads ────────────────────────────────────
 export interface PlayerDef {
   id: string;            // "<squadId>-<slug>"
