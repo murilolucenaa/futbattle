@@ -640,6 +640,10 @@ function PreMatch({ pre, onKickoff }: { pre: PreInfo; onKickoff: () => void }) {
 // ── Scoreboard (faixa preta com valores vivos) ───────────────
 function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: Meta }) {
   const cup = useCareer().cup!;
+  // teams switch ends at half — show which way the user attacks so the
+  // mirrored 2nd half never reads as "shooting at our own goal".
+  const mirrored = view.minute > 45;
+  const userAttacksRight = meta.userSide === "h" ? !mirrored : mirrored;
   return (
     <div className="arc-strip !rounded-2xl px-4 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -661,6 +665,9 @@ function Scoreboard({ st, view, meta }: { st: LiveMatchState; view: View; meta: 
         </div>
       </div>
       <div className="font-arc text-[9px] font-bold text-white/60 text-center mt-1 flex items-center justify-center gap-3 flex-wrap">
+        <span className="flex items-center gap-1 font-extrabold" style={{ color: "var(--amarelo)" }}>
+          {userAttacksRight ? "VOCÊ ATACA →" : "← VOCÊ ATACA"}
+        </span>
         <span className="flex items-center gap-1"><IconStadium size={11} /> {meta.stadium}</span>
         <span className="flex items-center gap-1"><IconCrowd size={11} /> {meta.attendance.toLocaleString("pt-BR")}</span>
         <span className="flex items-center gap-1"><IconWeather kind={meta.weather} size={11} /> {meta.weatherLabel}</span>
