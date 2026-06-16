@@ -9,7 +9,7 @@ import { sound } from "@/src/audio/SoundManager";
 import KitJersey, { PATTERNS, type KitPattern } from "@/components/game/KitJersey";
 import { useCareer, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { EDITIONS, EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
-import { fielAvailable } from "@/lib/game/formats/registry";
+import { fielAvailable, fielIsTradicional } from "@/lib/game/formats/registry";
 import type { CupMode } from "@/lib/game/types";
 import { IconLock, IconStadium } from "@/components/icons";
 
@@ -114,7 +114,12 @@ export default function Home() {
   const setPrimary = (hex: string) => setActive([hex, active[1]]);
   const setSecondary = (hex: string) => setActive([active[0], hex]);
 
-  function openEdition(editionId: string) { setPickedEd(editionId); }
+  function openEdition(editionId: string) {
+    // 2026: Fiel e Tradicional usam o mesmo motor (g48). Pergunta não faz
+    // sentido — começa direto, sem popup.
+    if (fielIsTradicional(editionId)) { startWithMode(editionId, "tradicional"); return; }
+    setPickedEd(editionId);
+  }
   function startWithMode(editionId: string, mode: CupMode) {
     career.newCareer(name.trim() || "Mister", editionId, "4-2-3-1", mode, {
       kit1, kit2, pattern1: pat1, pattern2: pat2,

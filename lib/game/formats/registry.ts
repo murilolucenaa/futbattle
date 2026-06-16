@@ -36,6 +36,12 @@ export function fielAvailable(editionId: string): boolean {
   return !!FIEL_BY_YEAR[y];
 }
 
+// Edições cujo formato Fiel é o próprio formato 2026 (g48 = Tradicional).
+// Nelas o popup Fiel/Tradicional é redundante — começa direto.
+export function fielIsTradicional(editionId: string): boolean {
+  return FIEL_BY_YEAR[editionYear(editionId)] === g48;
+}
+
 export function engineFor(mode: CupMode, editionId: string): CupEngine {
   if (mode === "tradicional") return g48;
   const eng = FIEL_BY_YEAR[editionYear(editionId)];
