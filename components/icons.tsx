@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — inline SVG icon set (replaces generic emojis)
+// CONVOCADOS — inline SVG icon set (replaces generic emojis)
 // ============================================================
 
 import type { SVGProps } from "react";

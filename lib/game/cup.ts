@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — World Cup, 2026 format:
+// CONVOCADOS — World Cup, 2026 format:
 // 48 teams · 12 groups (A–L) of 4 · top 2 + 8 best thirds → R32
 // Rounds: 1–3 groups · 4=R32 · 5=R16 · 6=QF · 7=SF · 8=3º lugar · 9=Final
 // ============================================================

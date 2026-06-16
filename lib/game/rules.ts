@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — draft rules
+// CONVOCADOS — draft rules
 //
 // Não há mais teto de craques: o equilíbrio vem do próprio
 // sorteio. A roleta é ponderada pela força da seleção — quanto

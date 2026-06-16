@@ -1,6 +1,6 @@
 // Dev helper: synthesize a persisted career (2026 squad + cup drawn) so the
 // match screen can be verified without clicking through the whole draft.
-// Usage: npx tsx scripts/gen-verify-state.ts > /tmp/futbattle-state.json
+// Usage: npx tsx scripts/gen-verify-state.ts > /tmp/convocados-state.json
 import { useCareer } from "../lib/game/store";
 
 const s = useCareer.getState();

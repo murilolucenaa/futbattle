@@ -95,7 +95,7 @@ const ChampionCard = forwardRef<HTMLDivElement, { data: ChampionData }>(function
         {/* BRAND */}
         <div style={{ padding: "48px 64px 0", textAlign: "center", flexShrink: 0 }}>
           <div style={{ fontFamily: ANTON, fontSize: 52, lineHeight: 1, letterSpacing: 3, textShadow: `3px 4px 0 ${INK}` }}>
-            <span style={{ color: GOLD }}>FUT</span><span style={{ color: PAPER }}>BATTLE</span>
+            <span style={{ color: GOLD }}>CONVO</span><span style={{ color: PAPER }}>CADOS</span>
           </div>
           <div style={{
             display: "inline-block", marginTop: 16, padding: "8px 30px", background: GOLD, color: INK,
@@ -195,7 +195,7 @@ const ChampionCard = forwardRef<HTMLDivElement, { data: ChampionData }>(function
             marginTop: 16, paddingTop: 16, borderTop: "3px solid rgba(255,255,255,0.14)", textAlign: "center",
             fontSize: 26, fontWeight: 900, letterSpacing: 5, textTransform: "uppercase", color: GOLD,
           }}>
-            ★ Vença a sua Copa · FUTBATTLE
+            ★ Vença a sua Copa · CONVOCADOS
           </div>
         </div>
       </div>

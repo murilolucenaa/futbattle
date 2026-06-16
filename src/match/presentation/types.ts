@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — match presentation layer: shared types
+// CONVOCADOS — match presentation layer: shared types
 // Field coords follow the engine: x 0–100 (home attacks → 100),
 // y 0–100 (left → right touchline). Render-side mirroring only.
 // ============================================================

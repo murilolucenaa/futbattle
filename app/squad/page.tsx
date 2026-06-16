@@ -805,7 +805,7 @@ function ManageView() {
     if (!shareUrl) return;
     try {
       const blob = await (await fetch(shareUrl)).blob();
-      const file = new File([blob], "futbattle-escalacao.png", { type: "image/png" });
+      const file = new File([blob], "convocados-escalacao.png", { type: "image/png" });
       const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], title: userTeamName(c) });
@@ -814,7 +814,7 @@ function ManageView() {
     } catch { /* cancelled or unsupported — fall through to download */ }
     const a = document.createElement("a");
     a.href = shareUrl;
-    a.download = "futbattle-escalacao.png";
+    a.download = "convocados-escalacao.png";
     a.click();
   }
 

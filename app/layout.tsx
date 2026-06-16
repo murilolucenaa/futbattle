@@ -20,9 +20,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FUTBATTLE",
+  title: "CONVOCADOS",
   description: "Convoque lendas, comande sua seleção e conquiste a Copa.",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "FUTBATTLE" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "CONVOCADOS" },
   formatDetection: { telephone: false },
 };
 

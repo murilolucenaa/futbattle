@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// FutBattle — SoundManager (howler.js)
+// Convocados — SoundManager (howler.js)
 //
 // Single audio engine + contract. Channels (ui, music, ambience,
 // match) each have an independent volume under a master volume;

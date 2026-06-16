@@ -1,7 +1,7 @@
 "use client";
 
 // ============================================================
-// FUTBATTLE 2.0 — Fase 1 styleguide. Living demo of the game
+// CONVOCADOS 2.0 — Fase 1 styleguide. Living demo of the game
 // design system: tokens, components, transitions and sound map.
 // Dev/approval screen — not linked from the game flow.
 // ============================================================
@@ -93,7 +93,7 @@ export default function StyleguidePage() {
 
       {/* header: broadcast chrome, not a navbar */}
       <header className="tv-strip texture-halftone px-6 py-4">
-        <p className="type-label">Missão FutBattle 2.0 · Fase 1</p>
+        <p className="type-label">Missão Convocados 2.0 · Fase 1</p>
         <h1 className="type-hero text-glow" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)" }}>
           Design System
         </h1>

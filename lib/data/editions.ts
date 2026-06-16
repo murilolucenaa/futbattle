@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — World Cup editions 1950–2026
+// CONVOCADOS — World Cup editions 1950–2026
 // Real hosts and real stadiums of each tournament. The chosen
 // edition drives ambiance only (stadiums, pitch/stand theme);
 // the competition always uses the 2026 format (48 teams).

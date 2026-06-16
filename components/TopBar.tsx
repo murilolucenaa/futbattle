@@ -37,7 +37,7 @@ export default function TopBar() {
     <header className="sticky top-0 z-40 bg-[var(--ink)] border-b-[3px] border-black/60 safe-t safe-x">
       <div className="mx-auto max-w-6xl px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
         <Link href="/" data-sound="cancel" className="font-display text-xl sm:text-2xl tracking-wide text-[var(--paper)] shrink-0">
-          <span className="text-[var(--amarelo)]">FUT</span>BATTLE
+          <span className="text-[var(--amarelo)]">CONVO</span>CADOS
         </Link>
         <nav className="flex items-center gap-1.5 sm:gap-2">
           <Link href="/squad" data-sound="confirm" className={navCls(pathname.startsWith("/squad"))}>

@@ -1,5 +1,5 @@
 {
-  "_comment": "FutBattle sound contract. `path` is extension-less under /public/audio — SoundManager loads <path>.webm then falls back to <path>.wav (placeholders). Drop a real CC0 .webm at the same path to swap a sound with zero code change. `desc` guides the CC0 search.",
+  "_comment": "Convocados sound contract. `path` is extension-less under /public/audio — SoundManager loads <path>.webm then falls back to <path>.wav (placeholders). Drop a real CC0 .webm at the same path to swap a sound with zero code change. `desc` guides the CC0 search.",
   "channels": ["ui", "music", "ambience", "match"],
   "events": {
     "ui.move": { "path": "ui/move", "channel": "ui", "volume": 0.5, "desc": "PES PS2 cursor move: very short, dry, high-pitched blip on hover/arrow navigation (~40ms)." },

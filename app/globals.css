@@ -16,7 +16,7 @@
   --red:       #FF4D5E;
   --blue:      #4DA3FF;
 
-  /* ── FUTBATTLE 2.0 game tokens ─────────────────────────────
+  /* ── CONVOCADOS 2.0 game tokens ─────────────────────────────
      Named palette: "TV broadcast meets console menu". */
   --night:        #050B14; /* stadium night sky */
   --night-2:      #0A1322; /* stands in shadow */
@@ -302,7 +302,7 @@ button, a { cursor: pointer; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 /* ════════════════════════════════════════════════════════════
-   FUTBATTLE 2.0 — GAME DESIGN SYSTEM (Fase 1)
+   CONVOCADOS 2.0 — GAME DESIGN SYSTEM (Fase 1)
    "Transmissão de TV dos anos 2000 encontra menu de console."
    ════════════════════════════════════════════════════════════ */
 
@@ -434,7 +434,7 @@ button, a { cursor: pointer; }
 }
 
 /* ════════════════════════════════════════════════════════════
-   FUTBATTLE 2.0 — FLIPERAMA DA COPA (Fase 2)
+   CONVOCADOS 2.0 — FLIPERAMA DA COPA (Fase 2)
    Arcade brasileiro × Copa do Mundo: bordas de tinta grossas,
    sombras duras deslocadas, cores chapadas vivas, papel de
    álbum de figurinhas sobre gramado de transmissão.
@@ -757,7 +757,7 @@ button, a { cursor: pointer; }
 .stamp-in { animation: stamp-in 0.34s cubic-bezier(0.2, 1.2, 0.3, 1) both; }
 
 /* ════════════════════════════════════════════════════════════
-   FUTBATTLE — MOBILE FOUNDATION
+   CONVOCADOS — MOBILE FOUNDATION
    Touch-first tuning: no tap-zoom jank, safe-area insets, real
    dynamic-viewport screens, comfortable hit targets. Desktop is
    unaffected (these only add capabilities / kick in by width).

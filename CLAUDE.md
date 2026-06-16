@@ -1,4 +1,4 @@
-# FUTBATTLE — CLAUDE.md
+# CONVOCADOS — CLAUDE.md
 
 Jogo single-player de futebol em Next.js: o jogador é o **técnico** (a seleção leva o nome dele), convoca lendas de seleções históricas reais via roleta, escolhe a edição da Copa (país-sede + ano, com estádios reais) e disputa o torneio no **formato 2026**: 48 seleções, 12 grupos (A–L), 16 avos → final, com disputa de 3º lugar. Inspirado em head soccer, Brasfoot e PES 2010. Todo o estado vive no cliente (localStorage) — **não há backend**.
 
@@ -120,9 +120,9 @@ Fluxo: Home → nome do técnico → edição da Copa → `newCareer` → coleti
 - Se usuário e adversário escalarem a **mesma carta** (mesmo player id de squads iguais), `playerStats` colide no engine — caso raro conhecido, não tratado.
 - `KIT2_BY_NATION` em squads.ts é chaveado pelo nome da nação em pt-BR; nova seleção com nação nova precisa de entrada lá (ou herda cores invertidas).
 
-# MISSÃO: FUTBATTLE 2.0 — DE SITE PARA JOGO
+# MISSÃO: CONVOCADOS 2.0 — DE SITE PARA JOGO
 
-O FutBattle hoje funciona bem (simulação, copa de 48 seleções, sorteio, mata-mata),
+O Convocados hoje funciona bem (simulação, copa de 48 seleções, sorteio, mata-mata),
 mas a apresentação parece um dashboard SaaS dark genérico: cards, botões pílula,
 tipografia neutra, página que rola. A missão é fazer ele PARECER e SOAR um jogo
 desde o primeiro pixel, sem quebrar a lógica existente.

@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — core domain types
+// CONVOCADOS — core domain types
 // ============================================================
 
 export type Position =

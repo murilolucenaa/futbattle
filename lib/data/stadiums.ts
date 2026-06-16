@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — perfis de estádio (1930–2026), derivados do dataset
+// CONVOCADOS — perfis de estádio (1930–2026), derivados do dataset
 // de pesquisa em stadiums.json. Cada perfil vira layout visual na
 // partida (formato da arquibancada, fosso/pista, cor das cadeiras,
 // cobertura). Dados crus ficam no .json; aqui só tipos + derivação.

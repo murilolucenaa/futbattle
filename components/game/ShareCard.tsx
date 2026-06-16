@@ -124,8 +124,8 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
               textShadow: "3px 4px 0 " + INK,
             }}
           >
-            <span style={{ color: GOLD }}>FUT</span>
-            <span style={{ color: PAPER }}>BATTLE</span>
+            <span style={{ color: GOLD }}>CONVO</span>
+            <span style={{ color: PAPER }}>CADOS</span>
           </div>
           <div
             style={{
@@ -304,7 +304,7 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
               color: GOLD,
             }}
           >
-            ★ Monte a sua seleção · FUTBATTLE
+            ★ Monte a sua seleção · CONVOCADOS
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — National squads: historic (1950–2022) plus the
+// CONVOCADOS — National squads: historic (1950–2022) plus the
 // current generation (year 2026, used by the "Copa 2026" mode).
 // Ratings are PEAK-based: a card always carries the player's
 // career-peak overall, regardless of the squad year.

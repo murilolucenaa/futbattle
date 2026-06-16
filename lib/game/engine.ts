@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — live match engine
+// CONVOCADOS — live match engine
 // Tick = 1 game minute. Deterministic via mulberry32 seed,
 // except where live tactic changes alter the stream (by design).
 // ============================================================

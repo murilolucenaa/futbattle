@@ -175,8 +175,8 @@ export default function Home() {
 
         {/* giant title */}
         <h1 className="arc-logo select-none text-[clamp(3.4rem,14vw,10.5rem)] mt-3 mb-5">
-          <span className="text-[var(--amarelo)]">FUT</span>
-          <span className="text-[var(--paper)]">BATTLE</span>
+          <span className="text-[var(--amarelo)]">CONVO</span>
+          <span className="text-[var(--paper)]">CADOS</span>
         </h1>
         <p className="font-arc text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.22em] sm:tracking-[0.4em] text-white/85 mb-7 sm:mb-9">
           Convoque · Comande · Conquiste

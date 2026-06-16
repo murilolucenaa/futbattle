@@ -1,5 +1,5 @@
 // ============================================================
-// FUTBATTLE — interface de motor de formato de copa.
+// CONVOCADOS — interface de motor de formato de copa.
 // Cada edição/modo resolve para um CupEngine que sabe montar o
 // sorteio, avançar as fases, rotular rounds e decidir o campeão.
 // ============================================================

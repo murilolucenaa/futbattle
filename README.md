@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚽ FUTBATTLE
+# ⚽ CONVOCADOS
 
 **Convoque lendas, comande sua seleção como técnico e conquiste uma Copa do Mundo inteira.**
 
@@ -15,7 +15,7 @@ encontra menu de console". Todo o estado vive no cliente — sem backend, sem lo
 
 ## 📖 Sobre
 
-No FutBattle você **não joga, você dirige**. Assume o papel de técnico — a seleção leva o seu
+No Convocados você **não joga, você dirige**. Assume o papel de técnico — a seleção leva o seu
 nome — convoca craques históricos de seleções reais via roleta, escolhe a edição da Copa
 (país-sede, ano e estádios reais) e disputa o torneio no **formato 2026**: 48 seleções,
 12 grupos, mata-mata até a final, com disputa de 3º lugar e pênaltis.
