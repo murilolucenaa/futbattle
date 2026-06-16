@@ -1,10 +1,19 @@
 "use client";
 
 import { forwardRef } from "react";
+import qrcode from "qrcode-generator";
 import type { Card, FormationId, FormationSlot, Mentality } from "@/lib/game/types";
 import { POSITION_SHORT } from "@/lib/game/types";
 import { effectiveOvr } from "@/lib/game/formations";
 import { MENTALITY_LABEL } from "@/lib/game/tactics";
+import { SITE_URL, SITE_HOST } from "@/lib/site";
+
+// QR estático pro domínio do jogo — gerado uma vez (URL fixa), render inline
+// como SVG (síncrono, sem load async que furaria o html-to-image).
+const qr = qrcode(0, "M");
+qr.addData(SITE_URL);
+qr.make();
+const QR_SVG = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
 
 const SUFFIXES = new Set(["Júnior", "Junior", "Jr.", "Filho", "Santos", "Cézar"]);
 function shortName(name: string): string {
@@ -296,15 +305,29 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
               marginTop: 16,
               paddingTop: 16,
               borderTop: "3px solid rgba(255,255,255,0.14)",
-              textAlign: "center",
-              fontSize: 26,
-              fontWeight: 900,
-              letterSpacing: 5,
-              textTransform: "uppercase",
-              color: GOLD,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 24,
             }}
           >
-            ★ Monte a sua seleção · CONVOCADOS
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontFamily: ANTON, fontSize: 44, lineHeight: 1, color: GOLD, letterSpacing: 1, textTransform: "uppercase" }}>
+                Monte a sua seleção
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: 4, color: PAPER, textTransform: "uppercase", marginTop: 8 }}>
+                ★ {SITE_HOST}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#FFFDF5cc", textAlign: "right", maxWidth: 150, lineHeight: 1.15, textTransform: "uppercase", letterSpacing: 1 }}>
+                Escaneie e jogue grátis
+              </div>
+              <div
+                style={{ width: 132, height: 132, background: PAPER, borderRadius: 14, boxShadow: `3px 4px 0 rgba(0,0,0,0.4)`, padding: 9, boxSizing: "border-box" }}
+                dangerouslySetInnerHTML={{ __html: QR_SVG }}
+              />
+            </div>
           </div>
         </div>
       </div>
