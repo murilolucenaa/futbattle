@@ -740,6 +740,21 @@ function ManageView() {
     setSelIdx(null);
   }
 
+  // nearest field slot to a screen point (null if no slot within range)
+  function nearestFieldSlot(point: { x: number; y: number }): number | null {
+    const el = pitchRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const px = ((point.x - r.left) / r.width) * 100;   // left %
+    const py = (1 - (point.y - r.top) / r.height) * 100; // bottom %
+    let best = -1, bestD = Infinity;
+    slots.forEach((s, i) => {
+      const d = Math.hypot(s.y - px, s.x - py);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best >= 0 && bestD < 17 ? best : null;
+  }
+
   // drag a chip near another slot to swap — centering transform lives on the
   // wrapper, framer only animates the inner node (no transform fights)
   function onDragEnd(fromIdx: number, point: { x: number; y: number }) {
@@ -755,17 +770,17 @@ function ManageView() {
         return;
       }
     }
-    const el = pitchRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const px = ((point.x - r.left) / r.width) * 100;   // left %
-    const py = (1 - (point.y - r.top) / r.height) * 100; // bottom %
-    let best = -1, bestD = Infinity;
-    slots.forEach((s, i) => {
-      const d = Math.hypot(s.y - px, s.x - py);
-      if (d < bestD) { bestD = d; best = i; }
-    });
-    if (best >= 0 && best !== fromIdx && bestD < 17) requestSwap(fromIdx, best);
+    const best = nearestFieldSlot(point);
+    if (best !== null && best !== fromIdx) requestSwap(fromIdx, best);
+  }
+
+  // drag a reserve onto the pitch → swap it into the nearest starter slot
+  function onBenchDragEnd(card: Card, point: { x: number; y: number }) {
+    const best = nearestFieldSlot(point);
+    if (best === null) return;
+    sound.play("ui.stamp");
+    vibrate(12);
+    c.swapWithBench(best, card.player.id);
   }
 
   const meterEntries = slots.map((s, i) => ({ card: lineup[i], pos: s.pos }));
@@ -934,19 +949,25 @@ function ManageView() {
               <div className="flex items-center justify-between mb-2">
                 <span className="arc-tag">★ Banco</span>
                 <span className="font-arc text-[9px] font-extrabold uppercase tracking-wider opacity-50">
-                  {selIdx !== null ? "toca num reserva pra trocar" : "toca num titular primeiro"}
+                  {selIdx !== null ? "toca num reserva pra trocar" : "arrasta pro campo ou toca num titular"}
                 </span>
               </div>
               <div className="space-y-1.5">
                 {bench.map((card, i) => (
-                  <button
+                  <motion.button
                     key={card.player.id}
                     ref={(el) => { benchRowRefs.current[i] = el; }}
                     data-sound={selIdx !== null ? undefined : "error"}
                     onClick={() => clickBench(card)}
-                    className={`w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left transition-all ${
+                    drag
+                    dragMomentum={false}
+                    dragSnapToOrigin
+                    dragElastic={0.06}
+                    whileDrag={{ scale: 1.05, zIndex: 50 }}
+                    onDragEnd={(_, info) => onBenchDragEnd(card, info.point)}
+                    className={`relative w-full flex items-center gap-2 rounded-xl border-[2.5px] px-2 py-1.5 text-left cursor-grab active:cursor-grabbing transition-colors ${
                       selIdx !== null
-                        ? "border-[var(--ink)] bg-[var(--lima)] hover:translate-x-0.5"
+                        ? "border-[var(--ink)] bg-[var(--lima)]"
                         : "border-[rgba(20,21,18,0.25)] bg-transparent opacity-75"
                     }`}
                   >
@@ -958,7 +979,7 @@ function ManageView() {
                     <span className="flex gap-1 shrink-0">
                       {card.player.positions.slice(0, 2).map((p) => <ArcPos key={p} pos={p} />)}
                     </span>
-                  </button>
+                  </motion.button>
                 ))}
                 {bench.length === 0 && <p className="font-arc text-xs font-bold opacity-55 px-1 py-2">Banco vazio, mister.</p>}
               </div>
