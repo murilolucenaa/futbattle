@@ -3,9 +3,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
-  Card, CupMode, CupState, FormationId, MatchResult, MatchTeam, Position, Tactics,
+  Card, CupMode, CupState, FormationId, MatchResult, MatchTeam, Role, Tactics,
 } from "./types";
 import { FORMATIONS, assignLineup } from "./formations";
+import { ROLE_QUOTA, rolesOfCard } from "./draftQuota";
 import { advanceCup, drawCup, recordUserResult, simulateRound, currentRound, nextUserFixture, buildAiTeam, lastRound } from "./cup";
 import { SQUAD_BY_ID } from "@/lib/data/squads";
 import { DEFAULT_EDITION_ID } from "@/lib/data/editions";
@@ -14,12 +15,8 @@ import { REROLL_BUDGET, BENCH_REROLL_BONUS } from "./rules";
 export type CareerMode = "legends" | "wc2026";
 
 export interface DraftSlot {
-  pos: Position;
-  card: Card | null;
-}
-
-export interface BenchSlot {
-  pos: Position | null;
+  role: Role;        // função da vaga (GOL/ZAG/LAT/VOL/MEI/ATA)
+  reserve: boolean;  // vaga de reserva (depth chart)
   card: Card | null;
 }
 
@@ -44,9 +41,7 @@ export interface CareerState {
   userColors2: [string, string]; // away kit
   userPattern: string;           // home jersey pattern (KitPattern id)
   userPattern2: string;          // away jersey pattern
-  draftFormation: FormationId;
-  slots: DraftSlot[];        // 11, positions from draftFormation
-  benchSlots: BenchSlot[];   // 4, position set by the chosen player
+  slots: DraftSlot[];        // 19 vagas por função (ROLE_QUOTA) — sem formação
   draftDone: boolean;
   rerollsLeft: number;       // shared budget for extra roulette spins
   benchBonusGranted: boolean; // +1 reroll when the XI is complete
@@ -66,10 +61,8 @@ export interface CareerState {
   newCareer: (coachName: string, editionId: string, formation: FormationId, mode: CupMode, kit?: { kit1: [string, string]; kit2: [string, string]; pattern1?: string; pattern2?: string }) => void;
   newCareer2026: (coachName: string, squadId: string, kit?: { kit1: [string, string]; kit2: [string, string] }) => void;
   setSquadName: (name: string) => void;
-  setDraftFormation: (f: FormationId) => void;
   setDraftDraw: (d: Partial<DraftDraw>) => void;
   fillSlot: (index: number, card: Card) => void;
-  fillBench: (index: number, card: Card) => void;
   spendReroll: () => void;
   grantBenchBonus: () => void;
   markIntroSeen: () => void;
@@ -85,20 +78,29 @@ export interface CareerState {
   resetAll: () => void;
 }
 
-function slotsForFormation(f: FormationId): DraftSlot[] {
-  return FORMATIONS[f].map((s) => ({ pos: s.pos, card: null }));
+function freshDraftSlots(): DraftSlot[] {
+  return ROLE_QUOTA.map((q) => ({ role: q.role, reserve: q.reserve, card: null }));
 }
 
-const emptyBench = (): BenchSlot[] =>
-  Array.from({ length: BENCH_SIZE }, (): BenchSlot => ({ pos: null, card: null }));
+/** Encaixa um time pronto (modo 2026) nas vagas por função, greedy por role. */
+function placeCardsInRoleSlots(cards: Card[]): DraftSlot[] {
+  const slots = freshDraftSlots();
+  for (const card of cards) {
+    const roles = rolesOfCard(card);
+    let i = slots.findIndex((s) => !s.card && roles.includes(s.role));
+    if (i < 0) i = slots.findIndex((s) => !s.card);
+    if (i >= 0) slots[i] = { ...slots[i], card };
+  }
+  return slots;
+}
 
-export function allCards(state: Pick<CareerState, "slots" | "benchSlots">): Card[] {
-  return [...state.slots, ...state.benchSlots]
+export function allCards(state: Pick<CareerState, "slots">): Card[] {
+  return state.slots
     .map((s) => s.card)
     .filter((c): c is Card => c !== null);
 }
 
-export function cardById(state: Pick<CareerState, "slots" | "benchSlots">, id: string | null): Card | null {
+export function cardById(state: Pick<CareerState, "slots">, id: string | null): Card | null {
   if (!id) return null;
   return allCards(state).find((c) => c.player.id === id) ?? null;
 }
@@ -136,9 +138,7 @@ const freshCareer = {
   userColors2: USER_KIT2,
   userPattern: "solid",
   userPattern2: "solid",
-  draftFormation: "4-2-3-1" as FormationId,
-  slots: slotsForFormation("4-2-3-1"),
-  benchSlots: emptyBench(),
+  slots: freshDraftSlots(),
   draftDone: false,
   rerollsLeft: REROLL_BUDGET,
   benchBonusGranted: false,
@@ -171,8 +171,7 @@ export const useCareer = create<CareerState>()(
           userColors2: kit?.kit2 ?? USER_KIT2,
           userPattern: kit?.pattern1 ?? "solid",
           userPattern2: kit?.pattern2 ?? "solid",
-          draftFormation: formation,
-          slots: slotsForFormation(formation),
+          slots: freshDraftSlots(),
           tactics: { ...initialTactics, formation },
           lineupIds: FORMATIONS[formation].map(() => null),
         }),
@@ -183,14 +182,11 @@ export const useCareer = create<CareerState>()(
         if (!squad) return;
         const team = buildAiTeam(squad);
         const formation = team.tactics.formation;
-        const slots = FORMATIONS[formation].map((s, i) => ({ pos: s.pos, card: team.lineup[i] ?? null }));
+        const lineup = team.lineup.filter((c): c is Card => !!c);
         const benchCards = team.bench.slice(0, BENCH_SIZE);
-        const benchSlots = Array.from({ length: BENCH_SIZE }, (_, i): BenchSlot => ({
-          pos: benchCards[i]?.player.positions[0] ?? null,
-          card: benchCards[i] ?? null,
-        }));
+        const slots = placeCardsInRoleSlots([...lineup, ...benchCards]);
         const morale: Record<string, number> = {};
-        for (const c of [...team.lineup, ...benchCards]) if (c) morale[c.player.id] = 70;
+        for (const c of [...lineup, ...benchCards]) morale[c.player.id] = 70;
         set({
           ...freshCareer,
           coachName,
@@ -199,29 +195,18 @@ export const useCareer = create<CareerState>()(
           cupMode: "tradicional",
           userColors: kit?.kit1 ?? squad.colors,
           userColors2: kit?.kit2 ?? squad.kit2,
-          draftFormation: formation,
           slots,
-          benchSlots,
           draftDone: true,
           rerollsLeft: 0,
           benchBonusGranted: true,
           tactics: { ...initialTactics, formation },
-          lineupIds: slots.map((s) => s.card?.player.id ?? null),
+          lineupIds: team.lineup.map((c) => c?.player.id ?? null),
           benchIds: benchCards.map((c) => c.player.id),
           morale,
         });
       },
 
       setSquadName: (name) => set({ squadName: name.slice(0, 28) }),
-
-      setDraftFormation: (f) =>
-        set((s) => {
-          // re-fit already-drafted cards onto the new formation
-          const cards = s.slots.map((x) => x.card).filter((c): c is Card => !!c);
-          const lineup = assignLineup(cards, f);
-          const slots = FORMATIONS[f].map((slot, i) => ({ pos: slot.pos, card: lineup[i] ?? null }));
-          return { draftFormation: f, slots, tactics: { ...s.tactics, formation: f } };
-        }),
 
       setDraftDraw: (d) =>
         set((s) => ({ draftDraw: { ...s.draftDraw, ...d } })),
@@ -231,13 +216,6 @@ export const useCareer = create<CareerState>()(
           const slots = [...s.slots];
           slots[index] = { ...slots[index], card };
           return { slots, morale: { ...s.morale, [card.player.id]: 70 } };
-        }),
-
-      fillBench: (index, card) =>
-        set((s) => {
-          const benchSlots = [...s.benchSlots];
-          benchSlots[index] = { pos: card.player.positions[0], card };
-          return { benchSlots, morale: { ...s.morale, [card.player.id]: 70 } };
         }),
 
       spendReroll: () =>
@@ -254,9 +232,18 @@ export const useCareer = create<CareerState>()(
 
       completeDraft: () => {
         const s = get();
-        const lineupIds = s.slots.map((slot) => slot.card?.player.id ?? null);
-        const benchIds = s.benchSlots.filter((b) => b.card).map((b) => b.card!.player.id);
-        set({ draftDone: true, lineupIds, benchIds, tactics: { ...s.tactics, formation: s.draftFormation } });
+        // titulares-track → XI da formação default; sobra + reservas → banco.
+        // A formação/XI são livremente reajustados na prancheta depois.
+        const titulares = s.slots.filter((x) => !x.reserve).map((x) => x.card).filter((c): c is Card => !!c);
+        const reservas = s.slots.filter((x) => x.reserve).map((x) => x.card).filter((c): c is Card => !!c);
+        const xi = assignLineup(titulares, s.tactics.formation);
+        const xiIds = new Set(xi.filter((c): c is Card => !!c).map((c) => c.player.id));
+        const bench = [...titulares.filter((c) => !xiIds.has(c.player.id)), ...reservas];
+        set({
+          draftDone: true,
+          lineupIds: xi.map((c) => c?.player.id ?? null),
+          benchIds: bench.map((c) => c.player.id),
+        });
       },
 
       setFormation: (f) => {
@@ -373,12 +360,19 @@ export const useCareer = create<CareerState>()(
     }),
     {
       name: "futbattle-career",
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         // pre-v3 saves reference re-anchored squad ids (fra-1984 → fra-1986
         // etc.) and lack draftDraw — start clean, keeping nothing.
         if (version < 3) return { ...freshCareer } as CareerState;
         const p = persisted as Record<string, unknown>;
+        // v5→v6: draft por função (slots {role,reserve} em vez de {pos}; sem
+        // benchSlots/draftFormation). Draft em andamento muda de shape → reseta;
+        // carreira já fechada segue (slots só são lidos via .card).
+        if (version < 6) {
+          if (!p.draftDone) return { ...freshCareer } as CareerState;
+          delete p.draftFormation; delete p.benchSlots;
+        }
         // v3→v4: squadName cosmético · v4→v5: cupMode + Fixture.knockout
         const merged = { squadName: "", cupMode: "tradicional", ...p } as Record<string, unknown>;
         const cup = merged.cup as { mode?: string; fixtures?: Array<Record<string, unknown>> } | null;
