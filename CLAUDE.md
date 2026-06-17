@@ -1,4 +1,4 @@
-# CONVOCADOS — CLAUDE.md
+# +90 — CLAUDE.md
 
 Jogo single-player de futebol em Next.js: o jogador é o **técnico** (a seleção leva o nome dele), convoca lendas de seleções históricas reais via roleta, escolhe a edição da Copa (país-sede + ano, com estádios reais) e disputa o torneio no **formato 2026**: 48 seleções, 12 grupos (A–L), 16 avos → final, com disputa de 3º lugar. Inspirado em head soccer, Brasfoot e PES 2010. Todo o estado vive no cliente (localStorage) — **não há backend**.
 

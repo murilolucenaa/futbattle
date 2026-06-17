@@ -191,7 +191,7 @@ export default function CupPage() {
         <div className="mx-auto max-w-6xl w-full px-4 py-6">
         <div className="font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] text-white/85 mb-3 flex items-center gap-2">
           <IconTrophy size={14} className="text-[var(--amarelo)]" />
-          Copa do Mundo CONVOCADOS {ed ? `· ${editionLabel(ed)}` : ""} · {modeLabel}
+          Copa do Mundo +90 {ed ? `· ${editionLabel(ed)}` : ""} · {modeLabel}
         </div>
 
         {/* "?" mini-história imersiva da edição */}
@@ -710,7 +710,7 @@ function ChampionBanner({ name }: { name: string }) {
       <IconTrophy size={56} className="mx-auto mb-3 text-[var(--gold)]" />
       <h2 className="font-display text-4xl mb-2 text-[var(--gold)]">CAMPEÃO DO MUNDO!</h2>
       <p className="text-lg">
-        <span className="text-[var(--accent)] font-bold">{name}</span> conquistou a Copa CONVOCADOS. Lenda eterna.
+        <span className="text-[var(--accent)] font-bold">{name}</span> conquistou a Copa +90. Lenda eterna.
       </p>
     </div>
   );

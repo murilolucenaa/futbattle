@@ -195,7 +195,7 @@ const ChampionCard = forwardRef<HTMLDivElement, { data: ChampionData }>(function
             marginTop: 16, paddingTop: 16, borderTop: "3px solid rgba(255,255,255,0.14)", textAlign: "center",
             fontSize: 26, fontWeight: 900, letterSpacing: 5, textTransform: "uppercase", color: GOLD,
           }}>
-            ★ Vença a sua Copa · CONVOCADOS
+            ★ Vença a sua Copa · +90
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "CONVOCADOS — convoque lendas e conquiste a Copa";
+export const alt = "+90 — convoque lendas e conquiste a Copa";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -23,9 +23,9 @@ export default function OpengraphImage() {
         }}
       >
         <div style={{ fontSize: 150, lineHeight: 1 }}>⭐</div>
-        <div style={{ display: "flex", fontSize: 132, fontWeight: 900, letterSpacing: -2, marginTop: 8 }}>
-          <span style={{ color: "#FFC81B" }}>CONVO</span>
-          <span style={{ color: "#FFFDF5" }}>CADOS</span>
+        <div style={{ display: "flex", fontSize: 220, fontWeight: 900, letterSpacing: -4, marginTop: 4 }}>
+          <span style={{ color: "#FFC81B" }}>+</span>
+          <span style={{ color: "#FFFDF5" }}>90</span>
         </div>
         <div
           style={{

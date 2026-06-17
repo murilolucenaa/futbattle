@@ -127,14 +127,14 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareCardData }>(function S
           <div
             style={{
               fontFamily: ANTON,
-              fontSize: 58,
+              fontSize: 84,
               lineHeight: 1,
-              letterSpacing: 3,
+              letterSpacing: 1,
               textShadow: "3px 4px 0 " + INK,
             }}
           >
-            <span style={{ color: GOLD }}>CONVO</span>
-            <span style={{ color: PAPER }}>CADOS</span>
+            <span style={{ color: GOLD }}>+</span>
+            <span style={{ color: PAPER }}>90</span>
           </div>
           <div
             style={{

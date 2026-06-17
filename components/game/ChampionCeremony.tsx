@@ -111,7 +111,7 @@ export default function ChampionCeremony({
     if (!shareUrl) return;
     try {
       const blob = await (await fetch(shareUrl)).blob();
-      const file = new File([blob], "convocados-campeao.png", { type: "image/png" });
+      const file = new File([blob], "mais90-campeao.png", { type: "image/png" });
       const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean };
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], title: `${data.teamName} — Campeão Mundial` });
@@ -120,7 +120,7 @@ export default function ChampionCeremony({
     } catch { /* cancelled — fall through to download */ }
     const a = document.createElement("a");
     a.href = shareUrl;
-    a.download = "convocados-campeao.png";
+    a.download = "mais90-campeao.png";
     a.click();
   }
 

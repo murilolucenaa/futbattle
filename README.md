@@ -1,8 +1,8 @@
 <div align="center">
 
-# ⚽ CONVOCADOS
+# ⚽ +90
 
-**Convoque lendas, comande sua seleção como técnico e conquiste uma Copa do Mundo inteira.**
+**Convoque lendas, comande sua seleção como técnico e conquiste a Copa no minuto +90.**
 
 Jogo de futebol single-player no navegador, com estética de "transmissão de TV dos anos 2000
 encontra menu de console". Todo o estado vive no cliente — sem backend, sem login, sem servidor.
@@ -15,7 +15,7 @@ encontra menu de console". Todo o estado vive no cliente — sem backend, sem lo
 
 ## 📖 Sobre
 
-No Convocados você **não joga, você dirige**. Assume o papel de técnico — a seleção leva o seu
+No +90 você **não joga, você dirige**. Assume o papel de técnico — a seleção leva o seu
 nome — convoca craques históricos de seleções reais via roleta, escolhe a edição da Copa
 (país-sede, ano e estádios reais) e disputa o torneio no **formato 2026**: 48 seleções,
 12 grupos, mata-mata até a final, com disputa de 3º lugar e pênaltis.
