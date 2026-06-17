@@ -212,6 +212,7 @@ function DraftView() {
   const [squad, setSquad] = useState<SquadDef | null>(storedSquad);
   const [flicker, setFlicker] = useState<SquadDef | null>(null);
   const [picked, setPicked] = useState<PlayerDef | null>(null);
+  const [stampIdx, setStampIdx] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [muted, setMutedState] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -317,17 +318,23 @@ function DraftView() {
     vibrate(24);
   }
 
+  function flashStamp(i: number) {
+    setStampIdx(i);
+    timers.current.push(setTimeout(() => setStampIdx((cur) => (cur === i ? null : cur)), 1100));
+  }
+
   function placeInSlot(i: number) {
     if (!picked || c.slots[i].card) return;
     if (!rolesOfP(picked).includes(c.slots[i].role)) { sound.play("ui.error"); return; }
     c.fillSlot(i, makeCard(picked));
+    flashStamp(i);
     afterPlace(picked.name, picked.ovr);
   }
 
   /** Click a list row a second time → drop into the first compatible open slot. */
   function confirmPick(p: PlayerDef) {
     const si = c.slots.findIndex((s) => !s.card && rolesOfP(p).includes(s.role));
-    if (si >= 0) { c.fillSlot(si, makeCard(p)); afterPlace(p.name, p.ovr); return; }
+    if (si >= 0) { c.fillSlot(si, makeCard(p)); flashStamp(si); afterPlace(p.name, p.ovr); return; }
     sound.play("ui.error");
   }
 
@@ -531,8 +538,19 @@ function DraftView() {
                 {items.map(({ s, i }) => {
                   const compat = picked !== null && rolesOfP(picked).includes(role);
                   return s.card ? (
-                    <motion.div key={s.card.player.id} initial={{ scale: 0.35, opacity: 0, rotate: -6 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}>
+                    <motion.div key={s.card.player.id} className="relative" initial={{ scale: 0.35, opacity: 0, rotate: -6 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}>
                       <PlayerChip variant="filled" name={shortName(s.card.player.name)} ovr={s.card.player.ovr} flag={s.card.flag} pos={s.card.player.positions[0]} dim={picked !== null} />
+                      {stampIdx === i && (
+                        <motion.div
+                          initial={{ scale: 2.3, opacity: 0, rotate: -14 }}
+                          animate={{ scale: 1, opacity: 1, rotate: -9 }}
+                          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+                        >
+                          <span className="rounded-md border-[3px] border-[var(--ink)] bg-[var(--laranja)] px-2 py-0.5 font-display text-[10px] leading-none text-white shadow-[2px_3px_0_var(--ink)]">
+                            CONVOCADO
+                          </span>
+                        </motion.div>
+                      )}
                     </motion.div>
                   ) : (
                     <button
