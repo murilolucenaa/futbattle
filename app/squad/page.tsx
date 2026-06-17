@@ -531,7 +531,9 @@ function DraftView() {
                 {items.map(({ s, i }) => {
                   const compat = picked !== null && rolesOfP(picked).includes(role);
                   return s.card ? (
-                    <PlayerChip key={i} variant="filled" name={shortName(s.card.player.name)} ovr={s.card.player.ovr} flag={s.card.flag} pos={s.card.player.positions[0]} dim={picked !== null} />
+                    <motion.div key={s.card.player.id} initial={{ scale: 0.35, opacity: 0, rotate: -6 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 420, damping: 18 }}>
+                      <PlayerChip variant="filled" name={shortName(s.card.player.name)} ovr={s.card.player.ovr} flag={s.card.flag} pos={s.card.player.positions[0]} dim={picked !== null} />
+                    </motion.div>
                   ) : (
                     <button
                       key={i}
@@ -595,8 +597,20 @@ function DraftView() {
   );
 
   return (
-    <main className="arc-bg min-h-0 flex-1">
-      <GameShell left={left} center={center} right={right} className="h-full" />
+    <main className="arc-bg relative min-h-0 flex-1">
+      {/* refletores de estádio — profundidade sem brigar com o arc-bg */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(640px 340px at 18% -6%, rgba(255,200,27,0.12), transparent 62%)," +
+            "radial-gradient(640px 340px at 82% -6%, rgba(77,163,255,0.10), transparent 62%)",
+        }}
+      />
+      <div className="relative z-10 h-full">
+        <GameShell left={left} center={center} right={right} className="h-full" />
+      </div>
 
       {/* toast carimbo */}
       <AnimatePresence>
