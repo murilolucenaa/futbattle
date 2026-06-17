@@ -10,6 +10,7 @@ import KitJersey, { PATTERNS, type KitPattern } from "@/components/game/KitJerse
 import { useCareer, USER_COLORS, USER_KIT2 } from "@/lib/game/store";
 import { EDITIONS, EDITION_BY_ID, editionLabel } from "@/lib/data/editions";
 import { fielAvailable, fielIsTradicional } from "@/lib/game/formats/registry";
+import { SUPPORT_URL } from "@/lib/site";
 import type { CupMode } from "@/lib/game/types";
 import { IconLock, IconStadium } from "@/components/icons";
 
@@ -224,6 +225,15 @@ export default function Home() {
               <p className="press-pulse font-arc text-[10px] font-extrabold uppercase tracking-[0.3em] text-white/80 mt-4">
                 toque para começar
               </p>
+              <a
+                href={SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-sound="confirm"
+                className="arc-btn arc-btn--paper px-4 py-2 text-sm mt-1"
+              >
+                ★ Apoie o game
+              </a>
             </motion.nav>
           )}
 
