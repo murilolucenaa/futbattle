@@ -18,7 +18,8 @@ import { SQUADS, SQUAD_BY_ID, squadLabel } from "@/lib/data/squads";
 import { drawSquad, squadPower } from "@/lib/game/rules";
 import { sound, vibrate, isMuted, setMuted } from "@/src/audio/SoundManager";
 import type { Card, FormationId, GameStyle, Mentality, PlayerDef, Position, Sector, SquadDef } from "@/lib/game/types";
-import { POSITION_SHORT, POSITION_SECTOR } from "@/lib/game/types";
+import { POSITION_SHORT, POSITION_SECTOR, POSITION_ROLE, ROLE_SHORT } from "@/lib/game/types";
+import type { Role } from "@/lib/game/types";
 
 const SUFFIXES = new Set(["Júnior", "Junior", "Jr.", "Filho", "Santos", "Cézar"]);
 function shortName(name: string): string {
@@ -199,9 +200,11 @@ function StatBig({ label, value, color }: { label: string; value: number | null;
   );
 }
 
+const DRAFT_ROLES: Role[] = ["GOL", "ZAG", "LAT", "VOL", "MEI", "ATA"];
+
 function DraftView() {
   const c = useCareer();
-  const slots = FORMATIONS[c.draftFormation];
+  const rolesOfP = (p: PlayerDef): Role[] => [...new Set(p.positions.map((pos) => POSITION_ROLE[pos]))];
 
   // draw state lives in the store (reload can't cheat a free spin)
   const storedSquad = c.draftDraw.squadId ? SQUAD_BY_ID[c.draftDraw.squadId] ?? null : null;
@@ -217,14 +220,14 @@ function DraftView() {
   useEffect(() => { setMutedState(isMuted()); }, []);
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
 
-  const startersDone = c.slots.every((s) => s.card);
-  const allDone = startersDone && c.benchSlots.every((b) => b.card);
-  const draftedXI = c.slots.filter((s) => s.card).length;
+  const startersDone = c.slots.filter((s) => !s.reserve).every((s) => s.card);
+  const allDone = c.slots.every((s) => s.card);
+  const draftedCount = c.slots.filter((s) => s.card).length;
 
   const usedNames = useMemo(
     () => new Set(allCards(c).map((x) => x.player.name)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [c.slots, c.benchSlots]
+    [c.slots]
   );
 
   function showToast(msg: string) {
@@ -236,15 +239,12 @@ function DraftView() {
   useEffect(() => {
     if (startersDone && !c.benchBonusGranted) {
       c.grantBenchBonus();
-      showToast("FECHOU OS 11! BANCO LIBERADO · +1 GIRO");
+      showToast("TITULARES FECHADOS · +1 GIRO");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startersDone, c.benchBonusGranted]);
 
-  const openStarterPos = new Set(c.slots.filter((s) => !s.card).map((s) => s.pos));
-  const benchOpen = startersDone && c.benchSlots.some((b) => !b.card);
-
-  const fits = (p: PlayerDef) => benchOpen || p.positions.some((pos) => openStarterPos.has(pos));
+  const fits = (p: PlayerDef) => c.slots.some((s) => !s.card && rolesOfP(p).includes(s.role));
   const eligible = (s: SquadDef) => s.players.filter((p) => !usedNames.has(p.name));
   const usable = (s: SquadDef) => eligible(s).filter(fits);
 
@@ -317,27 +317,17 @@ function DraftView() {
     vibrate(24);
   }
 
-  function placeStarter(i: number) {
+  function placeInSlot(i: number) {
     if (!picked || c.slots[i].card) return;
-    if (!picked.positions.includes(c.slots[i].pos)) { sound.play("ui.error"); return; }
+    if (!rolesOfP(picked).includes(c.slots[i].role)) { sound.play("ui.error"); return; }
     c.fillSlot(i, makeCard(picked));
-    afterPlace(picked.name, picked.ovr);
-  }
-
-  function placeBench(i: number) {
-    if (!picked || !startersDone || c.benchSlots[i].card) return;
-    c.fillBench(i, makeCard(picked));
     afterPlace(picked.name, picked.ovr);
   }
 
   /** Click a list row a second time → drop into the first compatible open slot. */
   function confirmPick(p: PlayerDef) {
-    const si = c.slots.findIndex((s) => !s.card && p.positions.includes(s.pos));
+    const si = c.slots.findIndex((s) => !s.card && rolesOfP(p).includes(s.role));
     if (si >= 0) { c.fillSlot(si, makeCard(p)); afterPlace(p.name, p.ovr); return; }
-    if (benchOpen) {
-      const bi = c.benchSlots.findIndex((b) => !b.card);
-      if (bi >= 0) { c.fillBench(bi, makeCard(p)); afterPlace(p.name, p.ovr); return; }
-    }
     sound.play("ui.error");
   }
 
@@ -348,11 +338,12 @@ function DraftView() {
       })
     : [];
 
-  // box-score numbers (current XI)
-  const meterEntries = c.slots.map((s) => ({ card: s.card, pos: s.pos }));
-  const filledStarters = c.slots.filter((s) => s.card);
-  const teamOvr = filledStarters.length
-    ? Math.round(filledStarters.reduce((sum, s) => sum + effectiveOvr(s.card!, s.pos), 0) / filledStarters.length)
+  // box-score numbers — pela posição real de cada convocado
+  const meterEntries = c.slots
+    .filter((s) => s.card)
+    .map((s) => ({ card: s.card, pos: s.card!.player.positions[0] }));
+  const teamOvr = meterEntries.length
+    ? Math.round(meterEntries.reduce((sum, e) => sum + effectiveOvr(e.card!, e.pos), 0) / meterEntries.length)
     : 0;
 
   const tier = squad ? powerTier(squadPower(squad)) : null;
@@ -382,7 +373,7 @@ function DraftView() {
       {allDone ? (
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center text-center">
           <div className="font-display text-4xl leading-none text-[var(--ink)]">GRUPO FECHADO!</div>
-          <p className="mb-5 mt-2 font-arc text-sm font-bold opacity-65">15 lendas no vestiário. Agora é contigo.</p>
+          <p className="mb-5 mt-2 font-arc text-sm font-bold opacity-65">19 convocados no vestiário. Agora é contigo.</p>
           <button data-sound="confirm" onClick={() => c.completeDraft()} className="arc-btn arc-btn--rosa arc-btn--card w-full py-4">
             <span className="block text-xl leading-tight">Fechar convocação</span>
             <span className="mt-0.5 block font-arc text-[11px] font-bold opacity-80">sem choro depois, mister</span>
@@ -437,9 +428,7 @@ function DraftView() {
               </div>
             ) : picked ? (
               <div className="rounded-xl border-[3px] border-[var(--ink)] bg-[var(--lima)] px-3 py-2 font-arc text-[11px] font-extrabold uppercase tracking-wide text-[var(--ink)]">
-                {startersDone
-                  ? "Clica num reserva vazio aqui ao lado (★ Banco), ou de novo no nome"
-                  : `Clica numa vaga verde no campo, ou de novo no nome (${picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})`}
+                {`Clica numa vaga que acendeu, ou de novo no nome (${picked.positions.map((p) => POSITION_SHORT[p]).join(" · ")})`}
               </div>
             ) : (
               <div className="px-1 font-arc text-[11px] font-extrabold uppercase tracking-wide opacity-55">
@@ -520,45 +509,50 @@ function DraftView() {
     </div>
   );
 
-  // ── CENTER: campo ─────────────────────────────────────────
+  // ── CENTER: quadro por função ─────────────────────────────
   const center = (
     <div className="flex min-h-0 flex-col lg:h-full">
-      <div className="mb-2 flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1">
-        <span className="arc-tag shrink-0">★ Formação</span>
-        {FORMATION_IDS.map((f) => (
-          <button
-            key={f}
-            data-sound="confirm"
-            onClick={() => c.setDraftFormation(f)}
-            className={`arc-btn shrink-0 px-2.5 py-1 text-[11px] ${c.draftFormation === f ? "" : "arc-btn--paper"}`}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mb-2 flex shrink-0 items-center justify-between">
+        <span className="arc-tag">★ Elenco por função</span>
+        <span className="font-arc text-[11px] font-extrabold uppercase">
+          <b className="font-display text-base" style={{ color: allDone ? "var(--lima)" : "var(--amarelo)" }}>{draftedCount}</b>
+          <span className="opacity-55">/19</span>
+        </span>
       </div>
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div className="relative mx-auto w-full max-w-[min(82vw,420px)] overflow-hidden rounded-[22px] border-[3px] border-[var(--ink)] shadow-[5px_6px_0_var(--ink)] lg:mx-0 lg:h-full lg:w-auto lg:max-w-full" style={{ aspectRatio: "3 / 4" }}>
-          <Pitch className="pitch-arc h-full w-full !rounded-none">
-            {slots.map((slot, i) => {
-              const card = c.slots[i].card;
-              const ok = picked !== null && !card && picked.positions.includes(slot.pos);
-              return (
-                <div key={i} className="absolute -translate-x-1/2 translate-y-1/2" style={{ left: `${slot.y}%`, bottom: `${slot.x}%` }}>
-                  {card ? (
-                    <PlayerChip variant="filled" name={shortName(card.player.name)} ovr={card.player.ovr} flag={card.flag} pos={slot.pos} dim={picked !== null} />
+      <div className="flex min-h-0 flex-1 flex-col justify-between gap-1.5 overflow-y-auto pr-1">
+        {DRAFT_ROLES.map((role) => {
+          const items = c.slots.map((s, i) => ({ s, i })).filter((x) => x.s.role === role);
+          return (
+            <div key={role} className="flex items-center gap-2">
+              <div className="w-12 shrink-0 rounded-lg border-[3px] border-[var(--ink)] bg-[var(--paper)] py-2 text-center font-display text-sm leading-none text-[var(--ink)] shadow-[2px_2px_0_var(--ink)]">
+                {ROLE_SHORT[role]}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {items.map(({ s, i }) => {
+                  const compat = picked !== null && rolesOfP(picked).includes(role);
+                  return s.card ? (
+                    <PlayerChip key={i} variant="filled" name={shortName(s.card.player.name)} ovr={s.card.player.ovr} flag={s.card.flag} pos={s.card.player.positions[0]} dim={picked !== null} />
                   ) : (
-                    <PlayerChip
-                      variant="empty"
-                      pos={slot.pos}
-                      state={ok ? "open" : picked ? "dim" : "idle"}
-                      onClick={() => { if (ok) placeStarter(i); else if (picked) sound.play("ui.error"); }}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </Pitch>
-        </div>
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={!picked}
+                      data-sound={compat ? "stamp" : undefined}
+                      onClick={() => { if (compat) placeInSlot(i); else if (picked) sound.play("ui.error"); }}
+                      className={`flex h-[52px] w-[88px] flex-col items-center justify-center rounded-xl border-[3px] border-dashed text-center transition-colors ${
+                        compat ? "slot-call cursor-pointer border-[var(--ink)] bg-[var(--lima)]" : `border-[rgba(20,21,18,0.3)] ${picked ? "opacity-40" : ""}`
+                      }`}
+                    >
+                      <span className="font-arc text-[10px] font-extrabold uppercase tracking-wide text-[var(--ink)] opacity-70">
+                        {s.reserve ? "reserva" : ROLE_SHORT[role]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -580,61 +574,22 @@ function DraftView() {
       </div>
 
       <div className="mb-1.5 flex shrink-0 items-center justify-between">
-        <span className="arc-tag">★ Escalação</span>
+        <span className="arc-tag">★ Prévia do plantel</span>
         <span className="font-arc text-[11px] font-extrabold uppercase">
-          <b className="font-display text-base" style={{ color: draftedXI === 11 ? "var(--lima)" : "var(--amarelo)" }}>{draftedXI}</b>
-          <span className="opacity-55">/11</span>
+          <b className="font-display text-base" style={{ color: allDone ? "var(--lima)" : "var(--amarelo)" }}>{draftedCount}</b>
+          <span className="opacity-55">/19</span>
         </span>
       </div>
-      <div className="max-h-[38vh] space-y-1 overflow-y-auto overscroll-contain pr-1 lg:max-h-none lg:flex-1 lg:min-h-0">
-        {c.slots.map((s, i) => (
-          <div key={i} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5" style={{ background: s.card ? "rgba(20,21,18,0.05)" : "transparent" }}>
-            <ArcPos pos={s.pos} dim={!s.card} big />
-            <span className={`min-w-0 flex-1 truncate font-arc text-[15px] font-extrabold uppercase ${s.card ? "text-[var(--ink)]" : "opacity-35"}`}>
-              {s.card ? shortName(s.card.player.name) : "—"}
-            </span>
-            {s.card && <span className="shrink-0 font-display text-xl text-[var(--ink)]">{s.card.player.ovr}</span>}
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-2 shrink-0">
-        <span className="arc-tag mb-1.5">★ Banco</span>
-        <div className="mt-1.5 grid grid-cols-2 gap-2">
-          {c.benchSlots.map((b, i) => {
-            const open = !b.card && picked !== null && benchOpen;
-            return (
-              <button
-                key={i}
-                type="button"
-                disabled={!!b.card}
-                data-sound={open ? "stamp" : undefined}
-                onClick={() => { if (open) placeBench(i); }}
-                className={`flex items-center gap-2 rounded-xl border-[2.5px] px-2.5 py-2 text-left ${
-                  b.card
-                    ? "border-[var(--ink)] bg-[var(--paper)]"
-                    : open
-                      ? "slot-call cursor-pointer border-[var(--ink)] bg-[var(--lima)]"
-                      : "cursor-default border-dashed border-[rgba(20,21,18,0.3)]"
-                }`}
-              >
-                {b.card ? (
-                  <>
-                    <span className="shrink-0 font-display text-xl text-[var(--ink)]">{b.card.player.ovr}</span>
-                    <span className="min-w-0 truncate font-arc text-[12px] font-extrabold uppercase text-[var(--ink)]">{shortName(b.card.player.name)}</span>
-                  </>
-                ) : (
-                  <span className={`font-arc text-[11px] font-extrabold uppercase ${open ? "text-[var(--ink)]" : "opacity-35"}`}>
-                    {open ? "carimbar aqui" : `reserva ${i + 1}`}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-4 text-center">
+        <div className="font-display text-6xl leading-none text-[var(--ink)]">
+          {draftedCount}<span className="text-3xl opacity-40">/19</span>
         </div>
-        {!startersDone && (
-          <p className="mt-1.5 font-arc text-[9px] font-extrabold uppercase tracking-wider opacity-45">fecha os 11 pra liberar o banco</p>
-        )}
+        <div className="h-3 w-full overflow-hidden rounded-full border-[2px] border-[var(--ink)] bg-[rgba(20,21,18,0.08)]">
+          <div className="h-full rounded-full bg-[var(--lima)] transition-[width] duration-500" style={{ width: `${(draftedCount / 19) * 100}%` }} />
+        </div>
+        <p className="max-w-[16rem] font-arc text-[11px] font-bold leading-snug opacity-55">
+          A força sobe conforme você convoca. A <b className="text-[var(--ink)]">formação</b> e os <b className="text-[var(--ink)]">11 titulares</b> você define depois, na prancheta.
+        </p>
       </div>
     </div>
   );
